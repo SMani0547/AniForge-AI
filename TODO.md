@@ -2,7 +2,7 @@
 
 Updated October 13, 2026 (Pacific/Fiji). This is an implementation record, not evidence of deployment or paid model success.
 
-The separately requested visual redesign is planned in [UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md): new public homepage, project dashboard and professional editor workspace. Its unchecked tasks do not change the implementation or live-release status below.
+The separately requested visual redesign is tracked in [UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md). U1's local visual system and development-only homepage/dashboard/editor studies are implemented; external reference visual review is pending. Product migration starts in U2. These studies do not change the live-release status below.
 
 ## Phase 1 — foundation and model proof of concept
 

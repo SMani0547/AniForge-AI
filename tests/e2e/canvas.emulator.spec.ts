@@ -9,10 +9,14 @@ test('guest imports, edits, saves and reloads an actual editable scene through F
   await page.goto('/projects');
   await expect(page.getByText('Local Firebase emulators', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Continue as a guest' }).click();
+  await expect(page.getByRole('heading', { name: 'A blank slate. All yours.' })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('baseline-dashboard-empty.png'), fullPage: true });
   await page.getByRole('button', { name: 'New project', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Project name').fill('Original geometric scene');
   await dialog.getByRole('button', { name: 'Create project', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Open Original geometric scene', exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('baseline-dashboard-populated.png'), fullPage: true });
   const firstScenes = page.waitForResponse((response) => /\/api\/v1\/projects\/[^/]+\/scenes$/.test(response.url()) && response.request().method() === 'GET');
   await page.getByRole('button', { name: 'Open Original geometric scene', exact: true }).click();
   const sceneResponse = await firstScenes;
@@ -22,6 +26,7 @@ test('guest imports, edits, saves and reloads an actual editable scene through F
   const sceneUrl = `${sceneResponse.url()}/${first.id}`;
   const canvas = page.getByTestId('scene-canvas');
   await expect(canvas).toHaveAttribute('aria-label', 'Editable scene canvas with 0 objects');
+  await page.screenshot({ path: testInfo.outputPath('baseline-editor-empty.png'), fullPage: true });
   async function savedScene() {
     const button = page.getByRole('button', { name: 'Save scene', exact: true });
     if (await button.isEnabled()) await button.click();

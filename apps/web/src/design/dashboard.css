@@ -1,0 +1,37 @@
+.af-dashboard { display: grid; grid-template-columns: 236px minmax(0,1fr); min-height: 780px; }
+.af-dashboard-nav { padding: 32px 22px; border-right: 1px solid var(--af-line); display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.af-dashboard-nav>.af-eyebrow { margin: 42px 12px 8px!important; font-size: 10px; }
+.af-dashboard-nav>a,.af-sidebar-active { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; text-decoration: none; font-size: 14px; }
+.af-sidebar-active { background: var(--af-raised); color: var(--af-accent); }
+.af-dashboard-nav>a { color: var(--af-muted); }
+.af-dashboard-note { margin-top: auto; padding: 22px 12px 0; border-top: 1px solid var(--af-line); color: var(--af-muted); }
+.af-dashboard-note p { margin: 12px 0!important; font-size: 14px; }
+.af-dashboard-note small { font-size: 12px; }
+.af-dashboard-main { min-width: 0; padding: 28px 5% 60px; }
+.af-dashboard-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.af-dashboard-heading { padding: 52px 0 40px; display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+.af-dashboard-heading h1 { font-size: clamp(36px,4vw,54px); line-height: 1.1; letter-spacing: -.045em; font-weight: 500; margin: 16px 0!important; }
+.af-dashboard-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 8px 0 24px; }
+.af-dashboard-toolbar h2 { font-size: 20px; }
+.af-dashboard-toolbar h2 span { font: 13px var(--af-mono); margin-left: 12px; }
+.af-dashboard-toolbar .af-field { width: 250px; }
+.af-dashboard-toolbar .af-field label { font-size: 12px; color: var(--af-muted); }
+.af-state-control { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
+.af-state-control>.af-eyebrow { font-size: 10px; }
+.af-project-studies { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; }
+.af-project-study { text-align: left; padding: 0; overflow: hidden; border: 1px solid var(--af-line); border-radius: 12px; background: var(--af-surface); color: var(--af-text); transition: border-color var(--af-motion); }
+.af-project-study:hover { border-color: var(--af-accent); }
+.af-project-art { position: relative; }
+.af-project-art>.af-scene-art { aspect-ratio: 16/9; object-fit: cover; }
+.af-project-art--1>.af-scene-art { filter: hue-rotate(32deg); }
+.af-project-art>span { position: absolute; bottom: 12px; left: 12px; background: #111727db; color: #e4e6ee; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
+.af-project-study-info { padding: 20px; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.af-project-study-info h3 { font-size: 17px; font-weight: 500; }
+.af-project-study-info p { font-size: 12px; color: var(--af-muted); margin-top: 6px!important; }
+.af-dashboard-guide { display: flex; align-items: center; gap: 20px; padding: 24px 0; margin-top: 32px; border-top: 1px solid var(--af-line); }
+.af-guide-icon { background: var(--af-raised); padding: 18px; border-radius: 12px; color: var(--af-accent); }
+.af-dashboard-guide h3 { font-size: 17px; font-weight: 500; }
+.af-dashboard-guide p { font-size: 13px; color: var(--af-muted); margin-top: 6px!important; }
+.af-dashboard-guide>a { margin-left: auto; font-size: 14px; }
+@media(max-width:1100px) { .af-dashboard { grid-template-columns: 200px minmax(0,1fr); } .af-dashboard-heading { flex-wrap: wrap; } }
+@media(max-width:760px) { .af-dashboard { display: block; } .af-dashboard-nav { border-right: 0; border-bottom: 1px solid var(--af-line); flex-direction: row; flex-wrap: wrap; padding: 20px; } .af-dashboard-nav>.af-eyebrow,.af-dashboard-note { display: none; } .af-dashboard-nav>.af-brand { width: 100%; margin-bottom: 10px; } .af-dashboard-main { padding: 24px 20px; } .af-dashboard-heading { padding: 32px 0; } .af-project-studies { grid-template-columns: minmax(0,1fr); } .af-dashboard-toolbar { align-items: start; flex-direction: column; gap: 16px; } .af-dashboard-toolbar .af-field { width: 100%; } .af-dashboard-guide { flex-wrap: wrap; } .af-dashboard-guide>a { margin-left: 0; } }

@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "recordedOn": "2026-10-13",
+  "assets": [
+    {
+      "id": "quiet-observatory",
+      "source": "apps/web/src/design/SceneArtwork.tsx",
+      "author": "Codex, authored for this AniForge repository change",
+      "rights": "Original code-native vector composition; no third-party artwork used. Distributed as repository source under the project's licensing decisions.",
+      "kind": "original-vector-illustration",
+      "placements": ["homepage study", "sample dashboard cards", "editor composition study"],
+      "disclosure": "Original vector artwork / design study, not AI output",
+      "variants": ["base lavender palette", "CSS hue rotation for the second sample card"],
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "aniforge-monogram-study",
+      "source": "apps/web/src/design/DesignLab.tsx",
+      "author": "Codex, authored for AniForge",
+      "rights": "Original typographic af composition in CSS; no external logo file imported.",
+      "kind": "code-native-brand-study",
+      "placements": ["homepage", "dashboard", "footer"]
+    },
+    {
+      "id": "lucide-icons",
+      "source": "existing lucide-react package",
+      "author": "Lucide contributors",
+      "rights": "ISC; preserve package license and notices",
+      "kind": "existing-vector-icon-system",
+      "placements": ["navigation", "toolbars", "buttons", "empty states"]
+    },
+    {
+      "id": "system-typography",
+      "source": "installed Inter / Segoe UI / generic sans-serif; Consolas / monospace",
+      "author": "Respective font authors",
+      "rights": "Uses installed fonts through CSS; no font binaries copied or redistributed",
+      "kind": "system-font-stack",
+      "placements": ["all U1 studies"]
+    },
+    {
+      "id": "local-ui-evidence",
+      "source": "docs/ui-u1/ and generated test-results/ screenshots",
+      "author": "Captured by local Playwright tests of AniForge",
+      "rights": "Repository UI and original sample art; no real user media or provider output",
+      "kind": "product-and-prototype-screenshots",
+      "placements": ["design review documentation"],
+      "disclosure": "Distinguish existing-app baselines from new design studies; emulator error/loading capture is test-controlled.",
+      "actualAniforgeGeneratedOutput": false
+    }
+  ],
+  "externalReference": {
+    "url": "https://getartcraft.com/",
+    "usage": "Reference only; no site artwork, fonts, copy or logos downloaded for reuse. Visual browser review pending."
+  }
+}

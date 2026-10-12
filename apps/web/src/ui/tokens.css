@@ -1,0 +1,50 @@
+/* AniForge visual system v1. Scoped until individual product surfaces migrate. */
+.af-theme {
+  --af-bg: #101114;
+  --af-surface: #191b20;
+  --af-raised: #23262d;
+  --af-hover: #30343e;
+  --af-border: #484d59;
+  --af-line: #30343d;
+  --af-text: #f3f0e9;
+  --af-muted: #b4b7c1;
+  --af-accent: #bbc4ff;
+  --af-accent-hover: #d3d9ff;
+  --af-ink: #141727;
+  --af-focus: #dadfff;
+  --af-success: #a5e4bc;
+  --af-danger: #ffb4b8;
+  --af-warning: #f2d09a;
+  --af-font: Inter, 'Segoe UI', sans-serif;
+  --af-display: 'Segoe UI', Inter, sans-serif;
+  --af-mono: Consolas, monospace;
+  --af-space-1: 4px;
+  --af-space-2: 8px;
+  --af-space-3: 12px;
+  --af-space-4: 16px;
+  --af-space-6: 24px;
+  --af-space-8: 32px;
+  --af-space-12: 48px;
+  --af-radius: 8px;
+  --af-radius-lg: 16px;
+  --af-shadow: 0 20px 70px #0006;
+  --af-motion: 140ms;
+  color: var(--af-text);
+  background: var(--af-bg);
+  font: 400 15px/1.55 var(--af-font);
+  min-height: 100dvh;
+  color-scheme: dark;
+}
+.af-theme *, .af-theme *::before, .af-theme *::after { box-sizing: border-box; }
+.af-theme :is(h1,h2,h3,p) { margin: 0; }
+.af-theme :is(button,input,select,textarea) { font: inherit; }
+.af-theme a { color: inherit; }
+.af-theme :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible { outline: 3px solid var(--af-focus); outline-offset: 4px; }
+.af-theme button { cursor: pointer; }
+.af-theme button:disabled { cursor: not-allowed; }
+.af-theme svg { flex-shrink: 0; }
+.af-muted { color: var(--af-muted); }
+.af-eyebrow { font: 12px/1.5 var(--af-mono); text-transform: uppercase; letter-spacing: .15em; color: var(--af-muted); }
+.af-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--af-space-3); }
+.af-stack { display: grid; gap: var(--af-space-4); }
+@media (prefers-reduced-motion: reduce) { .af-theme { --af-motion: 0ms; } }

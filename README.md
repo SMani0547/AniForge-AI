@@ -82,7 +82,7 @@ The pinned Firebase CLI is a development dependency and currently brings transit
 
 [TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
 
-[UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md) tracks the separately requested homepage, project dashboard and editor redesign, including visual direction, implementation order and acceptance checks. It is a plan; the redesign has not been implemented yet.
+[UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md) tracks the homepage, dashboard and editor redesign. U1 adds a development-only [design lab](http://127.0.0.1:5173/design) with responsive screen studies and reusable components; run the local dev server first. Current product screens migrate in U2–U5. See [U1 results](docs/ui-upgrade-results.md), [visual system](docs/ui-design-system.md) and [screenshots](docs/ui-u1/README.md). The external Artcraft visual review remains pending because no browser connection was available.
 
 Phase 6 local release preparation is recorded in [the results](docs/phase-6-results.md). Cloud setup and live verification remain deferred by the owner; the full release is not complete. Follow the [release checklist](docs/release-checklist.md), [three-minute demo script](docs/demo-script.md) and [eight-slide outline](docs/pitch-outline.md). A [labeled local screenshot](docs/demo/README.md) documents test-fixture behavior, not Google output. The final demo video and PDF deck still need genuine evidence.
 

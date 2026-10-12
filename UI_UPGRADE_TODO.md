@@ -1,6 +1,6 @@
 # AniForge AI — UI upgrade roadmap
 
-Created October 13, 2026 (Pacific/Fiji). Status: **planned, not implemented**.
+Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation implemented; external reference visual review pending. U2–U6 remain planned.** See [U1 results](docs/ui-upgrade-results.md) and the development-only `/design` preview.
 
 ## Brief
 
@@ -38,15 +38,17 @@ The drawing editor must open **before** AI analysis or video generation. A new p
 
 ## Phase U1 — visual foundation and screen designs
 
-- [ ] Inspect the Artcraft reference visually on desktop/mobile and record layout, typography, media and motion observations; use original AniForge compositions.
-- [ ] Capture current homepage, dashboard and editor screenshots as a baseline, including empty/loading/error states.
-- [ ] Design desktop homepage, project dashboard and editor compositions plus a mobile homepage and compact editor layout. Produce reviewable browser prototypes/screenshots before broad component migration.
-- [ ] Establish color, typography, spacing, border, radius, shadow, focus and motion tokens. Use readable body/control text; reserve display typography for marketing headings.
-- [ ] Define buttons, icon buttons, fields, tabs, tooltips, menus, dialogs, badges, toasts, skeletons and empty states with hover/focus/disabled/error behavior.
-- [ ] Split marketing, dashboard and editor layout styles. Keep React/Vite/TypeScript, Tailwind, Konva and the existing Lucide icon family; add dependencies only for a concrete need.
-- [ ] Define an asset manifest with author/license, intended placement and whether each visual is original art, a product screenshot or a genuine app-generated result.
+- [ ] Inspect the Artcraft reference visually on desktop/mobile and record layout, typography, media and motion observations. Blocked in U1: the browser tool was unavailable and discovery returned no browsers. Content/hierarchy review is recorded; exact appearance/motion is not claimed.
+- [x] Capture current homepage, dashboard and editor screenshots as a baseline, including empty/loading/error states. See [evidence](docs/ui-u1/README.md).
+- [x] Design desktop homepage, project dashboard and editor compositions plus a mobile homepage and compact editor layout. Reviewable `/design` browser studies precede product migration; no sample state is persisted.
+- [x] Establish color, typography, spacing, border, radius, shadow, focus and motion tokens. See [visual system](docs/ui-design-system.md).
+- [x] Define buttons, icon buttons, fields, view switches, tooltips, menus, dialogs, badges, notices/toasts, skeletons and empty states with hover/focus/disabled/error behavior. View switches use native grouped buttons rather than claiming ARIA tab semantics.
+- [x] Split new marketing, dashboard and editor layout styles; scope tokens and primitives. Legacy styles stay on current product routes until U2–U5 migration. No dependencies added.
+- [x] Define [asset provenance](docs/ui-assets.json), including original vector artwork, brand study, existing Lucide icons and baseline/prototype screenshots. No genuine generated output is claimed.
 
 **Acceptance:** three screen designs share one visual language; a UI component preview demonstrates keyboard focus and major states; source editing is an obvious entry point. No cloud access is needed.
+
+The local design/interaction acceptance is met. The external reference review remains open above; subsequent phases have not been silently marked complete by prototype screenshots.
 
 ## Phase U2 — new public homepage
 
