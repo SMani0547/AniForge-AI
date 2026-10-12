@@ -15,7 +15,7 @@ import type { QueuedVideoProvider } from '../../apps/api/src/ai/provider.js';
 import { buildApp } from '../../apps/api/src/app.js';
 import { readConfig } from '../../apps/api/src/config.js';
 
-if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:9199') throw new Error('Video integration tests require the isolated demo-aniforge emulator environment.');
+if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.ANIFORGE_EMULATOR_PROFILE !== 'test' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:18081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:19199') throw new Error('Video integration tests require the isolated demo-aniforge emulator environment.');
 const admin = initializeApp({ projectId: 'demo-aniforge', storageBucket: 'demo-aniforge.appspot.com' }, 'video-ledger-tests');
 const db = getFirestore(admin); const storage = new CloudAssetStorage(getStorage(admin), 'demo-aniforge.appspot.com');
 const repository = new FirestoreProjectRepository(db, storage);
@@ -34,7 +34,7 @@ async function fixture() {
   const service = new VideoService(ledger, () => ({ enqueue: async (key) => { queued.push(key); } }), storage, 2);
   let dispatches = 0; let resumes = 0;
   const output = { bytes, mimeType: 'video/mp4' as const, model: 'TEST-FIXTURE-NOT-GOOGLE', interactionId: 'server-only-fixture-interaction' };
-  const provider: QueuedVideoProvider = { generate: async (_input, checkpoint) => { dispatches++; await checkpoint({ interactionId: output.interactionId, fileName: 'files/test-fixture', model: output.model }); return output; }, resume: async () => { resumes++; return output; } };
+  const provider: QueuedVideoProvider = { generate: async (_input, checkpoint) => { dispatches++; await checkpoint({ interactionId: output.interactionId, fileName: 'files/test-fixture', model: output.model }); return output; }, resume: async () => { resumes++; return output; }, edit: async () => { throw new Error('No edit expected in the initial-generation fixture.'); }, editVideo: async () => { throw new Error('No upload edit expected in the initial-generation fixture.'); } };
   const key = { projectId: project.id, jobId: request.input.jobId };
   return { request, key, scene, ledger, service, provider, queued, output, counts: () => ({ dispatches, resumes }), advance: (ms: number) => { now += ms; }, worker: (media: AssetStorage = storage, model = provider) => new VideoWorker(ledger, repository, media, () => model) };
 }

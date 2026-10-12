@@ -5,7 +5,8 @@ import { emulatorEnvironment, workspace } from './emulator-env.mjs';
 
 const mode = process.argv[2];
 if (!['dev', 'test'].includes(mode)) throw new Error('Usage: node scripts/emulators.mjs dev|test');
-const env = emulatorEnvironment();
+const env = emulatorEnvironment(process.env, mode);
+if (mode === 'test') mkdirSync(env.TEMP, { recursive: true });
 const java = process.platform === 'win32' ? 'java.exe' : 'java';
 const javaHomes = [process.env.JAVA_HOME, process.platform === 'win32' ? 'C:/Program Files/Android/Android Studio/jbr' : undefined];
 if (spawnSync(java, ['-version'], { env, windowsHide: true }).status !== 0) {
@@ -19,7 +20,7 @@ const cli = join(workspace, 'node_modules/firebase-tools/lib/bin/firebase.js');
 if (!existsSync(cli)) throw new Error('Firebase CLI dependency is missing. Run npm install first.');
 mkdirSync(env.FIREBASE_EMULATORS_PATH, { recursive: true });
 console.log(`Starting real Firebase emulators for demo-aniforge (${mode}); AI calls are disabled.`);
-const child = spawn(process.execPath, [cli, 'emulators:exec', '--only', 'auth,firestore,storage', '--project', 'demo-aniforge', '--config', 'firebase.emulators.json', ...(mode === 'dev' ? ['--ui'] : []), `node scripts/emulator-run.mjs ${mode}`], { cwd: workspace, env, stdio: 'inherit', windowsHide: true });
+const child = spawn(process.execPath, [cli, 'emulators:exec', '--only', 'auth,firestore,storage', '--project', 'demo-aniforge', '--config', mode === 'test' ? 'firebase.emulators.test.json' : 'firebase.emulators.json', ...(mode === 'dev' ? ['--ui'] : []), `node scripts/emulator-run.mjs ${mode}`], { cwd: workspace, env, stdio: 'inherit', windowsHide: true });
 child.on('error', (error) => { console.error(error.message); process.exitCode = 1; });
 child.on('exit', (code) => { process.exitCode = code ?? 1; });
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => {

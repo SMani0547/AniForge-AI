@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { AiConfiguration, AnalysisConfiguration } from './config.js';
 import { AiProviderError } from './errors.js';
-import { GeminiOmniVideoProvider, GeminiSceneAnalysisProvider, type AnalysisProvider, type GoogleAiTransport } from './provider.js';
+import { GeminiOmniVideoProvider, GeminiSceneAnalysisProvider, fileNameFromUri, validateMp4, type AnalysisProvider, type GoogleAiTransport } from './provider.js';
 
 const GOOGLE_API_ORIGIN = 'https://generativelanguage.googleapis.com';
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
@@ -19,6 +19,46 @@ export function createGoogleTransport(config: AnalysisConfiguration): GoogleAiTr
   const client = new GoogleGenAI({ apiKey: config.apiKey, httpOptions: { timeout: config.timeoutMs } });
   return {
     create: async (request, signal) => client.interactions.create(request, { signal, timeout: config.timeoutMs, maxRetries: 0 }),
+    uploadVideo: async (bytes, signal) => {
+      validateMp4(bytes);
+      // Documented Files API resumable upload. Use the caller's single deadline and no retries.
+      const start = await fetch(`${GOOGLE_API_ORIGIN}/upload/v1beta/files`, {
+        method: 'POST', signal, redirect: 'error',
+        headers: {
+          'x-goog-api-key': config.apiKey,
+          'x-goog-upload-protocol': 'resumable', 'x-goog-upload-command': 'start',
+          'x-goog-upload-header-content-length': String(bytes.length),
+          'x-goog-upload-header-content-type': 'video/mp4', 'content-type': 'application/json',
+        },
+        body: JSON.stringify({ file: { display_name: 'AniForge original video edit input' } }),
+      });
+      await start.body?.cancel();
+      if (!start.ok) throw { status: start.status };
+      const location = start.headers.get('x-goog-upload-url');
+      let uploadUrl: URL;
+      try { uploadUrl = new URL(location ?? ''); }
+      catch { throw new AiProviderError('AI_UNSAFE_MEDIA_URI', 'Google AI returned an invalid upload location. No video was uploaded.'); }
+      if (uploadUrl.origin !== GOOGLE_API_ORIGIN || uploadUrl.username || uploadUrl.password || uploadUrl.port || uploadUrl.hash || uploadUrl.pathname !== '/upload/v1beta/files') {
+        throw new AiProviderError('AI_UNSAFE_MEDIA_URI', 'Google AI returned an unsupported upload location. No video was uploaded.');
+      }
+      const uploaded = await fetch(uploadUrl, {
+        method: 'POST', signal, redirect: 'error',
+        // The scoped upload session URL authorizes this call; do not forward the API key.
+        headers: { 'content-length': String(bytes.length), 'content-type': 'video/mp4', 'x-goog-upload-offset': '0', 'x-goog-upload-command': 'upload, finalize' },
+        body: new Uint8Array(bytes).buffer,
+      });
+      if (!uploaded.ok) { await uploaded.body?.cancel(); throw { status: uploaded.status }; }
+      const data = await uploaded.json() as { file?: unknown };
+      return data.file;
+    },
+    deleteFile: async (name, signal) => {
+      const canonicalName = fileNameFromUri(name);
+      const response = await fetch(`${GOOGLE_API_ORIGIN}/v1beta/${canonicalName}`, {
+        method: 'DELETE', headers: { 'x-goog-api-key': config.apiKey }, signal, redirect: 'error',
+      });
+      await response.body?.cancel();
+      if (!response.ok && response.status !== 404) throw { status: response.status };
+    },
     getFile: async (name, signal) => {
       const response = await fetch(`${GOOGLE_API_ORIGIN}/v1beta/${name}`, {
         headers: { 'x-goog-api-key': config.apiKey }, signal, redirect: 'error',

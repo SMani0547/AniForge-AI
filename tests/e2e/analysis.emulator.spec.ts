@@ -18,7 +18,7 @@ import type { SourceImage } from '../../apps/api/src/ai/input.js';
 import { analysisFixturePlan } from '../integration/analysis-fixture.js';
 import { originalImage } from '../integration/fixture.js';
 
-if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIREBASE_AUTH_EMULATOR_HOST !== '127.0.0.1:9099' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:9199') throw new Error('Analysis browser tests require the isolated local Firebase suite.');
+if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.ANIFORGE_EMULATOR_PROFILE !== 'test' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIREBASE_AUTH_EMULATOR_HOST !== '127.0.0.1:19099' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:18081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:19199') throw new Error('Analysis browser tests require the isolated local Firebase suite.');
 
 async function openNewProject(page: Page, title: string) {
   await page.goto('/projects');

@@ -12,7 +12,7 @@ import { CloudAssetStorage } from '../../apps/api/src/assets/storage.js';
 import { AiProviderError } from '../../apps/api/src/ai/errors.js';
 import { ApiError } from '../../apps/api/src/errors.js';
 
-if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:9199') throw new Error('Analysis integration tests require the isolated demo-aniforge emulator environment.');
+if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.ANIFORGE_EMULATOR_PROFILE !== 'test' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:18081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:19199') throw new Error('Analysis integration tests require the isolated demo-aniforge emulator environment.');
 const admin = initializeApp({ projectId: 'demo-aniforge', storageBucket: 'demo-aniforge.appspot.com' }, 'analysis-ledger-tests');
 const db = getFirestore(admin);
 const repository = new FirestoreProjectRepository(db, new CloudAssetStorage(getStorage(admin), 'demo-aniforge.appspot.com'));

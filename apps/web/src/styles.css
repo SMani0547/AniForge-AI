@@ -23,3 +23,9 @@
 .video-player label { display: grid; gap: .5rem; }
 .video-player select { max-width: 100%; }
 .video-player video { display: block; width: 100%; max-height: 70vh; border-radius: .75rem; background: #000; }
+.video-player select{background:#0d1727;color:#e0e9fa;border:1px solid #3a4b69;border-radius:6px;padding:10px;font:inherit;font-size:12px;width:100%;min-width:0}
+.video-player select:focus-visible{outline:2px solid #93b5ff;outline-offset:3px}
+.video-comparison{display:grid;gap:20px;min-width:0}.video-comparison.has-parent{grid-template-columns:repeat(2,minmax(0,1fr))}.video-comparison>div{min-width:0}.video-comparison p{margin-top:8px}
+.video-frame{position:relative;min-width:0}.video-captions{position:absolute;bottom:55px;left:5%;right:5%;display:grid;justify-items:center;gap:4px;pointer-events:none;text-align:center;font-size:clamp(12px,2vw,22px);line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap}.video-captions>div{padding:3px 9px;background:#000c;border-radius:4px;color:#fff;max-width:100%;max-height:120px;overflow:hidden}
+.caption-row{border:1px solid #34435c;border-radius:7px;padding:15px;margin:15px 0}.caption-row legend{font-size:12px;color:#c1d4ef;padding:0 7px}.caption-row>label{font-size:12px;display:grid;gap:7px}.video-player .plan-label{margin:15px 0}.video-player .analysis-suggestion pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:12px}
+@media(max-width:800px){.video-comparison.has-parent{grid-template-columns:minmax(0,1fr)}}

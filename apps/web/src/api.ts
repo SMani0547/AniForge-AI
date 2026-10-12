@@ -1,4 +1,4 @@
-import { analysisAvailabilitySchema, analysisResultSchema, assetSchema, projectPageSchema, projectSchema, sceneSchema, videoJobSchema, videoVersionSchema, type GenerateScene, type AnalyzeScene, type Canvas, type Project, type ShotPlan } from '@aniforge/shared';
+import { analysisAvailabilitySchema, analysisResultSchema, assetSchema, projectPageSchema, projectSchema, sceneSchema, videoJobSchema, videoVersionSchema, type GenerateScene, type AnalyzeScene, type Canvas, type Project, type ShotPlan, type EditVideo, type Timeline } from '@aniforge/shared';
 import { z } from 'zod';
 
 const envelopeSchema = z.object({
@@ -57,12 +57,22 @@ export function createApiClient(getToken: () => Promise<string | null>, baseUrl 
     deleteProject: (id: string) => request(projectPath(id), z.null(), 'DELETE'),
     listScenes: (projectId: string) => request(`${projectPath(projectId)}/scenes`, z.array(sceneSchema)),
     getScene: (projectId: string, sceneId: string) => request(scenePath(projectId, sceneId), sceneSchema),
-    saveScene: (projectId: string, sceneId: string, expectedRevision: number, canvas: Canvas, shotPlan?: ShotPlan | null) => request(scenePath(projectId, sceneId), sceneSchema, 'PATCH', { expectedRevision, canvas, ...(shotPlan === undefined ? {} : { shotPlan }) }),
+    saveScene: (projectId: string, sceneId: string, expectedRevision: number, canvas: Canvas, shotPlan?: ShotPlan | null, timeline?: Timeline, selectedVideoVersionId?: string | null) => request(scenePath(projectId, sceneId), sceneSchema, 'PATCH', { expectedRevision, canvas, ...(shotPlan === undefined ? {} : { shotPlan }), ...(timeline === undefined ? {} : { timeline }), ...(selectedVideoVersionId === undefined ? {} : { selectedVideoVersionId }) }),
     analysisStatus: () => request('/ai/analysis-status', analysisAvailabilitySchema),
     videoStatus: () => request('/ai/video-status', analysisAvailabilitySchema),
     generateScene: (projectId: string, sceneId: string, input: GenerateScene) => request(`${scenePath(projectId, sceneId)}/generate`, videoJobSchema, 'POST', input),
     videoJobs: (projectId: string, sceneId: string) => request(`${scenePath(projectId, sceneId)}/jobs`, z.array(videoJobSchema)),
     videoVersions: (projectId: string, sceneId: string) => request(`${scenePath(projectId, sceneId)}/versions`, z.array(videoVersionSchema)),
+    getVideoVersion: (projectId: string, versionId: string) => request(`${projectPath(projectId)}/versions/${encodeURIComponent(versionId)}`, videoVersionSchema),
+    editVideo: (projectId: string, sceneId: string, versionId: string, input: EditVideo) => request(`${scenePath(projectId, sceneId)}/versions/${encodeURIComponent(versionId)}/edit`, videoJobSchema, 'POST', input),
+    async exportVideo(projectId: string, sceneId: string, versionId: string, signal: AbortSignal): Promise<Blob> {
+      const token = await getToken();
+      if (!token) throw new ApiError('Sign in to download your video.', 401);
+      const response = await fetcher(`${baseUrl.replace(/\/$/, '')}${projectPath(projectId)}/export`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ sceneId, versionId }), signal: AbortSignal.any([signal, AbortSignal.timeout(55_000)]) });
+      if (!response.ok) throw new ApiError('Could not download this private video. Try again.', response.status);
+      if (!response.headers.get('content-type')?.startsWith('video/mp4') || Number(response.headers.get('content-length')) > 100 * 1024 * 1024) throw new ApiError('The video response is invalid or too large.', 502);
+      return response.blob();
+    },
     async getVideoContent(projectId: string, versionId: string, signal: AbortSignal): Promise<Blob> {
       const token = await getToken();
       if (!token) throw new ApiError('Sign in to play your video.', 401);

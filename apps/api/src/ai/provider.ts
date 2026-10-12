@@ -6,7 +6,7 @@ import { validatePrompt, validateSourceImage, type SourceImage } from './input.j
 
 export interface InteractionRequest {
   model: string;
-  input: string | Array<{ type: 'image'; data: string; mime_type: string } | { type: 'text'; text: string }>;
+  input: string | Array<{ type: 'image'; data: string; mime_type: string } | { type: 'text'; text: string } | { type: 'video'; uri: string; mime_type: 'video/mp4' }>;
   previous_interaction_id?: string;
   response_format: Record<string, unknown>;
   background: false;
@@ -19,6 +19,8 @@ export interface GoogleAiTransport {
   create(request: InteractionRequest, signal: AbortSignal): Promise<unknown>;
   getFile(name: string, signal: AbortSignal): Promise<unknown>;
   downloadFile(name: string, signal: AbortSignal): Promise<Buffer>;
+  uploadVideo(bytes: Buffer, signal: AbortSignal): Promise<unknown>;
+  deleteFile(name: string, signal: AbortSignal): Promise<void>;
 }
 
 export interface VideoResult {
@@ -36,6 +38,8 @@ export interface VideoProvider {
 export interface VideoCheckpoint { interactionId: string; fileName: string; model: string }
 export interface QueuedVideoProvider {
   generate(input: { sourceImage: SourceImage; prompt: string }, checkpoint: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult>;
+  edit(input: { interactionId: string; prompt: string }, checkpoint: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult>;
+  editVideo(input: { bytes: Buffer; prompt: string }, checkpoint: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult>;
   resume(checkpoint: VideoCheckpoint): Promise<VideoResult>;
 }
 
@@ -64,6 +68,7 @@ const videoSchema = z.object({
 const textSchema = z.object({ type: z.literal('text'), text: z.string() });
 const videoContentSchema = videoSchema.extend({ type: z.literal('video') });
 const fileSchema = z.object({ state: z.union([z.string(), z.object({ name: z.string() })]) });
+const uploadedFileSchema = z.object({ name: z.string().min(1), uri: z.string().min(1) });
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const ANALYSIS_INSTRUCTIONS = [
   'You are an original 2D anime storyboard assistant.',
@@ -113,6 +118,48 @@ export function validateMp4(bytes: Buffer): void {
   if (bytes.length < 16 || bytes.length > MAX_VIDEO_BYTES || bytes.toString('ascii', 4, 8) !== 'ftyp') {
     throw new AiProviderError('AI_INVALID_VIDEO', 'The provider did not return an MP4 container within the 100 MiB limit. No successful video was recorded.');
   }
+}
+
+/** Bounded ISO BMFF movie-header check for Google's uploaded-video duration limit.
+ * Not a decoder: unsupported/fragmented files without a finite duration fail closed.
+ */
+export function validateUploadedVideo(bytes: Buffer): number {
+  validateMp4(bytes);
+  const invalid = () => new AiProviderError('AI_UPLOAD_DURATION_UNKNOWN', 'The stored MP4 has no usable duration metadata. Use its retained conversation for editing, or choose a different version.');
+  let duration: number | undefined;
+  let boxes = 0;
+  const scan = (start: number, end: number, inMovie: boolean): void => {
+    for (let offset = start; offset < end;) {
+      if (end - offset < 8 || ++boxes > 10_000) throw invalid();
+      const type = bytes.toString('ascii', offset + 4, offset + 8);
+      let size = bytes.readUInt32BE(offset);
+      let header = 8;
+      if (size === 1) {
+        if (end - offset < 16) throw invalid();
+        const wideSize = bytes.readBigUInt64BE(offset + 8);
+        if (wideSize > BigInt(end - offset)) throw invalid();
+        size = Number(wideSize); header = 16;
+      } else if (size === 0) size = end - offset;
+      if (size < header || size > end - offset) throw invalid();
+      const content = offset + header;
+      if (!inMovie && type === 'moov') scan(content, offset + size, true);
+      if (inMovie && type === 'mvhd') {
+        if (duration !== undefined || size - header < 20) throw invalid();
+        const version = bytes[content];
+        if (version !== 0 && version !== 1) throw invalid();
+        if (version === 1 && size - header < 32) throw invalid();
+        const timescale = bytes.readUInt32BE(content + (version === 1 ? 20 : 12));
+        const units = version === 1 ? bytes.readBigUInt64BE(content + 24) : BigInt(bytes.readUInt32BE(content + 16));
+        if (!timescale || !units || units === (version === 1 ? 0xffffffffffffffffn : 0xffffffffn) || units > BigInt(Number.MAX_SAFE_INTEGER)) throw invalid();
+        duration = Number(units) / timescale;
+      }
+      offset += size;
+    }
+  };
+  scan(0, bytes.length, false);
+  if (duration === undefined || !Number.isFinite(duration) || duration <= 0) throw invalid();
+  if (duration > 10) throw new AiProviderError('AI_UPLOAD_TOO_LONG', 'Google Omni accepts uploaded edit videos up to 10 seconds. Use the retained conversation or select a shorter version. Local preview trim does not shorten the uploaded MP4.');
+  return duration;
 }
 
 export class GeminiSceneAnalysisProvider implements AnalysisProvider {
@@ -173,7 +220,7 @@ export class GeminiSceneAnalysisProvider implements AnalysisProvider {
   }
 }
 
-export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider implements VideoProvider {
+export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider implements VideoProvider, QueuedVideoProvider {
   constructor(
     private readonly videoConfig: AiConfiguration,
     transport: GoogleAiTransport,
@@ -194,7 +241,7 @@ export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider impleme
     }, checkpoint);
   }
 
-  async edit(input: { interactionId: string; prompt: string }): Promise<VideoResult> {
+  async edit(input: { interactionId: string; prompt: string }, checkpoint?: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult> {
     if (!input.interactionId || input.interactionId.length > 2048) throw new AiProviderError('INVALID_INTERACTION', 'A valid prior provider interaction is required for a video edit.');
     return this.video({
       model: this.videoConfig.videoModel,
@@ -202,6 +249,39 @@ export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider impleme
       previous_interaction_id: input.interactionId,
       response_format: { type: 'video', delivery: 'uri', resolution: '720p', aspect_ratio: '16:9' },
       background: false, stream: false, store: true,
+    }, checkpoint);
+  }
+
+  /** An explicit new request using the owned stored video, never an automatic paid retry. */
+  async editVideo(input: { bytes: Buffer; prompt: string }, checkpoint: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult> {
+    validateUploadedVideo(input.bytes);
+    const prompt = validatePrompt(input.prompt);
+    return this.withDeadline(async (signal) => {
+      let name: string | undefined;
+      let dispatched = false;
+      let completed = false;
+      try {
+        const uploaded = uploadedFileSchema.safeParse(await this.transport.uploadVideo(input.bytes, signal));
+        if (!uploaded.success) throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI returned invalid uploaded-video metadata. No edit was dispatched.');
+        name = fileNameFromUri(uploaded.data.name);
+        if (fileNameFromUri(uploaded.data.uri) !== name) throw new AiProviderError('AI_UNSAFE_MEDIA_URI', 'Google AI returned mismatched uploaded-video metadata. No edit was dispatched.');
+        await this.waitForFile(name, signal);
+        if (signal.aborted) throw new AiProviderError('AI_TIMEOUT', 'Video upload processing timed out. No edit was dispatched.');
+        dispatched = true;
+        return await this.videoRequest({
+          model: this.videoConfig.videoModel,
+          input: [
+            { type: 'video', uri: `https://generativelanguage.googleapis.com/v1beta/${name}`, mime_type: 'video/mp4' },
+            { type: 'text', text: prompt },
+          ],
+          response_format: { type: 'video', delivery: 'uri', resolution: '720p', aspect_ratio: '16:9' },
+          background: false, stream: false, store: true,
+        }, signal, checkpoint, () => { completed = true; });
+      } finally {
+        // An ambiguous paid create might still read its input; let Google's 48h expiry handle it.
+        // Cleanup failures must not erase a completed output/checkpoint or mask the original error.
+        if (name && (!dispatched || completed) && !signal.aborted) await this.transport.deleteFile(name, signal).catch(() => undefined);
+      }
     });
   }
 
@@ -213,7 +293,15 @@ export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider impleme
   }
 
   private async download(name: string, signal: AbortSignal): Promise<Buffer> {
+    await this.waitForFile(name, signal);
+    const bytes = await this.transport.downloadFile(name, signal);
+    validateMp4(bytes);
+    return bytes;
+  }
+
+  private async waitForFile(name: string, signal: AbortSignal): Promise<void> {
     for (;;) {
+      if (signal.aborted) throw new AiProviderError('AI_TIMEOUT', 'Google video processing timed out.');
       const info = fileSchema.safeParse(await this.transport.getFile(name, signal));
       if (!info.success) throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI returned invalid file status.');
       const state = typeof info.data.state === 'string' ? info.data.state : info.data.state.name;
@@ -222,32 +310,42 @@ export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider impleme
       if (state !== 'PROCESSING') throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI returned an unsupported video processing state.');
       await this.wait(5_000, signal);
     }
-    const bytes = await this.transport.downloadFile(name, signal);
-    validateMp4(bytes);
-    return bytes;
   }
 
   private async video(request: InteractionRequest, checkpoint?: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult> {
-    return this.withDeadline(async (signal) => {
-      const interaction = completedInteraction(await this.create(request, signal));
-      const rawVideo = interaction.output_video ?? outputContents(interaction).reverse().find((content) => videoContentSchema.safeParse(content).success);
-      const parsed = videoSchema.safeParse(rawVideo);
-      if (!parsed.success) throw new AiProviderError('AI_NO_VIDEO', 'Google AI returned no MP4 output. Check AI Studio for safety restrictions and model access.');
-      let bytes: Buffer;
-      if (parsed.data.uri) {
-        const name = fileNameFromUri(parsed.data.uri);
-        await checkpoint?.({ interactionId: interaction.id, fileName: name, model: this.videoConfig.videoModel });
-        if (signal.aborted) throw new AiProviderError('AI_TIMEOUT', 'Video checkpoint took too long. Resume the saved download.');
-        bytes = await this.download(name, signal);
-      } else if (parsed.data.data && parsed.data.data.length <= Math.ceil(MAX_VIDEO_BYTES / 3) * 4 && /^[A-Za-z0-9+/]+={0,2}$/.test(parsed.data.data) && parsed.data.data.length % 4 === 0) {
-        if (checkpoint) throw new AiProviderError('AI_BAD_RESPONSE', 'Google returned inline video instead of the requested resumable file. Inspect AI Studio before another generation.');
-        bytes = Buffer.from(parsed.data.data, 'base64');
-      } else {
-        throw new AiProviderError('AI_NO_VIDEO', 'Google AI returned no usable MP4 data or URI.');
+    return this.withDeadline((signal) => this.videoRequest(request, signal, checkpoint));
+  }
+
+  private async videoRequest(request: InteractionRequest, signal: AbortSignal, checkpoint?: (value: VideoCheckpoint) => Promise<void>, onCompleted?: () => void): Promise<VideoResult> {
+    let response: unknown;
+    try { response = await this.create(request, signal); }
+    catch (error) {
+      if (request.previous_interaction_id && error instanceof AiProviderError && error.code === 'AI_MODEL_UNAVAILABLE') {
+        throw new AiProviderError('AI_EDIT_CONTEXT_UNAVAILABLE', 'The prior conversation or model is unavailable to this API project. Check model access; if the conversation expired, explicitly choose the stored-video edit option to start a new paid request. Your existing version is preserved.');
       }
-      validateMp4(bytes);
-      return { bytes, mimeType: 'video/mp4', model: this.videoConfig.videoModel, interactionId: interaction.id };
-    });
+      throw error;
+    }
+    const interaction = completedInteraction(response);
+    onCompleted?.();
+    if (request.previous_interaction_id === interaction.id) throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI did not return a new interaction for this edit. The previous version is preserved.');
+    if (signal.aborted) throw new AiProviderError('AI_TIMEOUT', 'Google AI completed after the request deadline. Inspect AI Studio before another generation.');
+    const rawVideo = interaction.output_video ?? outputContents(interaction).reverse().find((content) => videoContentSchema.safeParse(content).success);
+    const parsed = videoSchema.safeParse(rawVideo);
+    if (!parsed.success) throw new AiProviderError('AI_NO_VIDEO', 'Google AI returned no MP4 output. Check AI Studio for safety restrictions and model access.');
+    let bytes: Buffer;
+    if (parsed.data.uri) {
+      const name = fileNameFromUri(parsed.data.uri);
+      await checkpoint?.({ interactionId: interaction.id, fileName: name, model: this.videoConfig.videoModel });
+      if (signal.aborted) throw new AiProviderError('AI_TIMEOUT', 'Video checkpoint took too long. Resume the saved download.');
+      bytes = await this.download(name, signal);
+    } else if (parsed.data.data && parsed.data.data.length <= Math.ceil(MAX_VIDEO_BYTES / 3) * 4 && /^[A-Za-z0-9+/]+={0,2}$/.test(parsed.data.data) && parsed.data.data.length % 4 === 0) {
+      if (checkpoint) throw new AiProviderError('AI_BAD_RESPONSE', 'Google returned inline video instead of the requested resumable file. Inspect AI Studio before another generation.');
+      bytes = Buffer.from(parsed.data.data, 'base64');
+    } else {
+      throw new AiProviderError('AI_NO_VIDEO', 'Google AI returned no usable MP4 data or URI.');
+    }
+    validateMp4(bytes);
+    return { bytes, mimeType: 'video/mp4', model: this.videoConfig.videoModel, interactionId: interaction.id };
   }
 }
 

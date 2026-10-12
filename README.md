@@ -1,6 +1,6 @@
 # AniForge AI
 
-An original-art anime studio built with React, Konva, Fastify, Firebase and server-side Google AI. The foundation, saved canvas, scene analysis and queued video generation implementation are present; this repository is **not yet an end-to-end deployed animation studio**. Real Google model access remains unverified.
+An original-art anime studio built with React, Konva, Fastify, Firebase and server-side Google AI. The foundation, saved canvas, scene analysis, queued video generation and revision/timeline implementation are present; this repository is **not yet an end-to-end deployed animation studio**. Real Google model access remains unverified.
 
 ## Current functionality
 
@@ -10,9 +10,11 @@ An original-art anime studio built with React, Konva, Fastify, Firebase and serv
 - Editable shot plans and prompt preview saved with the canvas. Configured real Gemini analysis receives a private canonical snapshot and returns a separate suggestion for explicit review/apply. Revision checks, durable request IDs, attempt limits and safe error states protect existing work. Manual plans work without AI credentials.
 - Real server-only Gemini scene analysis, Omni image-to-video and conversational-edit smoke commands. They require explicit paid opt-in, a server key and original-content affirmation. No fake/live fallback exists.
 - Queue-backed video jobs, per-user attempt limits, trusted OIDC worker, immutable private MP4 versions, status polling and a player. Durable checkpoints retry existing media downloads without regenerating. See [worker setup](docs/video-worker-setup.md).
+- Conversational edits create new immutable clips with parent links and prompt history. Compare parent/revised playback, save or restore the selected version, and preserve existing media when an edit fails. Expired interaction history offers an explicit stored-video upload mode with separate paid consent; there is no automatic paid fallback.
+- Saved trim/caption metadata affects the browser preview. Download the selected version's original MP4 and separate timeline JSON; trim and captions are **not rendered into the MP4**.
 - Cloud deployment configuration, private database/storage rules, CI and scoped credential documentation.
 
-No real Google AI call, production cloud persistence verification, Docker build or deployment has been completed in this environment. No Google-generated MP4 has been produced. The generation button requires a configured private worker, Cloud Tasks queue and explicit paid consent. A labeled original geometric MP4 is used only in tests. Local Firebase emulators allow the saved editor to run without cloud credentials.
+No real Google AI call, production cloud persistence verification, Docker build or deployment has been completed in this environment. No Google-generated MP4 has been produced. Generation and editing require a configured private worker, Cloud Tasks queue and explicit paid consent. Two labeled original geometric MP4s are used only in tests. Local Firebase emulators allow the saved editor to run without cloud credentials.
 
 ## Local start
 
@@ -65,7 +67,7 @@ npm audit --omit=dev
 
 Unit tests use explicitly isolated auth/repository/provider doubles. The unconfigured browser smoke tests cover rendering, drawing, undo/redo and mobile fit. The separate emulator suite exercises real local Auth, Firestore, Storage and browser save/reload; it does not prove production IAM or cloud deployment. See [Phase 2 results](docs/phase-2-results.md) and [Phase 1 results](docs/phase-1-results.md) for executed commands, counts and limitations.
 
-Browser tests inject explicitly labeled providers into test-only API instances while using real local Firebase services. They check source PNG pixels, analysis review/save/reload, video queuing, private MP4 playback after reload and safe failures. These fixtures are not live Gemini evidence. See [Phase 4 results](docs/phase-4-results.md) for current checks and outstanding real-model/cloud gates.
+Browser tests inject explicitly labeled providers into test-only API instances while using real local Firebase services. They check source PNG pixels, analysis review/save/reload, video queuing, independent parent/revised playback, saved selection/timeline, exact MP4 downloads and safe failures. These fixtures are not live Gemini evidence. See [Phase 5 results](docs/phase-5-results.md) for current checks and outstanding real-model/cloud gates.
 
 The pinned Firebase CLI is a development dependency and currently brings transitive npm advisories; the production dependency audit is separate. Do not run `npm audit fix --force` to downgrade the CLI or silently break its dependencies. The local emulators bind only to loopback.
 
@@ -78,4 +80,4 @@ The pinned Firebase CLI is a development dependency and currently brings transit
 
 [TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
 
-Phase 4 implementation and local checks are recorded in [the results](docs/phase-4-results.md). Next: prove real Gemini analysis/video access and deployed queue delivery, then implement conversational edits, timeline/download and final deployment. Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.
+Phase 5 implementation and local checks are recorded in [the results](docs/phase-5-results.md). Next is Phase 6: configure real Firebase/Google access, verify real analysis/generation/editing and queue delivery, then deploy and prepare the demo. Required credentials and cloud steps are in [cloud setup](docs/cloud-setup.md), [worker setup](docs/video-worker-setup.md) and [model verification](docs/model-verification.md). Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.

@@ -54,8 +54,14 @@ describe('queued video contracts and worker trust', () => {
     expect(expiredJob({ ...job, status: 'succeeded' }, now + JOB_LIFETIME_MS)).toBeNull();
   });
   it('removes all private provider and worker metadata from browser job responses', () => {
-    const result = publicJob(job);
+    const result = publicJob({ ...job, parentInteractionId: 'private-parent-interaction' });
     expect(result.id).toBe(jobId);
-    for (const key of ['ownerId', 'checkpoint', 'fingerprint', 'leaseToken', 'prompt']) expect(result).not.toHaveProperty(key);
+    for (const key of ['ownerId', 'checkpoint', 'fingerprint', 'leaseToken', 'prompt', 'parentInteractionId']) expect(result).not.toHaveProperty(key);
+    expect(result).toMatchObject({ generationKind: 'initial', parentVersionId: null, editMode: null });
+  });
+  it('publishes edit lineage while keeping parent provider references private', () => {
+    const result = publicJob({ ...job, generationKind: 'edit', parentVersionId: 'parent-version', editMode: 'interaction', parentInteractionId: 'server-only-parent' });
+    expect(result).toMatchObject({ generationKind: 'edit', parentVersionId: 'parent-version', editMode: 'interaction' });
+    expect(JSON.stringify(result)).not.toContain('server-only-parent');
   });
 });

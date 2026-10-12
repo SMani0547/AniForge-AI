@@ -1,6 +1,6 @@
 # Cloud setup and deployment
 
-This is a runbook, not a deployment record. No credentials, cloud resources, live model response, uploaded MP4, or deployed URL are supplied by the repository. The app implements auth/projects, a saved canvas, private image upload/copy/delete, integrated scene analysis and editable shot plans, plus separate server-side AI smoke commands. Queue-backed video generation, its private worker, immutable MP4 storage and player are implemented. Real model access and cloud deployment remain unverified. Track executed checks and blockers in `TODO.md`. For credential-free development now, use [local Firebase emulators](local-emulators.md).
+This is a runbook, not a deployment record. No credentials, cloud resources, live model response, Google-generated MP4, or deployed URL are supplied by the repository. The app implements auth/projects, a saved canvas, private image upload/copy/delete, integrated scene analysis and editable shot plans, plus separate server-side AI smoke commands. Queue-backed generation and conversational edits, the private worker, immutable MP4 versions, comparison/selection, saved timeline preview and original MP4 download are implemented. Real model access and cloud deployment remain unverified. Track executed checks and blockers in `TODO.md`. For credential-free development now, use [local Firebase emulators](local-emulators.md).
 
 ## Required accounts, credentials, and configuration
 
@@ -78,7 +78,7 @@ Do not grant `allUsers` or `allAuthenticatedUsers` bucket access. Uniform bucket
 
 For a future signed-URL implementation, object access and signing are separate permissions. An identity creating V4 URLs needs `iam.serviceAccounts.signBlob` on the signing service account, commonly via `roles/iam.serviceAccountTokenCreator` scoped to that account. Do not grant Token Creator broadly on the project. The signer also needs the corresponding object read/write permission. Grant signing only when that feature is implemented, keep URLs short lived and object specific, and authorize ownership before issuing each URL. An API proxy can avoid signing permissions. [Signed-URL prerequisites](https://docs.cloud.google.com/storage/docs/access-control/signing-urls-with-helpers).
 
-The implemented image proxy sends bytes through the API, so no browser bucket CORS or URL-signing permission is needed. If direct browser PUT/GET requests to signed URLs are added later, configure bucket CORS for the exact origins, methods and headers. CORS is a browser policy, not authorization.
+The implemented image/video proxies and MP4 export send bytes through the API, so no browser bucket CORS or URL-signing permission is needed. If direct browser PUT/GET requests to signed URLs are added later, configure bucket CORS for the exact origins, methods and headers. CORS is a browser policy, not authorization.
 
 ## 4. Enable and prove real Gemini access
 
@@ -202,7 +202,17 @@ Pending uploads/copies become eligible for recovery after one hour; explicit cle
 
 ## 8. Deploy the private video worker and recovery schedule
 
-Phase 4 implements the queue-backed worker and authenticated generation routes. Follow [the complete video worker runbook](video-worker-setup.md) for queue limits, dedicated service accounts, OIDC, worker deployment, scheduled outbox recovery, paid enablement and live verification. WORKER_URL is now the exact service origin, without the handler path. These cloud steps have not been executed in this environment.
+The worker handles initial generation and Phase 5 edits on the same queue. Follow [the complete video worker runbook](video-worker-setup.md) for queue limits, dedicated service accounts, OIDC, worker deployment, scheduled outbox recovery, paid enablement and live generation/edit verification. `WORKER_URL` is the exact service origin, without the handler path. These cloud steps have not been executed in this environment.
+
+### Phase 5 credentials and deployment changes
+
+No new credential, IAM grant, queue, database migration or Firestore index is required beyond the preceding setup and the worker runbook. Deploy updated API, worker, frontend, recovery and cleanup images/builds. For an existing Phase 4 installation, use the runbook's coordinated update: stop new video submissions, pause/drain the queue, update the worker before the API/UI can submit edit jobs, then resume. The old worker treats jobs as initial generation and must not receive new edit jobs.
+
+Conversational edits reuse the worker's paid Gemini key and the parent's stored interaction ID. An explicitly selected stored-video edit uses that same key for Google Files upload; it does not require public bucket access or an additional browser credential. It uploads the actual saved parent MP4 and starts a new paid conversation. Both paths share `ENABLE_VIDEO_GENERATION`, `ENABLE_REAL_AI` on the worker, `AI_TIMEOUT_MS`, and `MAX_VIDEOS_PER_USER_PER_DAY`; failed accepted attempts consume the same allowance as initial generation.
+
+Confirm that the account supports the chosen edit path. Uploaded-video editing currently excludes the EEA, Switzerland and UK and accepts inputs at most 10 seconds. The provider rejects unknown/invalid/longer movie-header durations before upload. A local preview trim does not alter the uploaded file. Retained interactions can expire, and an expired edit never silently triggers another paid upload. [Model verification](model-verification.md) records current official limits, safe errors and temporary-upload cleanup/expiry behavior.
+
+Selection, comparison, timeline metadata and original MP4 export need only the existing Firebase/Firestore/private-bucket access. They make no AI call. Verify a saved selection survives refresh, both parent and edited clips remain playable, second-user requests fail, and the exported bytes match the selected stored version. Preview captions and trim remain editable metadata; the MP4 download does not render them. Real initial generation and a distinct real follow-up edit remain separate acceptance gates from fixture/emulator success.
 
 ## Evidence and remaining manual steps
 

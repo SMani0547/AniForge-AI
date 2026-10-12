@@ -1,6 +1,6 @@
 # AniForge implementation milestones
 
-Updated October 12, 2026 (Pacific/Fiji). This is an implementation record, not evidence of deployment or paid model success.
+Updated October 13, 2026 (Pacific/Fiji). This is an implementation record, not evidence of deployment or paid model success.
 
 ## Phase 1 — foundation and model proof of concept
 
@@ -53,13 +53,14 @@ Acceptance: browser receives a job ID promptly, terminal failures are visible, a
 
 ## Phase 5 — revisions, timeline and download
 
-- [ ] Conversational edit via retained provider interaction ID; new immutable version with parent pointer.
-- [ ] Compare/select earlier version; preserve both on failure.
-- [ ] Local trim/caption metadata, selected-clip download and honest unrendered overlay semantics.
-- [ ] Version immutability and ownership tests; actual edited-video evidence.
-- [ ] Run all phase checks, record results and commit.
+- [x] Conversational edit via retained provider interaction ID; new immutable version with parent pointer and server-only provenance. Explicit stored-MP4 upload mode never runs as an automatic paid fallback.
+- [x] Parent/revision comparison, saved selection/revert and prompt history; failed edits preserve existing media and scene data.
+- [x] Local trim/caption metadata, original MP4 and timeline JSON downloads with clear browser-preview-only semantics; legacy timelines remain readable and explicitly repairable.
+- [x] Provider, schema and client tests for immutable revisions, protected download and shared revision saves. Test-only original/revised geometric clips are labeled fixtures.
+- [ ] Real Google conversational-edit evidence, independent original/revised playback and deployed ownership verification. Credentials, paid access and cloud deployment remain required.
+- [x] Typecheck, lint, 197 unit tests, build, 34 emulator integration/browser tests and 2 standalone browser tests passed. Production audit has zero findings. Results and limitations recorded in docs/phase-5-results.md; implementation committed as this milestone.
 
-Acceptance: original and edited MP4 both play independently; selecting an earlier version never overwrites source or media.
+Acceptance: real original and edited MP4 both play independently; selecting an earlier version never overwrites source or media. Implementation and local fixture evidence are recorded separately from the blocked real-model gate in docs/phase-5-results.md.
 
 ## Phase 6 — cloud release and demo
 

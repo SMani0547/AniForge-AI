@@ -11,7 +11,7 @@ import { readConfig } from '../../apps/api/src/config.js';
 import { FirestoreProjectRepository } from '../../apps/api/src/repository.js';
 import { CloudAssetStorage } from '../../apps/api/src/assets/storage.js';
 
-if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:9199') {
+if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.ANIFORGE_EMULATOR_PROFILE !== 'test' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:18081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:19199') {
   throw new Error('Integration tests require the isolated demo-aniforge emulator environment.');
 }
 let api: string;
@@ -23,7 +23,7 @@ const app = buildApp({ config: readConfig({ NODE_ENV: 'test' }), repository: new
 test.beforeAll(async () => { api = `${await app.listen({ port: 0, host: '127.0.0.1' })}/api/v1`; });
 
 async function identity(request: APIRequestContext) {
-  const response = await request.post('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo-emulator-only', { data: { returnSecureToken: true } });
+  const response = await request.post('http://127.0.0.1:19099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo-emulator-only', { data: { returnSecureToken: true } });
   expect(response.status()).toBe(200);
   return await response.json() as { idToken: string; localId: string };
 }
@@ -72,11 +72,11 @@ test('real Auth, Firestore and Storage enforce ownership and preserve independen
   expect((await data<ProjectPage>(await request.get(`${api}/projects`, { headers: other }))).items).toEqual([]);
 
   // The direct browser SDK paths are denied too; the backend owns these stores.
-  const directDocument = await request.get(`http://127.0.0.1:8081/v1/projects/demo-aniforge/databases/(default)/documents/projects/${project.id}`, { headers: auth });
+  const directDocument = await request.get(`http://127.0.0.1:18081/v1/projects/demo-aniforge/databases/(default)/documents/projects/${project.id}`, { headers: auth });
   expect(directDocument.status()).toBe(403);
   const [originalFiles] = await bucket.getFiles({ prefix: `users/${owner.localId}/projects/${project.id}/` });
   expect(originalFiles.length).toBeGreaterThan(0);
-  const directMedia = await request.get(`http://127.0.0.1:9199/v0/b/${bucket.name}/o/${encodeURIComponent(originalFiles[0]!.name)}?alt=media`);
+  const directMedia = await request.get(`http://127.0.0.1:19199/v0/b/${bucket.name}/o/${encodeURIComponent(originalFiles[0]!.name)}?alt=media`);
   expect(directMedia.status()).toBe(403);
 
   const copy = await data<Project>(await request.post(`${projectUrl}/duplicate`, { headers: auth }), 201);

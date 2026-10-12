@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { readFile } from 'node:fs/promises';
 import { readAiConfiguration, type AiConfiguration } from './config.js';
 import { safeProviderError } from './errors.js';
-import { GeminiOmniVideoProvider, GeminiSceneAnalysisProvider, fileNameFromUri, type GoogleAiTransport } from './provider.js';
+import { GeminiOmniVideoProvider, GeminiSceneAnalysisProvider, fileNameFromUri, validateUploadedVideo, type GoogleAiTransport } from './provider.js';
 import type { SourceImage } from './input.js';
 
 // Deliberately artificial test-only bytes; these are never exposed as generated media.
@@ -15,13 +16,31 @@ const plan = {
 };
 
 function harness() {
-  const transport = { create: vi.fn<GoogleAiTransport['create']>(), getFile: vi.fn<GoogleAiTransport['getFile']>(), downloadFile: vi.fn<GoogleAiTransport['downloadFile']>() };
+  const transport = {
+    create: vi.fn<GoogleAiTransport['create']>(), getFile: vi.fn<GoogleAiTransport['getFile']>(), downloadFile: vi.fn<GoogleAiTransport['downloadFile']>(),
+    uploadVideo: vi.fn<GoogleAiTransport['uploadVideo']>(), deleteFile: vi.fn<GoogleAiTransport['deleteFile']>().mockResolvedValue(undefined),
+  };
   const wait = vi.fn().mockResolvedValue(undefined);
   const provider = new GeminiOmniVideoProvider(config, transport, wait);
   return { provider, transport, wait };
 }
 function inlineVideo(id = 'real-id-shaped-test-fixture') {
   return { id, status: 'completed', output_video: { mime_type: 'video/mp4', data: mp4Header.toString('base64') } };
+}
+
+// A movie-header parser fixture, not an encoded/playable clip or provider result.
+function durationFixture(seconds: number, version = 0): Buffer {
+  const atom = (kind: string, data: Buffer) => {
+    const result = Buffer.alloc(data.length + 8);
+    result.writeUInt32BE(result.length); result.write(kind, 4, 'ascii'); data.copy(result, 8);
+    return result;
+  };
+  const header = Buffer.alloc(version === 1 ? 32 : 20);
+  header[0] = version;
+  header.writeUInt32BE(1_000, version === 1 ? 20 : 12);
+  if (version === 1) header.writeBigUInt64BE(BigInt(seconds * 1_000), 24);
+  else header.writeUInt32BE(seconds * 1_000, 16);
+  return Buffer.concat([atom('ftyp', Buffer.from('isom0000')), atom('moov', atom('mvhd', header))]);
 }
 
 afterEach(() => vi.useRealTimers());
@@ -44,6 +63,123 @@ describe('durable video file recovery with explicit transport fixtures', () => {
     await expect(provider.generate({ sourceImage, prompt: 'TEST FIXTURE' }, async () => { throw new Error('Firestore unavailable'); })).rejects.toBeDefined();
     expect(transport.downloadFile).not.toHaveBeenCalled();
     expect(transport.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('queued conversational and explicit stored-video edits', () => {
+  it('reads duration from the locally recorded original MP4 fixture', async () => {
+    const bytes = await readFile(new URL('../../../../tests/fixtures/original-square-test-only.mp4', import.meta.url));
+    const duration = validateUploadedVideo(bytes);
+    expect(duration).toBeGreaterThan(1);
+    expect(duration).toBeLessThanOrEqual(3);
+  });
+
+  it('checkpoints a new conversational edit before downloading and can resume it without another paid create', async () => {
+    const { provider, transport } = harness();
+    transport.create.mockResolvedValue({ id: 'fixture-edit', status: 'completed', output_video: { mime_type: 'video/mp4', uri: 'files/edited' } });
+    transport.getFile.mockResolvedValue({ state: 'ACTIVE' });
+    transport.downloadFile.mockRejectedValueOnce({ status: 503 }).mockResolvedValue(mp4Header);
+    const checkpoint = vi.fn(async () => { expect(transport.downloadFile).not.toHaveBeenCalled(); });
+    await expect(provider.edit({ interactionId: 'fixture-parent', prompt: 'Make the original square green.' }, checkpoint)).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' });
+    expect(checkpoint).toHaveBeenCalledWith({ interactionId: 'fixture-edit', fileName: 'files/edited', model: config.videoModel });
+    expect(transport.create).toHaveBeenCalledWith(expect.objectContaining({ previous_interaction_id: 'fixture-parent', store: true }), expect.any(AbortSignal));
+    expect((await provider.resume({ interactionId: 'fixture-edit', fileName: 'files/edited', model: config.videoModel })).interactionId).toBe('fixture-edit');
+    expect(transport.create).toHaveBeenCalledTimes(1);
+    expect(transport.uploadVideo).not.toHaveBeenCalled();
+  });
+
+  it('reports missing conversation context without uploading or issuing a second paid request', async () => {
+    const { provider, transport } = harness();
+    transport.create.mockRejectedValue({ status: 404, message: 'private interaction ID and key' });
+    await expect(provider.edit({ interactionId: 'expired-fixture', prompt: 'Change the lighting.' }, vi.fn())).rejects.toMatchObject({ code: 'AI_EDIT_CONTEXT_UNAVAILABLE', message: expect.stringContaining('explicitly choose') });
+    expect(transport.create).toHaveBeenCalledTimes(1);
+    expect(transport.uploadVideo).not.toHaveBeenCalled();
+  });
+
+  it('rejects a response that reuses the parent interaction as a new edit', async () => {
+    const { provider, transport } = harness();
+    transport.create.mockResolvedValue({ id: 'fixture-parent', status: 'completed', output_video: { mime_type: 'video/mp4', uri: 'files/old' } });
+    const checkpoint = vi.fn();
+    await expect(provider.edit({ interactionId: 'fixture-parent', prompt: 'TEST ONLY' }, checkpoint)).rejects.toMatchObject({ code: 'AI_BAD_RESPONSE' });
+    expect(checkpoint).not.toHaveBeenCalled();
+    expect(transport.downloadFile).not.toHaveBeenCalled();
+  });
+
+  it('uploads the saved MP4, waits for processing, sends only its Google URI and prompt, then checkpoints and cleans up', async () => {
+    const { provider, transport, wait } = harness();
+    const bytes = durationFixture(6);
+    transport.uploadVideo.mockResolvedValue({ name: 'files/parent', uri: 'https://generativelanguage.googleapis.com/v1beta/files/parent' });
+    transport.getFile.mockResolvedValueOnce({ state: 'PROCESSING' }).mockResolvedValue({ state: 'ACTIVE' });
+    transport.create.mockImplementation(async () => {
+      expect(transport.getFile).toHaveBeenCalledTimes(2);
+      return { id: 'fresh-edit', status: 'completed', output_video: { mime_type: 'video/mp4', uri: 'files/edited' } };
+    });
+    transport.downloadFile.mockResolvedValue(mp4Header);
+    const checkpoint = vi.fn(async () => { expect(transport.downloadFile).not.toHaveBeenCalled(); });
+    const result = await provider.editVideo({ bytes, prompt: 'Turn the original square green.' }, checkpoint);
+    expect(result.interactionId).toBe('fresh-edit');
+    expect(transport.uploadVideo).toHaveBeenCalledWith(bytes, expect.any(AbortSignal));
+    expect(wait).toHaveBeenCalledWith(5_000, expect.any(AbortSignal));
+    const request = transport.create.mock.calls[0]?.[0];
+    expect(request).toMatchObject({ input: [{ type: 'video', uri: 'https://generativelanguage.googleapis.com/v1beta/files/parent', mime_type: 'video/mp4' }, { type: 'text', text: 'Turn the original square green.' }], store: true, response_format: { delivery: 'uri' } });
+    expect(request).not.toHaveProperty('previous_interaction_id');
+    expect(checkpoint).toHaveBeenCalledWith({ interactionId: 'fresh-edit', fileName: 'files/edited', model: config.videoModel });
+    expect(transport.deleteFile).toHaveBeenCalledWith('files/parent', expect.any(AbortSignal));
+  });
+
+  it('preserves the completed edit when deletion of the temporary input fails', async () => {
+    const { provider, transport } = harness();
+    transport.uploadVideo.mockResolvedValue({ name: 'files/parent', uri: 'files/parent' });
+    transport.getFile.mockResolvedValue({ state: 'ACTIVE' });
+    transport.create.mockResolvedValue({ id: 'edited', status: 'completed', output_video: { mime_type: 'video/mp4', uri: 'files/edited' } });
+    transport.downloadFile.mockResolvedValue(mp4Header);
+    transport.deleteFile.mockRejectedValue({ status: 503 });
+    expect((await provider.editVideo({ bytes: durationFixture(1), prompt: 'TEST ONLY' }, vi.fn())).bytes).toEqual(mp4Header);
+  });
+
+  it('keeps an uploaded input after an ambiguous paid request failure and never automatically creates again', async () => {
+    const { provider, transport } = harness();
+    transport.uploadVideo.mockResolvedValue({ name: 'files/parent', uri: 'files/parent' });
+    transport.getFile.mockResolvedValue({ state: 'ACTIVE' });
+    transport.create.mockRejectedValue({ status: 503 });
+    await expect(provider.editVideo({ bytes: durationFixture(1), prompt: 'TEST ONLY' }, vi.fn())).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' });
+    expect(transport.create).toHaveBeenCalledTimes(1);
+    expect(transport.deleteFile).not.toHaveBeenCalled();
+  });
+
+  it('aborts upload processing under the same deadline before any paid edit', async () => {
+    vi.useFakeTimers();
+    const { transport } = harness();
+    const provider = new GeminiOmniVideoProvider(config, transport);
+    transport.uploadVideo.mockResolvedValue({ name: 'files/parent', uri: 'files/parent' });
+    transport.getFile.mockResolvedValue({ state: 'PROCESSING' });
+    const pending = expect(provider.editVideo({ bytes: durationFixture(1), prompt: 'TEST ONLY' }, vi.fn())).rejects.toMatchObject({ code: 'AI_TIMEOUT' });
+    await vi.advanceTimersByTimeAsync(config.timeoutMs);
+    await pending;
+    expect(transport.create).not.toHaveBeenCalled();
+    expect(transport.getFile.mock.calls[0]?.[1].aborted).toBe(true);
+  });
+
+  it.each(['https://attacker.example/files/parent', 'files/some-other-parent'])('rejects an untrusted or mismatched uploaded video URI %s before create', async (uri) => {
+    const { provider, transport } = harness();
+    transport.uploadVideo.mockResolvedValue({ name: 'files/parent', uri });
+    await expect(provider.editVideo({ bytes: durationFixture(1), prompt: 'TEST ONLY' }, vi.fn())).rejects.toMatchObject({ code: 'AI_UNSAFE_MEDIA_URI' });
+    expect(transport.create).not.toHaveBeenCalled();
+    expect(transport.deleteFile).toHaveBeenCalledWith('files/parent', expect.any(AbortSignal));
+  });
+
+  it.each([mp4Header, durationFixture(11), durationFixture(0)])('rejects unknown, long or zero duration before uploading', async (bytes) => {
+    const { provider, transport } = harness();
+    await expect(provider.editVideo({ bytes, prompt: 'TEST ONLY' }, vi.fn())).rejects.toMatchObject({ code: expect.stringMatching(/^AI_UPLOAD_/) });
+    expect(transport.uploadVideo).not.toHaveBeenCalled();
+    expect(transport.create).not.toHaveBeenCalled();
+  });
+
+  it.each([0, 1])('reads bounded MP4 movie-header version %s and rejects truncated box sizes', (version) => {
+    const bytes = durationFixture(10, version);
+    expect(validateUploadedVideo(bytes)).toBe(10);
+    expect(() => validateUploadedVideo(bytes.subarray(0, -1))).toThrow('no usable duration');
+    expect(() => validateUploadedVideo(Buffer.concat([bytes, bytes.subarray(16)]))).toThrow('no usable duration');
   });
 });
 

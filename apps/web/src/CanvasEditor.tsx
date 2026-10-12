@@ -21,7 +21,7 @@ const numberFields = [{ field: 'x', label: 'X position', min: -10000, max: 10000
 export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: ProjectApi; onReload: () => Promise<void> }) {
   const [history, setHistory] = useState(() => editorHistory(scene.canvas));
   const historyRef = useRef(history);
-  const saver = useMemo(() => new SceneSaver(scene, (revision, document) => api.saveScene(scene.projectId, scene.id, revision, document.canvas, document.shotPlan)), [scene, api]);
+  const saver = useMemo(() => new SceneSaver(scene, (revision, document) => api.saveScene(scene.projectId, scene.id, revision, document.canvas, document.shotPlan, document.timeline, document.selectedVideoVersionId)), [scene, api]);
   const [shotPlan, setShotPlan] = useState(scene.shotPlan);
   const [analysisBusy, setAnalysisBusy] = useState(false);
   const [generationBusy, setGenerationBusy] = useState(false);
@@ -140,7 +140,7 @@ export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: Proj
     } finally { importBusyRef.current = false; setImportBusy(false); }
   }
   async function reload() {
-    if (saver.state.dirty && !window.confirm('Discard your local canvas and shot plan changes and load the latest saved scene? Download your local scene first if you want to keep a copy.')) return;
+    if (saver.state.dirty && !window.confirm('Discard your local drawing, shot plan, timeline and version selection changes and load the latest saved scene? Download your local scene first if you want to keep a copy.')) return;
     try { await onReload(); } catch (reason) { setError(errorMessage(reason)); }
   }
   function downloadCanvas() {

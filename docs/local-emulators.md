@@ -40,7 +40,20 @@ The development processes stop with Ctrl+C. Emulator data is temporary and reset
 | Storage emulator | `127.0.0.1:9199` |
 | Emulator hub | `127.0.0.1:4400` |
 
-Firestore also uses port 9150 for its diagnostic WebSocket; emulator logging uses port 4500. Stop an existing development session before running tests. The test harness refuses to reuse an existing API or web server, so it cannot silently test a differently configured process.
+Firestore also uses port 9150 for its diagnostic WebSocket; emulator logging uses port 4500. Tests use a separate port profile and temporary hub directory, so you can keep this development session and its data running while checks execute. The test harness refuses to reuse an existing API or web server.
+
+| Service | Isolated test address |
+|---|---|
+| Test editor | `http://127.0.0.1:15173` |
+| Test Fastify API | `http://127.0.0.1:18080` |
+| Test Auth emulator | `127.0.0.1:19099` |
+| Test Firestore emulator | `127.0.0.1:18081` |
+| Test Storage emulator | `127.0.0.1:19199` |
+| Test emulator hub | `127.0.0.1:14400` |
+| Test Firestore diagnostic WebSocket | `127.0.0.1:19150` |
+| Test emulator logging | `127.0.0.1:14500` |
+
+The test Emulator UI is disabled; port 14000 is reserved in its configuration. The separate unconfigured browser smoke (`npm run test:e2e`) uses port 15174. Neither suite stops or writes into the development emulator services.
 
 ## Run the real local integration checks
 
@@ -51,7 +64,7 @@ npm run test:emulators
 This builds shared schemas, launches a fresh suite, starts the API and web server, runs Playwright, and shuts the processes down. The test web server disables hot reload to prevent a concurrent build from resetting browser state. Its underlying CLI invocation is:
 
 ```text
-firebase emulators:exec --only auth,firestore,storage --project demo-aniforge --config firebase.emulators.json "node scripts/emulator-run.mjs test"
+firebase emulators:exec --only auth,firestore,storage --project demo-aniforge --config firebase.emulators.test.json "node scripts/emulator-run.mjs test"
 ```
 
 Use the npm wrapper so Java selection and the isolated environment are applied. Default `npm run test:e2e` still tests the explicitly unsaved playground without Firebase; it does not include these emulator tests.
@@ -71,7 +84,7 @@ Screenshots and failed-test traces are written under `test-results/emulators`. L
 
 ## Isolation and limits
 
-`scripts/emulator-env.mjs` keeps only OS/runtime environment settings and supplies a fixed demo configuration. It strips inherited cloud credentials and arbitrary `VITE_*` values, uses a separate Firebase CLI config directory under `.cache/firebase/config`, disables metadata-server discovery, and forces `ENABLE_REAL_AI=false`. The API launcher does not load `.env`; the Vite launcher uses `envDir: false`. Your personal `.env` files are not read or modified by this workflow.
+`scripts/emulator-env.mjs` keeps only OS/runtime environment settings and supplies a fixed demo configuration. It strips inherited cloud credentials and arbitrary `VITE_*` values, uses profile-specific Firebase CLI config directories under `.cache/firebase/config/dev` and `.cache/firebase/config/test`, disables metadata-server discovery, and forces `ENABLE_REAL_AI=false` and `ENABLE_VIDEO_GENERATION=false`. The launcher explicitly propagates `ANIFORGE_EMULATOR_PROFILE=dev|test` to every child. Test temporary files and Firebase's project-named hub locator stay under `.cache/firebase/test-tmp`, separate from development. All test suites require the test profile, exact `demo-aniforge` project, and fixed test endpoints before accessing data. The API launcher does not load `.env`; the Vite launcher uses `envDir: false` and routes API calls to the matching profile's API port. Your personal `.env` files are not read or modified by this workflow.
 
 Emulators prove local application integration, not paid Gemini availability, production IAM, signed Google tokens, production database indexes, cloud durability, or deployment. The live cloud and model checks remain separate, documented in [cloud setup](cloud-setup.md) and [model verification](model-verification.md).
 

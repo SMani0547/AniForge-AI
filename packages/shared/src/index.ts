@@ -39,9 +39,19 @@ export type AnalysisAvailability = z.infer<typeof analysisAvailabilitySchema>;
 
 export const generateSceneSchema = analyzeSceneSchema.omit({ analysisId: true, notes: true }).extend({ jobId: z.uuid() });
 export type GenerateScene = z.infer<typeof generateSceneSchema>;
+export const editVideoSchema = z.strictObject({
+  jobId: z.uuid(), prompt: z.string().trim().min(1).max(8000),
+  mode: z.enum(['interaction', 'upload']).default('interaction'),
+  copyrightAttested: z.literal(true), confirmPaid: z.literal(true),
+});
+export type EditVideo = z.infer<typeof editVideoSchema>;
+export const selectVersionSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), versionId: resourceIdSchema.nullable() });
+export const exportVideoSchema = z.strictObject({ sceneId: resourceIdSchema, versionId: resourceIdSchema });
 export const videoJobSchema = z.strictObject({
   id: z.uuid(), projectId: resourceIdSchema, sceneId: resourceIdSchema,
   status: z.enum(['queued', 'running', 'succeeded', 'failed']),
+  generationKind: z.enum(['initial', 'edit']).default('initial'), parentVersionId: resourceIdSchema.nullable().default(null),
+  editMode: z.enum(['interaction', 'upload']).nullable().default(null),
   sourceRevision: z.number().int().nonnegative(), snapshotAssetId: resourceIdSchema,
   createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
   resultVersionId: resourceIdSchema.nullable(), errorCode: z.string().nullable(), errorMessage: z.string().nullable(),
@@ -49,7 +59,8 @@ export const videoJobSchema = z.strictObject({
 export type VideoJob = z.infer<typeof videoJobSchema>;
 export const videoVersionSchema = z.strictObject({
   id: resourceIdSchema, projectId: resourceIdSchema, sceneId: resourceIdSchema,
-  parentVersionId: resourceIdSchema.nullable(), generationKind: z.literal('initial'),
+  parentVersionId: resourceIdSchema.nullable(), generationKind: z.enum(['initial', 'edit']),
+  editMode: z.enum(['interaction', 'upload']).nullable().default(null),
   model: z.string().min(1).max(200), prompt: z.string().min(1).max(32000),
   sourceRevision: z.number().int().nonnegative(), snapshotAssetId: resourceIdSchema,
   shotPlan: shotPlanSchema, mimeType: z.literal('video/mp4'), sizeBytes: z.number().int().positive().max(100 * 1024 * 1024),
@@ -96,10 +107,20 @@ export const canvasSchema = z.strictObject({
 });
 export type Canvas = z.infer<typeof canvasSchema>;
 
-export const timelineSchema = z.strictObject({
+const captionDataSchema = z.strictObject({ id: resourceIdSchema, text: z.string().max(1000), start: z.number().nonnegative().max(300), end: z.number().nonnegative().max(300) });
+const timelineDataSchema = z.strictObject({
   trimStart: z.number().min(0).max(300), trimEnd: z.number().min(0).max(300),
-  captions: z.array(z.strictObject({ id: resourceIdSchema, text: z.string().max(1000), start: z.number().nonnegative().max(300), end: z.number().nonnegative().max(300) }).refine((caption) => caption.end >= caption.start, 'Caption end must follow its start')).max(50),
-}).refine((timeline) => timeline.trimEnd >= timeline.trimStart, 'Trim end must follow its start');
+  captions: z.array(captionDataSchema).max(50),
+});
+/** Preserve Phase 4-valid values on read so creators can inspect and correct them. */
+const persistedTimelineSchema = timelineDataSchema.extend({
+  captions: z.array(captionDataSchema.refine((caption) => caption.end >= caption.start, 'Caption end must follow its start')).max(50),
+}).refine((timeline) => timeline.trimEnd === 0 || timeline.trimEnd >= timeline.trimStart, 'Trim end must follow its start, or zero for the full remaining clip');
+/** New writes require playable intervals and independent caption identities. */
+export const timelineSchema = timelineDataSchema.extend({
+  captions: z.array(captionDataSchema.refine((caption) => caption.end > caption.start, 'Caption end must be after its start')).max(50).refine((captions) => new Set(captions.map((caption) => caption.id)).size === captions.length, 'Caption IDs must be unique'),
+}).refine((timeline) => timeline.trimEnd === 0 || timeline.trimEnd > timeline.trimStart, 'Trim end must be after its start, or zero for the full remaining clip');
+export type Timeline = z.infer<typeof timelineSchema>;
 export const projectSchema = z.strictObject({
   id: resourceIdSchema, ownerId: z.string().min(1).max(128),
   title: z.string().trim().min(1).max(120), description: z.string().max(2000),
@@ -115,11 +136,11 @@ export const sceneSchema = z.strictObject({
   id: resourceIdSchema, projectId: resourceIdSchema, title: projectSchema.shape.title,
   order: z.number().int().min(0).max(99), canvas: canvasSchema,
   sourceAssetIds: z.array(resourceIdSchema).max(100), shotPlan: shotPlanSchema.nullable(),
-  selectedVideoVersionId: resourceIdSchema.nullable(), timeline: timelineSchema,
+  selectedVideoVersionId: resourceIdSchema.nullable(), timeline: persistedTimelineSchema,
   updatedAt: z.iso.datetime(), schemaVersion: z.literal(1), revision: z.number().int().nonnegative().default(0),
 });
 export type Scene = z.infer<typeof sceneSchema>;
-export const updateSceneSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), title: projectSchema.shape.title.optional(), canvas: canvasSchema.optional(), shotPlan: shotPlanSchema.nullable().optional(), timeline: timelineSchema.optional() }).refine((body) => Object.keys(body).some((key) => key !== 'expectedRevision'), 'Provide at least one change');
+export const updateSceneSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), title: projectSchema.shape.title.optional(), canvas: canvasSchema.optional(), shotPlan: shotPlanSchema.nullable().optional(), timeline: timelineSchema.optional(), selectedVideoVersionId: resourceIdSchema.nullable().optional() }).refine((body) => Object.keys(body).some((key) => key !== 'expectedRevision'), 'Provide at least one change');
 export type ProjectUpdate = z.infer<typeof updateProjectSchema>;
 export type SceneUpdate = z.infer<typeof updateSceneSchema>;
 export function emptyScene(projectId: string, id: string, now: string): Scene {

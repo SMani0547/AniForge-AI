@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { videoVersionSchema, type AnalysisAvailability } from '@aniforge/shared';
+import { videoVersionSchema, type AnalysisAvailability, type VideoJob } from '@aniforge/shared';
 import type { ProjectRepository } from './repository.js';
 import type { AssetStorage } from './assets/storage.js';
 import { safeProviderError } from './ai/errors.js';
 import { validateMp4, type QueuedVideoProvider } from './ai/provider.js';
 import { ApiError } from './errors.js';
-import { publicJob, VideoLedger, videoStoragePath, type JobKey, type VideoRequest } from './video-ledger.js';
+import { publicJob, VideoLedger, videoStoragePath, type JobKey, type VideoEditRequest, type VideoRequest } from './video-ledger.js';
 
 export interface VideoQueue { enqueue(key: JobKey, recovery?: boolean): Promise<void> }
 export class VideoService {
@@ -17,19 +17,29 @@ export class VideoService {
   async generate(request: VideoRequest) {
     const queue = this.queue();
     const job = await this.ledger.reserve(request, this.dailyLimit);
+    return this.publish(request.projectId, job, queue);
+  }
+  async edit(request: VideoEditRequest) {
+    const queue = this.queue();
+    const job = await this.ledger.reserveEdit(request, this.dailyLimit);
+    return this.publish(request.projectId, job, queue);
+  }
+  private async publish(projectId: string, job: VideoJob, queue: VideoQueue) {
     if (job.status === 'queued') {
       let timer: ReturnType<typeof setTimeout> | undefined;
-      try { await Promise.race([queue.enqueue({ projectId: request.projectId, jobId: job.id }), new Promise<void>((resolve) => { timer = setTimeout(resolve, 8000); })]); }
+      try { await Promise.race([queue.enqueue({ projectId, jobId: job.id }), new Promise<void>((resolve) => { timer = setTimeout(resolve, 8000); })]); }
       catch { /* Durable outbox remains queued. Recovery job or same-ID retry publishes it. */ }
       finally { clearTimeout(timer); }
     }
     return job;
   }
   async get(key: JobKey, ownerId: string) { return publicJob(await this.ledger.get(key, ownerId)); }
-  async content(projectId: string, versionId: string, ownerId: string) {
-    const { path, version } = await this.ledger.version(projectId, versionId, ownerId);
+  async content(projectId: string, versionId: string, ownerId: string, sceneId?: string) {
+    const { path, version, sha256 } = await this.ledger.version(projectId, versionId, ownerId);
+    if (sceneId && version.sceneId !== sceneId) throw new ApiError(404, 'NOT_FOUND', 'Video version not found.');
     const bytes = await this.storage.read(path);
     if (bytes.length !== version.sizeBytes) throw new ApiError(502, 'VIDEO_UNAVAILABLE', 'Stored video size does not match its version.');
+    if (sha256 && createHash('sha256').update(bytes).digest('hex') !== sha256) throw new ApiError(502, 'VIDEO_UNAVAILABLE', 'Stored video integrity does not match its version.');
     validateMp4(bytes); return bytes;
   }
 }
@@ -44,6 +54,23 @@ export class VideoWorker {
       const provider = this.provider();
       let output;
       if (record.checkpoint) output = await provider.resume(record.checkpoint);
+      else if (record.generationKind === 'edit') {
+        if (!record.parentVersionId) throw new ApiError(409, 'EDIT_SOURCE_UNAVAILABLE', 'The edit has no original video reference.');
+        const parent = await this.ledger.version(key.projectId, record.parentVersionId, record.ownerId);
+        if (parent.version.sceneId !== record.sceneId) throw new ApiError(404, 'NOT_FOUND', 'Video version not found.');
+        const checkpoint = (value: Parameters<QueuedVideoProvider['resume']>[0]) => this.ledger.checkpoint(key, token, value);
+        if (record.editMode === 'upload') {
+          const bytes = await this.storage.read(parent.path);
+          if (bytes.length !== parent.version.sizeBytes || (parent.sha256 && createHash('sha256').update(bytes).digest('hex') !== parent.sha256)) throw new ApiError(502, 'VIDEO_UNAVAILABLE', 'Stored source video integrity does not match its version.');
+          validateMp4(bytes);
+          await this.ledger.dispatch(key, token);
+          output = await provider.editVideo({ bytes, prompt: record.prompt }, checkpoint);
+        } else {
+          if (!record.parentInteractionId) throw new ApiError(409, 'INTERACTION_UNAVAILABLE', 'The prior Google interaction is unavailable. Choose a separate stored-video upload edit if needed.');
+          await this.ledger.dispatch(key, token);
+          output = await provider.edit({ interactionId: record.parentInteractionId, prompt: record.prompt }, checkpoint);
+        }
+      }
       else {
         const bytes = await this.repository.assetContent(key.projectId, record.snapshotAssetId, record.ownerId);
         await this.ledger.dispatch(key, token);
@@ -51,7 +78,7 @@ export class VideoWorker {
       }
       validateMp4(output.bytes);
       if (!output.interactionId || output.interactionId.length > 2048) throw new ApiError(502, 'INVALID_VIDEO_RESULT', 'The provider returned no valid interaction reference.');
-      const version = videoVersionSchema.parse({ id: key.jobId, projectId: key.projectId, sceneId: record.sceneId, parentVersionId: null, generationKind: 'initial', model: output.model, prompt: record.prompt, sourceRevision: record.sourceRevision, snapshotAssetId: record.snapshotAssetId, shotPlan: record.shotPlan, mimeType: 'video/mp4', sizeBytes: output.bytes.length, createdAt: new Date().toISOString() });
+      const version = videoVersionSchema.parse({ id: key.jobId, projectId: key.projectId, sceneId: record.sceneId, parentVersionId: record.parentVersionId ?? null, generationKind: record.generationKind ?? 'initial', editMode: record.editMode ?? null, model: output.model, prompt: record.prompt, sourceRevision: record.sourceRevision, snapshotAssetId: record.snapshotAssetId, shotPlan: record.shotPlan, mimeType: 'video/mp4', sizeBytes: output.bytes.length, createdAt: new Date().toISOString() });
       const latest = await this.ledger.get(key);
       if (latest.status !== 'running' || latest.leaseToken !== token) return;
       const path = videoStoragePath(record.ownerId, key);

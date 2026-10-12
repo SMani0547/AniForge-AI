@@ -1,10 +1,35 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createProjectSchema, emptyScene, type AnalyzeScene } from '@aniforge/shared';
+import { createProjectSchema, emptyScene, type AnalyzeScene, type EditVideo } from '@aniforge/shared';
 import { ApiError, createApiClient, newestFirst } from './api';
 
 const project = { id: 'project-1', ownerId: 'user-1', title: 'Original story', description: '', aspectRatio: '16:9' as const, sceneOrder: ['scene-1'], createdAt: '2026-10-12T00:00:00.000Z', updatedAt: '2026-10-12T00:00:00.000Z', schemaVersion: 1 as const };
 
 describe('authenticated project API client', () => {
+  it('preserves the edit ID, immutable parent and explicit source mode through an uncertain failure', async () => {
+    const input: EditVideo = { jobId: '84ce909f-f218-42cf-9858-de975bfcfb69', prompt: 'Move more slowly.', mode: 'upload', copyrightAttested: true, confirmPaid: true };
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ data: null, error: { code: 'DISPATCH_UNCERTAIN', message: 'Check this request again.' }, requestId: 'edit-request' }), { status: 503 }));
+    await expect(createApiClient(async () => 'token', '/api/v1', fetcher).editVideo('project', 'scene', 'parent-version', input)).rejects.toMatchObject({ status: 503, code: 'DISPATCH_UNCERTAIN' });
+    expect(fetcher.mock.calls[0]?.[0]).toBe('/api/v1/projects/project/scenes/scene/versions/parent-version/edit');
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual(input);
+    expect(fetcher.mock.calls[0]?.[1]?.headers).toMatchObject({ Authorization: 'Bearer token' });
+  });
+  it('saves timeline and selection with the drawing in one revision-checked request', async () => {
+    const scene = emptyScene(project.id, 'scene-1', project.createdAt);
+    const timeline = { trimStart: 0.5, trimEnd: 0, captions: [{ id: 'caption', text: 'Original sketch', start: 0.5, end: 1 }] };
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ data: { ...scene, timeline, selectedVideoVersionId: 'edited', revision: 8 }, error: null, requestId: 'timeline-save' })));
+    await createApiClient(async () => 'token', '/api/v1', fetcher).saveScene(project.id, scene.id, 7, scene.canvas, null, timeline, 'edited');
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual({ expectedRevision: 7, canvas: scene.canvas, shotPlan: null, timeline, selectedVideoVersionId: 'edited' });
+  });
+  it('downloads a chosen original MP4 through authorization and rejects invalid media responses', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response('test fixture bytes', { headers: { 'Content-Type': 'video/mp4' } })).mockResolvedValueOnce(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
+    const api = createApiClient(async () => 'token', '/api/v1', fetcher);
+    const blob = await api.exportVideo('project', 'scene', 'edited', new AbortController().signal);
+    expect(await blob.text()).toBe('test fixture bytes');
+    expect(fetcher.mock.calls[0]?.[0]).toBe('/api/v1/projects/project/export');
+    expect(fetcher.mock.calls[0]?.[1]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer token', 'Content-Type': 'application/json' } });
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual({ sceneId: 'scene', versionId: 'edited' });
+    await expect(api.exportVideo('project', 'scene', 'edited', new AbortController().signal)).rejects.toMatchObject({ status: 502 });
+  });
   it('validates analysis availability and retains the disabled reason', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ data: { available: false, reason: 'Local emulator mode: real AI is disabled.', model: null }, error: null, requestId: 'setup' })));
     const api = createApiClient(async () => 'token', '/api/v1', fetcher);

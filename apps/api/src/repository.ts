@@ -4,6 +4,7 @@ import { assetSchema, emptyScene, projectSchema, sceneSchema, type Asset, type P
 import { ApiError } from './errors.js';
 import { imageStoragePath, projectStoragePrefix, type AssetStorage } from './assets/storage.js';
 import type { NormalizedImage } from './assets/images.js';
+import { publicVersion, videoStoragePath } from './video-ledger.js';
 
 export interface ProjectListOptions { cursor?: string; limit: number }
 export interface ProjectRepository {
@@ -171,6 +172,12 @@ export class FirestoreProjectRepository implements ProjectRepository {
       if (!snapshot.exists) throw new ApiError(404, 'NOT_FOUND', 'Scene not found.');
       const current = sceneSchema.parse(snapshot.data()); const { expectedRevision, ...content } = changes;
       if (expectedRevision !== current.revision) throw new ApiError(409, 'SCENE_CONFLICT', 'This scene was saved elsewhere. Reload the saved scene before retrying.');
+      if (content.selectedVideoVersionId) {
+        const versionId = content.selectedVideoVersionId;
+        const raw = (await transaction.get(projectRef.collection('videoVersions').doc(versionId))).data();
+        if (!raw || raw.ownerId !== ownerId || raw.id !== versionId || raw.projectId !== id || raw.sceneId !== sceneId || raw.storagePath !== videoStoragePath(ownerId, { projectId: id, jobId: versionId })) throw new ApiError(404, 'NOT_FOUND', 'Video version not found in this scene.');
+        publicVersion(raw);
+      }
       const now = new Date().toISOString();
       const scene = sceneSchema.parse({ ...current, ...content, revision: current.revision + 1, updatedAt: now });
       scene.sourceAssetIds = sourceAssets(scene);

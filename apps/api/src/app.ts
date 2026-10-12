@@ -2,7 +2,7 @@ import Fastify, { type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { z, ZodError } from 'zod';
-import { analyzeSceneSchema, generateSceneSchema, createProjectSchema, resourceIdSchema, updateProjectSchema, updateSceneSchema } from '@aniforge/shared';
+import { analyzeSceneSchema, editVideoSchema, exportVideoSchema, generateSceneSchema, createProjectSchema, resourceIdSchema, selectVersionSchema, updateProjectSchema, updateSceneSchema } from '@aniforge/shared';
 import { ApiError } from './errors.js';
 import { assertOwner, type ProjectRepository } from './repository.js';
 import type { Config } from './config.js';
@@ -40,7 +40,7 @@ export function buildApp({ config, repository, verifyToken, analysis = null, vid
     reply.status(status).send({ data: null, error: { code, message }, requestId: request.id });
   });
   app.setNotFoundHandler((request, reply) => reply.code(404).send({ data: null, error: { code: 'NOT_FOUND', message: 'Route not found.' }, requestId: request.id }));
-  app.get('/health', async (request) => data(request, { status: 'ok', service: 'aniforge-api', firebaseConfigured: !!repository, milestone: 'queued-video' }));
+  app.get('/health', async (request) => data(request, { status: 'ok', service: 'aniforge-api', firebaseConfigured: !!repository, milestone: 'video-revisions' }));
   app.get('/api/v1/health', async (request) => data(request, { status: 'ok', firebaseConfigured: !!repository }));
 
   app.register(async (api) => {
@@ -64,6 +64,11 @@ export function buildApp({ config, repository, verifyToken, analysis = null, vid
       const input = generateSceneSchema.parse(request.body);
       return reply.code(202).send(data(request, await videos().generate({ projectId, sceneId, ownerId: uid(request), input })));
     });
+    api.post('/projects/:projectId/scenes/:sceneId/versions/:versionId/edit', async (request, reply) => {
+      const { projectId, sceneId, versionId } = sceneParams.extend({ versionId: resourceIdSchema }).parse(request.params); await owned(request, projectId);
+      const input = editVideoSchema.parse(request.body);
+      return reply.code(202).send(data(request, await videos().edit({ projectId, sceneId, versionId, ownerId: uid(request), input })));
+    });
     api.get('/projects/:projectId/jobs/:jobId', async (request) => {
       const key = projectParams.extend({ jobId: z.uuid() }).parse(request.params); await owned(request, key.projectId);
       return data(request, await videos().get(key, uid(request)));
@@ -76,10 +81,20 @@ export function buildApp({ config, repository, verifyToken, analysis = null, vid
       const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);
       return data(request, await videos().ledger.versions(projectId, sceneId, uid(request)));
     });
+    api.get('/projects/:projectId/versions/:versionId', async (request) => {
+      const { projectId, versionId } = projectParams.extend({ versionId: resourceIdSchema }).parse(request.params); await owned(request, projectId);
+      return data(request, (await videos().ledger.version(projectId, versionId, uid(request))).version);
+    });
     api.get('/projects/:projectId/versions/:versionId/content', async (request, reply) => {
       const { projectId, versionId } = projectParams.extend({ versionId: resourceIdSchema }).parse(request.params); await owned(request, projectId);
       const bytes = await videos().content(projectId, versionId, uid(request));
       return reply.type('video/mp4').header('X-Content-Type-Options', 'nosniff').send(bytes);
+    });
+    api.post('/projects/:projectId/export', async (request, reply) => {
+      const { projectId } = projectParams.parse(request.params); await owned(request, projectId);
+      const { sceneId, versionId } = exportVideoSchema.parse(request.body);
+      const bytes = await videos().content(projectId, versionId, uid(request), sceneId);
+      return reply.type('video/mp4').header('X-Content-Type-Options', 'nosniff').header('Content-Disposition', `attachment; filename="aniforge-${versionId}.mp4"`).send(bytes);
     });
     api.get('/ai/analysis-status', async (request, reply) => {
       reply.header('Cache-Control', 'private, no-store');
@@ -119,6 +134,11 @@ export function buildApp({ config, repository, verifyToken, analysis = null, vid
       const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);
       const changes = updateSceneSchema.parse(request.body);
       return data(request, await store().updateScene(projectId, sceneId, uid(request), changes));
+    });
+    api.patch('/projects/:projectId/scenes/:sceneId/select-version', async (request) => {
+      const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);
+      const { expectedRevision, versionId } = selectVersionSchema.parse(request.body);
+      return data(request, await store().updateScene(projectId, sceneId, uid(request), { expectedRevision, selectedVideoVersionId: versionId }));
     });
     api.post('/projects/:projectId/scenes/:sceneId/analyze', async (request, reply) => {
       const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);

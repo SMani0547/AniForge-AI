@@ -10,6 +10,62 @@ const signal = new AbortController().signal;
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Google HTTP transport boundaries', () => {
+  it('uploads private MP4 bytes with a bounded authenticated Files session and no API key on the session request', async () => {
+    const uploadUrl = 'https://generativelanguage.googleapis.com/upload/v1beta/files?upload_id=fixture-only&upload_protocol=resumable';
+    const file = { name: 'files/upload-fixture', uri: 'https://generativelanguage.googleapis.com/v1beta/files/upload-fixture', state: 'PROCESSING' };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { headers: { 'x-goog-upload-url': uploadUrl } }))
+      .mockResolvedValueOnce(Response.json({ file }));
+    vi.stubGlobal('fetch', fetcher);
+    const bytes = Buffer.from('000000186674797069736f6d0000000069736f6d', 'hex'); // Container-only test bytes.
+    expect(await createGoogleTransport(config).uploadVideo(bytes, signal)).toEqual(file);
+    const start = new Request(...fetcher.mock.calls[0]!);
+    expect(start.url).toBe('https://generativelanguage.googleapis.com/upload/v1beta/files');
+    expect(start.headers.get('x-goog-api-key')).toBe(config.apiKey);
+    expect(start.headers.get('x-goog-upload-header-content-length')).toBe(String(bytes.length));
+    expect(start.headers.get('x-goog-upload-header-content-type')).toBe('video/mp4');
+    expect(await start.json()).toEqual({ file: { display_name: 'AniForge original video edit input' } });
+    const upload = new Request(...fetcher.mock.calls[1]!);
+    expect(upload.url).toBe(uploadUrl);
+    expect(upload.headers.get('x-goog-api-key')).toBeNull();
+    expect(upload.headers.get('x-goog-upload-command')).toBe('upload, finalize');
+    expect(Buffer.from(await upload.arrayBuffer())).toEqual(bytes);
+    expect(fetcher.mock.calls.every(([, init]) => init?.signal === signal && init.redirect === 'error')).toBe(true);
+  });
+
+  it.each(['https://attacker.example/upload', 'http://generativelanguage.googleapis.com/upload/v1beta/files', 'https://generativelanguage.googleapis.com:444/upload/v1beta/files', 'https://user:pass@generativelanguage.googleapis.com/upload/v1beta/files', 'https://generativelanguage.googleapis.com/unexpected', 'not a URL'])('rejects an unapproved upload session URL without sending the MP4: %s', async (location) => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { headers: { 'x-goog-upload-url': location } }));
+    vi.stubGlobal('fetch', fetcher);
+    const bytes = Buffer.from('000000186674797069736f6d0000000069736f6d', 'hex');
+    await expect(createGoogleTransport(config).uploadVideo(bytes, signal)).rejects.toMatchObject({ code: 'AI_UNSAFE_MEDIA_URI' });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('deletes only a canonical Google file and treats an already deleted file as success', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 404 }));
+    vi.stubGlobal('fetch', fetcher);
+    await createGoogleTransport(config).deleteFile('files/input-fixture', signal);
+    expect(fetcher).toHaveBeenCalledWith('https://generativelanguage.googleapis.com/v1beta/files/input-fixture', { method: 'DELETE', headers: { 'x-goog-api-key': config.apiKey }, signal, redirect: 'error' });
+    await expect(createGoogleTransport(config).deleteFile('files/../../other-resource', signal)).rejects.toMatchObject({ code: 'AI_UNSAFE_MEDIA_URI' });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { input: 'Make the square green.', previous_interaction_id: 'fixture-parent' },
+    { input: [{ type: 'video' as const, uri: 'https://generativelanguage.googleapis.com/v1beta/files/fixture-parent', mime_type: 'video/mp4' as const }, { type: 'text' as const, text: 'Make the square green.' }] },
+  ])('passes the documented edit shape through the installed SDK without automatic retries', async (input) => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      id: 'edited-http-fixture', object: 'interaction', model: config.videoModel,
+      status: 'completed', created: '2026-10-13T00:00:00Z', updated: '2026-10-13T00:00:00Z',
+      steps: [{ type: 'model_output', content: [{ type: 'video', mime_type: 'video/mp4', uri: 'files/edited' }] }],
+    }));
+    vi.stubGlobal('fetch', fetcher);
+    await createGoogleTransport(config).create({ ...input, model: config.videoModel, response_format: { type: 'video', delivery: 'uri' }, background: false, stream: false, store: true }, signal);
+    const request = new Request(...fetcher.mock.calls[0]!);
+    expect(await request.json()).toMatchObject({ ...input, store: true, response_format: { delivery: 'uri' } });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it('sends inline image and structured JSON through the installed SDK and reads its current-turn analysis', async () => {
     const plan = {
       sceneSummary: 'An original geometric shape', subjects: [{ name: 'Square', appearance: 'Blue' }],

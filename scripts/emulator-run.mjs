@@ -2,9 +2,9 @@ import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { emulatorEnvironment, workspace } from './emulator-env.mjs';
 
-if (process.env.ANIFORGE_EMULATOR_RUN !== 'true') throw new Error('Run npm run dev:emulators or npm run test:emulators to start the required emulators.');
-const env = emulatorEnvironment();
 const mode = process.argv[2];
+if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.ANIFORGE_EMULATOR_PROFILE !== mode) throw new Error('Run npm run dev:emulators or npm run test:emulators with its matching isolated profile.');
+const env = emulatorEnvironment();
 const children = [];
 let stopping = false;
 function start(args) {

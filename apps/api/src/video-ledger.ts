@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { FieldPath, type DocumentData, type Firestore } from 'firebase-admin/firestore';
-import { assetSchema, sceneSchema, shotPlanSchema, videoJobSchema, videoPrompt, videoVersionSchema, type GenerateScene, type ShotPlan, type VideoJob, type VideoVersion } from '@aniforge/shared';
+import { assetSchema, sceneSchema, shotPlanSchema, videoJobSchema, videoPrompt, videoVersionSchema, type EditVideo, type GenerateScene, type ShotPlan, type VideoJob, type VideoVersion } from '@aniforge/shared';
 import { validateAnalysisSource } from './analysis.js';
 import { imageStoragePath, projectStoragePrefix } from './assets/storage.js';
 import type { VideoCheckpoint } from './ai/provider.js';
@@ -9,11 +9,13 @@ import { ApiError } from './errors.js';
 export const JOB_LIFETIME_MS = 30 * 60_000;
 export const WORKER_LEASE_MS = 6 * 60_000;
 export interface VideoRequest { projectId: string; sceneId: string; ownerId: string; input: GenerateScene }
+export interface VideoEditRequest { projectId: string; sceneId: string; ownerId: string; versionId: string; input: EditVideo }
 export interface JobKey { projectId: string; jobId: string }
 export interface JobRecord extends VideoJob {
   ownerId: string; fingerprint: string; shotPlan: ShotPlan; prompt: string;
   leaseUntil: number; leaseToken: string; attempts: number; dispatched: boolean;
   checkpoint: VideoCheckpoint | null;
+  parentInteractionId: string | null;
 }
 const missing = () => new ApiError(404, 'NOT_FOUND', 'Project or video job not found.');
 function active(parent: DocumentData | undefined, ownerId: string) {
@@ -26,6 +28,10 @@ export function publicVersion(raw: DocumentData): VideoVersion {
   return videoVersionSchema.parse(Object.fromEntries(Object.keys(videoVersionSchema.shape).map((key) => [key, raw[key]])));
 }
 export function videoStoragePath(ownerId: string, key: JobKey) { return `${projectStoragePrefix(ownerId, key.projectId)}video/${key.jobId}.mp4`; }
+function privateVersion(raw: DocumentData | undefined, projectId: string, versionId: string, ownerId: string) {
+  if (!raw || raw.ownerId !== ownerId || raw.id !== versionId || raw.projectId !== projectId || raw.storagePath !== videoStoragePath(ownerId, { projectId, jobId: versionId })) throw missing();
+  return { version: publicVersion(raw), path: String(raw.storagePath), interactionId: typeof raw.interactionId === 'string' && raw.interactionId.length > 0 && raw.interactionId.length <= 2048 ? raw.interactionId : null, sha256: typeof raw.sha256 === 'string' ? raw.sha256 : null };
+}
 export function expiredJob(record: JobRecord, now: number): Partial<JobRecord> | null {
   if (record.status === 'succeeded' || record.status === 'failed') return null;
   if (record.dispatched && !record.checkpoint && record.leaseUntil <= now) return { status: 'failed', errorCode: 'GENERATION_OUTCOME_UNKNOWN', errorMessage: 'The worker stopped after dispatch. Google may still charge. This job will never generate again; inspect AI Studio before starting a new job.' };
@@ -38,27 +44,39 @@ export class VideoLedger {
   constructor(private db: Firestore, private now: () => number = Date.now) {}
   private project(id: string) { return this.db.collection('projects').doc(id); }
   private ref(key: JobKey) { return this.project(key.projectId).collection('jobs').doc(key.jobId); }
-  async reserve(request: VideoRequest, dailyLimit: number): Promise<VideoJob> {
+  reserve(request: VideoRequest, dailyLimit: number): Promise<VideoJob> { return this.reserveJob(request, dailyLimit); }
+  reserveEdit(request: VideoEditRequest, dailyLimit: number): Promise<VideoJob> { return this.reserveJob(request, dailyLimit); }
+  private async reserveJob(request: VideoRequest | VideoEditRequest, dailyLimit: number): Promise<VideoJob> {
     const { projectId, ownerId, sceneId, input } = request;
     const project = this.project(projectId); const ref = this.ref({ projectId, jobId: input.jobId });
     const usageRef = this.db.collection('videoUsage').doc(createHash('sha256').update(ownerId).digest('hex'));
     return this.db.runTransaction(async (tx) => {
       const [parent, existing] = await tx.getAll(project, ref); active(parent!.data(), ownerId);
-      const fingerprint = createHash('sha256').update(JSON.stringify([sceneId, input.expectedRevision, input.snapshotAssetId])).digest('hex');
+      const fingerprint = createHash('sha256').update(JSON.stringify('versionId' in request ? ['edit', sceneId, request.versionId, request.input.prompt, request.input.mode] : [sceneId, request.input.expectedRevision, request.input.snapshotAssetId])).digest('hex');
       if (existing!.exists) {
         const record = existing!.data() as JobRecord;
         if (record.ownerId !== ownerId || record.fingerprint !== fingerprint) throw new ApiError(409, 'JOB_ID_CONFLICT', 'This job ID already belongs to another request.');
         return publicJob(record);
       }
-      const [sceneDoc, assetDoc, usageDoc] = await tx.getAll(project.collection('scenes').doc(sceneId), project.collection('assets').doc(input.snapshotAssetId), usageRef);
-      const rawAsset = assetDoc!.data();
-      if (!sceneDoc!.exists || !rawAsset || rawAsset.state !== 'ready' || rawAsset.storagePath !== imageStoragePath(ownerId, projectId, input.snapshotAssetId)) throw missing();
-      const { storagePath: _path, state: _state, ...asset } = rawAsset;
+      const [sceneDoc, sourceDoc, usageDoc] = await tx.getAll(project.collection('scenes').doc(sceneId), 'versionId' in request ? project.collection('videoVersions').doc(request.versionId) : project.collection('assets').doc(request.input.snapshotAssetId), usageRef);
+      if (!sceneDoc!.exists) throw missing();
       const scene = sceneSchema.parse(sceneDoc!.data());
-      validateAnalysisSource(scene, assetSchema.parse(asset), { projectId, sceneId, ownerId, input: { ...input, analysisId: input.jobId, notes: '' } });
-      const plan = shotPlanSchema.safeParse(scene.shotPlan);
-      if (!plan.success) throw new ApiError(400, 'SHOT_PLAN_REQUIRED', 'Save a complete shot plan before generation.');
-      const prompt = videoPrompt(plan.data);
+      if (scene.id !== sceneId || scene.projectId !== projectId) throw missing();
+      let shotPlan: ShotPlan; let prompt: string; let sourceRevision: number; let snapshotAssetId: string; let parentInteractionId: string | null = null;
+      if ('versionId' in request) {
+        const parentVersion = privateVersion(sourceDoc!.data(), projectId, request.versionId, ownerId);
+        if (parentVersion.version.sceneId !== sceneId) throw missing();
+        if (request.input.mode === 'interaction' && !parentVersion.interactionId) throw new ApiError(409, 'INTERACTION_UNAVAILABLE', 'This version has no retained Google interaction. Choose the explicit stored-video upload option to request a separate paid edit.');
+        shotPlan = parentVersion.version.shotPlan; prompt = request.input.prompt; sourceRevision = parentVersion.version.sourceRevision; snapshotAssetId = parentVersion.version.snapshotAssetId; parentInteractionId = parentVersion.interactionId;
+      } else {
+        const rawAsset = sourceDoc!.data();
+        if (!rawAsset || rawAsset.state !== 'ready' || rawAsset.storagePath !== imageStoragePath(ownerId, projectId, request.input.snapshotAssetId)) throw missing();
+        const { storagePath: _path, state: _state, ...asset } = rawAsset;
+        validateAnalysisSource(scene, assetSchema.parse(asset), { projectId, sceneId, ownerId, input: { ...request.input, analysisId: input.jobId, notes: '' } });
+        const plan = shotPlanSchema.safeParse(scene.shotPlan);
+        if (!plan.success) throw new ApiError(400, 'SHOT_PLAN_REQUIRED', 'Save a complete shot plan before generation.');
+        shotPlan = plan.data; prompt = videoPrompt(plan.data); sourceRevision = request.input.expectedRevision; snapshotAssetId = request.input.snapshotAssetId;
+      }
       if (prompt.length > 8000) throw new ApiError(400, 'PROMPT_TOO_LONG', 'Shorten the shot plan: the combined video prompt must be at most 8000 characters.');
       const now = this.now(); const day = new Date(now).toISOString().slice(0, 10); const usage = usageDoc!.data();
       if (usage?.activePath) {
@@ -67,7 +85,7 @@ export class VideoLedger {
       }
       const attempts = usage?.day === day ? Number(usage.attempts) : 0;
       if (attempts >= dailyLimit) throw new ApiError(429, 'VIDEO_DAILY_LIMIT', 'Your daily video attempt limit has been reached. It resets at midnight UTC; failed attempts also count.');
-      const record: JobRecord = { id: input.jobId, projectId, sceneId, ownerId, fingerprint, status: 'queued', sourceRevision: input.expectedRevision, snapshotAssetId: input.snapshotAssetId, shotPlan: plan.data, prompt, createdAt: new Date(now).toISOString(), updatedAt: new Date(now).toISOString(), resultVersionId: null, errorCode: null, errorMessage: null, leaseUntil: 0, leaseToken: '', attempts: 0, dispatched: false, checkpoint: null };
+      const record: JobRecord = { id: input.jobId, projectId, sceneId, ownerId, fingerprint, status: 'queued', sourceRevision, snapshotAssetId, shotPlan, prompt, generationKind: 'versionId' in request ? 'edit' : 'initial', parentVersionId: 'versionId' in request ? request.versionId : null, editMode: 'versionId' in request ? request.input.mode : null, parentInteractionId, createdAt: new Date(now).toISOString(), updatedAt: new Date(now).toISOString(), resultVersionId: null, errorCode: null, errorMessage: null, leaseUntil: 0, leaseToken: '', attempts: 0, dispatched: false, checkpoint: null };
       tx.create(ref, record); tx.set(usageRef, { ownerId, day, attempts: attempts + 1, activePath: ref.path });
       return publicJob(record);
     });
@@ -130,10 +148,11 @@ export class VideoLedger {
     return docs.docs.map((doc) => publicVersion(doc.data()));
   }
   async version(projectId: string, versionId: string, ownerId: string) {
-    active((await this.project(projectId).get()).data(), ownerId);
-    const raw = (await this.project(projectId).collection('videoVersions').doc(versionId).get()).data();
-    if (!raw || raw.ownerId !== ownerId || raw.storagePath !== videoStoragePath(ownerId, { projectId, jobId: versionId })) throw missing();
-    return { version: publicVersion(raw), path: String(raw.storagePath) };
+    return this.db.runTransaction(async (tx) => {
+      const [parent, doc] = await tx.getAll(this.project(projectId), this.project(projectId).collection('videoVersions').doc(versionId));
+      active(parent!.data(), ownerId);
+      return privateVersion(doc!.data(), projectId, versionId, ownerId);
+    });
   }
   /** Finite Cloud Run recovery job: paginates all nonterminal records, including abandoned outbox writes. */
   async recover(enqueue: (key: JobKey, recovery: boolean) => Promise<void>) {
