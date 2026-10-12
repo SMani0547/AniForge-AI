@@ -158,18 +158,40 @@ Image decoding consumes more memory than compressed file size. The example delib
 
 Cloud Run allows public **network invocation** so browsers can reach the API, but project/scene requests still require a Firebase ID token and server ownership checks. The public health endpoint contains no credentials. Configure `ALLOWED_ORIGINS` with every actual frontend origin (comma separated); if changing it with gcloud, use an env YAML file or a custom `--set-env-vars` delimiter so commas inside its value are preserved. CORS does not replace token verification.
 
-The Dockerfile runs as an unprivileged user and contains compiled API/shared code with production dependencies. Docker context ignores local secrets and artifacts. Docker build and cloud deployment must be verified in an environment with Docker/Cloud CLI access; repository builds alone do not establish container or cloud success. Optional Cloud Build automation requires enabling `cloudbuild.googleapis.com` and configuring a build identity; the command sequence above uses local Docker and does not depend on Cloud Build.
+The Dockerfile runs as an unprivileged user and contains compiled API/shared code with production dependencies. Docker context ignores local secrets and artifacts. Run `npm run test:container -- $imageName` before pushing/deploying when Docker is available. The smoke runs API/worker containers without external networking or real AI; cloud IAM still needs live verification. CI includes a Linux container build/smoke, but no remote CI success is assumed. See [release checks](release-checklist.md).
+
+### Optional remote container build when local Docker is unavailable
+
+`cloudbuild.yaml` builds this same root-context Dockerfile and pushes an image tagged with the unique Cloud Build ID. It does not deploy or run Google AI. A billed project, `gcloud`, Artifact Registry repository from above and Cloud Build access are still required. This is an alternative build path, not a way around account setup.
+
+Use a dedicated build identity. It needs Artifact Registry Writer on the `aniforge` repository, Logs Writer on the project and Object Viewer on its source staging bucket. It needs no Gemini secret, media bucket or Firestore role. The operator needs permission to submit builds, upload source, and act as this build identity; an administrator should grant these separately from runtime permissions. [User-managed build accounts](https://docs.cloud.google.com/build/docs/securing-builds/configure-user-specified-service-accounts).
+
+```powershell
+gcloud services enable cloudbuild.googleapis.com
+gcloud iam service-accounts create aniforge-build --display-name "AniForge container build"
+$buildAccount = "aniforge-build@$projectId.iam.gserviceaccount.com"
+$sourceBucket = "$projectId-aniforge-build-source"
+gcloud storage buckets create "gs://$sourceBucket" --project $projectId --location $region --uniform-bucket-level-access --public-access-prevention
+gcloud storage buckets add-iam-policy-binding "gs://$sourceBucket" --member "serviceAccount:$buildAccount" --role roles/storage.objectViewer
+gcloud artifacts repositories add-iam-policy-binding aniforge --location $region --member "serviceAccount:$buildAccount" --role roles/artifactregistry.writer
+gcloud projects add-iam-policy-binding $projectId --member "serviceAccount:$buildAccount" --role roles/logging.logWriter
+gcloud meta list-files-for-upload
+# Inspect that list before uploading: no private .env, credential files or media artifacts.
+gcloud builds submit --project $projectId --region $region --config cloudbuild.yaml --service-account "projects/$projectId/serviceAccounts/$buildAccount" --gcs-source-staging-dir "gs://$sourceBucket/source" --substitutions "_LOCATION=$region" .
+```
+
+Confirm the build's actual SUCCESS result and image digest. Set `$imageName` to the exact image URI shown for that successful build before continuing the Cloud Run commands above. The build uses Cloud Logging; the operator also needs log-view permission to inspect results. Source archives stay in the private staging bucket; configure a suitable retention/lifecycle rule. No source archive or key was uploaded during local preparation. `.gcloudignore` excludes known secret/artifact paths; review upload contents for privately named files too. [Cloud Build container configuration](https://docs.cloud.google.com/build/docs/building/build-containers), [gcloud upload exclusions](https://docs.cloud.google.com/sdk/gcloud/reference/topic/gcloudignore).
 
 ## 7. Build and deploy Hosting
 
-Set the production Firebase web configuration and `VITE_API_BASE_URL` to the Cloud Run URL plus `/api/v1` in `apps/web/.env.production.local`. These Vite values are baked into the bundle and require a rebuild after changes. Keep the API's origin allowlist and Auth authorized domains synchronized with the published site.
+Set the production Firebase web configuration and `VITE_API_BASE_URL` to the HTTPS Cloud Run URL plus `/api/v1` in `apps/web/.env.local` or `apps/web/.env.release.local`. The deploy build uses Vite's `release` mode; move any previous `.env.production.local` release settings to the release-mode file. These public values are baked into the bundle and require a rebuild after changes. Keep the API's origin allowlist and Auth authorized domains synchronized with the published site.
 
 ```powershell
-npm run build
+npm run build:release
 npx.cmd firebase deploy --only hosting,firestore:rules,firestore:indexes --project $projectId
 ```
 
-`firebase.json` already points to `apps/web/dist`, sets an SPA fallback, and configures static cache/security headers. No Hosting initialization is needed. `.firebaserc.example` is an optional project alias template; the explicit `--project` flags avoid relying on an implicit target. The frontend calls Cloud Run directly; no synchronous video-generation Hosting rewrite is configured. [Hosting configuration](https://firebase.google.com/docs/hosting/full-config).
+`firebase.json` already points to `apps/web/dist`, sets an SPA fallback, and configures static cache/security headers. Its Hosting predeploy hook reruns `build:release`, rejects missing/emulator/unsafe public settings, verifies the Firebase deploy target matches the web project, and scans the bundle for known server secrets. This prevents accidentally shipping the unconfigured playground through the normal deploy command; it does not prove Firebase or Google access. See [release checklist](release-checklist.md). No Hosting initialization is needed. `.firebaserc.example` is an optional project alias template; explicit `--project` avoids an implicit target. The frontend calls Cloud Run directly; no synchronous video-generation Hosting rewrite is configured. [Hosting configuration](https://firebase.google.com/docs/hosting/full-config).
 
 Verify Google and anonymous sign-in, create/rename/duplicate/delete, import/crop/save/refresh, sign out, and confirm a second user cannot access the first user's project or image. Confirm a copied image remains after deleting the original project. Test a deep link such as `/studio/PROJECT_ID` after refresh, the browser CORS console, and 401 without a token. Record the actual site/API URLs and date in the milestone report. Do not mark media or generation gates complete from a successful Hosting deploy.
 

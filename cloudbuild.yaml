@@ -1,0 +1,11 @@
+# Optional remote container build only. No deployment and no Gemini credentials.
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '--platform', 'linux/amd64', '--file', 'apps/api/Dockerfile', '--tag', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/aniforge/api:$BUILD_ID', '.']
+images:
+  - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/aniforge/api:$BUILD_ID'
+substitutions:
+  _LOCATION: us-central1
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1200s

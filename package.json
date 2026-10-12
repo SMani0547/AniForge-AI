@@ -12,7 +12,11 @@
   ],
   "scripts": {
     "dev": "npm run build -w @aniforge/shared && concurrently -k -n api,web \"npm run dev -w @aniforge/api\" \"npm run dev -w @aniforge/web\"",
-    "build": "npm run build -w @aniforge/shared && npm run build -w @aniforge/api && npm run build -w @aniforge/web",
+    "build": "npm run build -w @aniforge/shared && npm run build -w @aniforge/api && npm run build -w @aniforge/web && npm run check:web-artifact",
+    "build:release": "npm run build -w @aniforge/shared && npm run build -w @aniforge/api && npm run build:release -w @aniforge/web && npm run check:web-artifact",
+    "check:web-artifact": "node scripts/check-web-artifact.mjs",
+    "test:built-api": "node scripts/smoke-built-api.mjs",
+    "test:container": "node scripts/smoke-container.mjs",
     "typecheck": "npm run build -w @aniforge/shared && npm run typecheck --workspaces --if-present && tsc -p tsconfig.tooling.json",
     "lint": "eslint .",
     "test": "vitest run",

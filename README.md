@@ -13,6 +13,7 @@ An original-art anime studio built with React, Konva, Fastify, Firebase and serv
 - Conversational edits create new immutable clips with parent links and prompt history. Compare parent/revised playback, save or restore the selected version, and preserve existing media when an edit fails. Expired interaction history offers an explicit stored-video upload mode with separate paid consent; there is no automatic paid fallback.
 - Saved trim/caption metadata affects the browser preview. Download the selected version's original MP4 and separate timeline JSON; trim and captions are **not rendered into the MP4**.
 - Cloud deployment configuration, private database/storage rules, CI and scoped credential documentation.
+- Release-only Firebase/API configuration validation, Hosting predeploy build, bounded browser-secret scan, compiled API smoke and CI container checks. Local preparation does not mean deployment has succeeded.
 
 No real Google AI call, production cloud persistence verification, Docker build or deployment has been completed in this environment. No Google-generated MP4 has been produced. Generation and editing require a configured private worker, Cloud Tasks queue and explicit paid consent. Two labeled original geometric MP4s are used only in tests. Local Firebase emulators allow the saved editor to run without cloud credentials.
 
@@ -59,6 +60,7 @@ npm run typecheck
 npm run lint
 npm run test
 npm run build
+npm run test:built-api
 npx playwright install chromium
 npm run test:e2e
 npm run test:emulators
@@ -80,4 +82,6 @@ The pinned Firebase CLI is a development dependency and currently brings transit
 
 [TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
 
-Phase 5 implementation and local checks are recorded in [the results](docs/phase-5-results.md). Next is Phase 6: configure real Firebase/Google access, verify real analysis/generation/editing and queue delivery, then deploy and prepare the demo. Required credentials and cloud steps are in [cloud setup](docs/cloud-setup.md), [worker setup](docs/video-worker-setup.md) and [model verification](docs/model-verification.md). Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.
+Phase 6 local release preparation is recorded in [the results](docs/phase-6-results.md). Cloud setup and live verification remain deferred by the owner; the full release is not complete. Follow the [release checklist](docs/release-checklist.md), [three-minute demo script](docs/demo-script.md) and [eight-slide outline](docs/pitch-outline.md). A [labeled local screenshot](docs/demo/README.md) documents test-fixture behavior, not Google output. The final demo video and PDF deck still need genuine evidence.
+
+Hosting uses `npm run build:release` through its predeploy hook. Configure ignored `.env.local` or `.env.release.local` with actual public Firebase settings and an HTTPS API URL before running it; an ordinary unconfigured build is for local checks. Docker build/smoke and the optional `cloudbuild.yaml` remote build still require the corresponding tools/account. Required credentials and cloud steps are in [cloud setup](docs/cloud-setup.md), [worker setup](docs/video-worker-setup.md) and [model verification](docs/model-verification.md). Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.

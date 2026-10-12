@@ -118,7 +118,15 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
     await page.getByRole('button', { name: 'Download original MP4', exact: true }).click();
     const download = await downloadPromise;
     expect(await readFile((await download.path())!)).toEqual(revised);
-    await page.screenshot({ path: testInfo.outputPath('test-fixture-revision-comparison.png'), fullPage: true });
+    await expect.poll(() => parent.evaluate((element) => (element as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
+    for (const player of [parent, clip]) {
+      await player.evaluate(async (element) => { const video = element as HTMLVideoElement; video.currentTime = 0.4; video.muted = true; await video.play(); });
+      await expect.poll(() => player.evaluate((element) => (element as HTMLVideoElement).currentTime)).toBeGreaterThan(0.6);
+      await player.evaluate((element) => { const video = element as HTMLVideoElement; video.pause(); video.currentTime = 0.5; });
+    }
+    for (const player of [parent, clip]) await expect.poll(() => player.evaluate((element) => !(element as HTMLVideoElement).seeking)).toBe(true);
+    await chooser.focus();
+    await page.getByRole('region', { name: 'Video versions and editing', exact: true }).screenshot({ path: testInfo.outputPath('test-fixture-revision-comparison.png') });
     await clip.evaluate(async (element) => { const video = element as HTMLVideoElement; video.currentTime = 1.3; video.muted = true; await video.play(); });
     await expect.poll(() => clip.evaluate((element) => (element as HTMLVideoElement).paused)).toBe(true);
     await expect.poll(() => clip.evaluate((element) => (element as HTMLVideoElement).currentTime)).toBeCloseTo(1.4, 2);

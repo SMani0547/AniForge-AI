@@ -64,14 +64,19 @@ Acceptance: real original and edited MP4 both play independently; selecting an e
 
 ## Phase 6 — cloud release and demo
 
+- [x] Release-only Firebase/API configuration guard, Hosting predeploy hook and browser artifact secret/canary check.
+- [x] Compiled API HTTP smoke; Docker API/worker smoke command and CI steps prepared. Local Docker execution remains blocked below.
+- [x] Optional Cloud Build configuration, source upload exclusions and documented least-privilege build setup.
+- [x] Three-minute demo script, eight-slide outline, reviewed emulator screenshot and deployment verification checklist.
+- [x] Typecheck, lint, 200 unit tests, build, compiled API smoke, 34 emulator tests and 2 standalone browser tests passed; production audit has zero findings. Exact results in docs/phase-6-results.md.
 - [ ] User creates/configures billed Google Cloud/Firebase project and Gemini paid access.
 - [ ] Apply least-privilege service accounts, private bucket, rules, secrets, queue and CORS.
 - [ ] Build/test container; deploy Hosting/API/private worker; verify fresh-user incognito flow.
 - [ ] Verify unauthorized project/media access denied and no server secrets shipped to browser.
 - [ ] Document actual model cost/quota results, live URLs and demo assets.
-- [ ] Prepare demo script, screenshot evidence and 8-slide outline; final checks and commit.
+- [ ] Capture real Google/cloud evidence, record final demo video and produce the submission slide PDF.
 
-Acceptance: all six MVP gates in AGENTS.md evidenced, including real initial/edit Google AI calls and deployed private media.
+Local release preparation is complete. The user explicitly deferred account setup and deployment. Full Phase 6 acceptance remains pending: all six MVP gates in AGENTS.md must be evidenced, including real initial/edit Google AI calls and deployed private media. Local fixtures do not satisfy those gates.
 
 ## Current external blockers
 

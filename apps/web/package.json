@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
+    "build:release": "tsc --noEmit && vite build --mode release",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {

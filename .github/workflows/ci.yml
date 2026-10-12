@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 20
     env:
       ENABLE_REAL_AI: "false"
+      GEMINI_API_KEY: "ANIFORGE_SERVER_SECRET_CANARY_NOT_A_REAL_KEY"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,6 +37,9 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+      - run: npm run test:built-api
+      - run: docker build --file apps/api/Dockerfile --tag aniforge-api:check .
+      - run: npm run test:container
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: npm run test:emulators
