@@ -19,3 +19,6 @@ artifacts/
 *credentials*.json
 *.pem
 *.key
+.cache/
+firebase-export-*/
+*-debug.log

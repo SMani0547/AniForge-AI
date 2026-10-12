@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
+  testIgnore: '**/*.emulator.spec.ts',
+  outputDir: 'test-results/unconfigured',
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',
@@ -10,7 +12,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev -w @aniforge/web -- --host 127.0.0.1',
     url: 'http://127.0.0.1:5173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     env: { VITE_FIREBASE_API_KEY: '', VITE_FIREBASE_PROJECT_ID: '', VITE_FIREBASE_AUTH_DOMAIN: '', VITE_FIREBASE_APP_ID: '' },
   },
 });

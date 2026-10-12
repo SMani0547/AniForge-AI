@@ -86,6 +86,6 @@ export function SketchPreview() {
       </div>
       <div className="canvas-footer"><span>{history.present.length} {history.present.length === 1 ? 'stroke' : 'strokes'}</span><span>16:9 <span aria-hidden="true">·</span> Local preview <span aria-hidden="true">·</span> Not saved</span></div>
     </div>
-    <p className="canvas-note">Try the drawing tools here. This preview is temporary and clears when you leave or refresh. Saving editable scenes is the next milestone.</p>
+    <p className="canvas-note">Try the drawing tools here. This preview is temporary and clears when you leave or refresh. Sign in and open a project to save an editable scene.</p>
   </section>;
 }

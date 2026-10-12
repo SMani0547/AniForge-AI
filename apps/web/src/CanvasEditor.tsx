@@ -1,0 +1,158 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Layer, Line, Rect, Stage } from 'react-konva';
+import type Konva from 'konva';
+import type { Canvas, CanvasObject, ImageCrop, Scene } from '@aniforge/shared';
+import { ArrowDown, ArrowUp, Brush, Circle, Download, Eraser, Eye, EyeOff, Hand, ImagePlus, Lock, Minus, MousePointer2, Pencil, Redo2, Save, Square, Trash2, Type, Undo2, Unlock } from 'lucide-react';
+import { errorMessage, type ProjectApi } from './api';
+import { baseObject, clamp, createShape, editorHistory, editorReducer, layerName, patchObject, strokeObject, type EditorAction, type EditorTool } from './editor';
+import { SceneSaver } from './sceneSaver';
+import { CanvasObjectView } from './CanvasObjectView';
+import { ImportDialog } from './ImportDialog';
+import { ImageCropInspector } from './ImageCropInspector';
+import { setNavigationGuard } from './navigationGuard';
+
+const drawingTools = [{ id: 'select', name: 'Select', icon: MousePointer2 }, { id: 'pencil', name: 'Pencil', icon: Pencil }, { id: 'brush', name: 'Brush', icon: Brush }, { id: 'eraser', name: 'Eraser', icon: Eraser }, { id: 'pan', name: 'Pan canvas', icon: Hand }] as const;
+const shapeTools = [{ id: 'rect', name: 'Add rectangle', icon: Square }, { id: 'ellipse', name: 'Add ellipse', icon: Circle }, { id: 'line', name: 'Add line', icon: Minus }, { id: 'text', name: 'Add text', icon: Type }] as const;
+type Draft = { id: string; points: number[]; color: string; width: number; eraser: boolean };
+const numberFields = [{ field: 'x', label: 'X position', min: -10000, max: 10000 }, { field: 'y', label: 'Y position', min: -10000, max: 10000 }, { field: 'width', label: 'Width', min: 0.1, max: 10000 }, { field: 'height', label: 'Height', min: 0.1, max: 10000 }, { field: 'rotation', label: 'Rotation', min: -360, max: 360 }, { field: 'opacity', label: 'Opacity', min: 0, max: 1 }, { field: 'strokeWidth', label: 'Stroke width', min: 0, max: 200 }] as const;
+
+export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: ProjectApi; onReload: () => Promise<void> }) {
+  const [history, setHistory] = useState(() => editorHistory(scene.canvas));
+  const historyRef = useRef(history);
+  const saver = useMemo(() => new SceneSaver(scene, (revision, canvas) => api.saveScene(scene.projectId, scene.id, revision, canvas)), [scene, api]);
+  const [saveState, setSaveState] = useState(saver.state);
+  const [tool, setTool] = useState<EditorTool>('select');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [color, setColor] = useState('#75a7ff');
+  const [strokeWidth, setStrokeWidth] = useState(8);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const drawing = useRef<Draft | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const importBusyRef = useRef(false);
+  const [error, setError] = useState('');
+  const [imageError, setImageError] = useState('');
+  const [imageRetry, setImageRetry] = useState(0);
+  const [width, setWidth] = useState(800);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const frame = useRef<HTMLDivElement>(null);
+  const stage = useRef<Konva.Stage>(null);
+  const canvas = history.present;
+  const selected = canvas.objects.find((object) => object.id === selectedId);
+  const scale = width / 1920 * zoom;
+
+  useEffect(() => saver.subscribe(setSaveState), [saver]);
+  useEffect(() => {
+    if (saveState.status !== 'unsaved') return;
+    const timeout = setTimeout(() => { void saver.save(); }, 900);
+    return () => clearTimeout(timeout);
+  }, [canvas, saver, saveState.status]);
+  useEffect(() => {
+    const leave = () => (!saver.state.dirty && saver.state.status !== 'saving' && !importBusyRef.current) || window.confirm('Your scene has unsaved changes or an upload in progress. Unsaved changes may be lost, and requests already sent may still finish. Leave this scene?');
+    setNavigationGuard(leave);
+    function beforeUnload(event: BeforeUnloadEvent) { if (saver.state.dirty || saver.state.status === 'saving' || importBusyRef.current) { event.preventDefault(); event.returnValue = ''; } }
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => { setNavigationGuard(null); window.removeEventListener('beforeunload', beforeUnload); };
+  }, [saver]);
+  useEffect(() => {
+    const element = frame.current; if (!element) return;
+    const observer = new ResizeObserver(([entry]) => { if (entry) setWidth(Math.max(1, entry.contentRect.width)); });
+    observer.observe(element); return () => observer.disconnect();
+  }, []);
+
+  const apply = useCallback((action: EditorAction) => {
+    try { const next = editorReducer(historyRef.current, action); historyRef.current = next; setHistory(next); saver.setCanvas(next.present); setError(''); }
+    catch { setError('This change exceeds the scene limits (500 objects, 10,000 points per stroke). Undo or remove a layer before continuing.'); }
+  }, [saver]);
+  const commit = useCallback((next: Canvas) => apply({ type: 'commit', canvas: next }), [apply]);
+  const changeObject = useCallback((object: CanvasObject) => commit(patchObject(historyRef.current.present, object.id, object)), [commit]);
+  const deleteSelected = useCallback(() => {
+    const current = historyRef.current.present;
+    if (!selectedId || current.objects.find((object) => object.id === selectedId)?.locked) return;
+    commit({ ...current, objects: current.objects.filter((object) => object.id !== selectedId) }); setSelectedId(null);
+  }, [commit, selectedId]);
+
+  useEffect(() => {
+    function keyboard(event: KeyboardEvent) {
+      if (document.querySelector('dialog[open]') || (event.target instanceof HTMLElement && (event.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)))) return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); apply({ type: event.shiftKey ? 'redo' : 'undo' }); }
+      else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void saver.save(); }
+      else if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); deleteSelected(); }
+    }
+    window.addEventListener('keydown', keyboard); return () => window.removeEventListener('keydown', keyboard);
+  }, [apply, deleteSelected, saver]);
+
+  function addShape(type: 'rect' | 'ellipse' | 'line' | 'text') {
+    const object = createShape(type, crypto.randomUUID(), canvas.objects.length, color);
+    commit({ ...canvas, objects: [...canvas.objects, object] }); setSelectedId(object.id); setTool('select');
+  }
+  function point() {
+    const current = stage.current; const pointer = current?.getPointerPosition(); if (!current || !pointer) return null;
+    const location = current.getAbsoluteTransform().copy().invert().point(pointer);
+    return { x: clamp(location.x, 0, 1920), y: clamp(location.y, 0, 1080) };
+  }
+  function start(event: Konva.KonvaEventObject<PointerEvent>) {
+    if (event.evt.button !== 0) return;
+    if (tool === 'select') { if (event.target === stage.current) setSelectedId(null); return; }
+    if (!['pencil', 'brush', 'eraser'].includes(tool)) return;
+    const position = point(); if (!position || canvas.objects.length >= 500) return;
+    const stroke = { id: crypto.randomUUID(), color, width: tool === 'eraser' ? Math.max(30, strokeWidth) : tool === 'brush' ? Math.max(16, strokeWidth) : strokeWidth, eraser: tool === 'eraser', points: [position.x, position.y, position.x + 0.01, position.y + 0.01] };
+    drawing.current = stroke; setDraft(stroke); setSelectedId(null);
+  }
+  function move() {
+    const position = point(); const current = drawing.current;
+    if (!position || !current || current.points.length >= 20000) return;
+    const next = { ...current, points: [...current.points, position.x, position.y] }; drawing.current = next; setDraft(next);
+  }
+  function finish() {
+    const current = drawing.current; if (!current) return;
+    const document = historyRef.current.present;
+    commit({ ...document, objects: [...document.objects, strokeObject(current.id, document.objects.length, current.points, current.color, current.width, current.eraser)] });
+    drawing.current = null; setDraft(null);
+  }
+  function patch(patch: Partial<CanvasObject>, allowLocked = false) { if (selected) commit(patchObject(canvas, selected.id, patch, allowLocked)); }
+  function reorder(index: number, delta: number) {
+    const objects = [...canvas.objects]; const target = index + delta;
+    if (target < 0 || target >= objects.length || objects[index]?.locked) return;
+    [objects[index], objects[target]] = [objects[target], objects[index]]; commit({ ...canvas, objects });
+  }
+  async function importImage(file: File, crop: ImageCrop, size: { width: number; height: number }) {
+    importBusyRef.current = true; setImportBusy(true);
+    try {
+      const asset = await api.uploadAsset(scene.projectId, scene.id, file);
+      const normalizedCrop = { x: crop.x / size.width * asset.width, y: crop.y / size.height * asset.height, width: crop.width / size.width * asset.width, height: crop.height / size.height * asset.height };
+      const factor = Math.min(1, 1500 / normalizedCrop.width, 800 / normalizedCrop.height);
+      const object: CanvasObject = { ...baseObject(crypto.randomUUID(), historyRef.current.present.objects.length, color), type: 'image', assetId: asset.id, crop: normalizedCrop, x: 100, y: 100, width: normalizedCrop.width * factor, height: normalizedCrop.height * factor, strokeWidth: 0 };
+      const current = historyRef.current.present;
+      commit({ ...current, objects: [...current.objects, object] }); setSelectedId(object.id); setTool('select');
+    } finally { importBusyRef.current = false; setImportBusy(false); }
+  }
+  async function reload() {
+    if (saver.state.dirty && !window.confirm('Discard your local canvas changes and load the latest saved scene? Download your local canvas first if you want to keep a copy.')) return;
+    try { await onReload(); } catch (reason) { setError(errorMessage(reason)); }
+  }
+  function downloadCanvas() {
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ sceneId: scene.id, canvas }, null, 2)], { type: 'application/json' }));
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${scene.id}-editable-canvas.json`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return <section className="saved-editor" aria-label="Saved scene editor">
+    <div className="editor-savebar"><div><strong>{scene.title}</strong><span role="status" className={`save-status ${saveState.status}`}>{saveState.status === 'saved' ? `Saved · revision ${saveState.revision}` : saveState.status === 'saving' ? 'Saving changes…' : saveState.status === 'conflict' ? 'Save conflict · local changes kept' : saveState.status === 'error' ? 'Save failed · changes unsaved' : 'Unsaved changes'}</span></div><button type="button" className="button primary compact" disabled={!saveState.dirty || saveState.status === 'saving' || saveState.status === 'conflict'} onClick={() => { void saver.save(); }}><Save size={16} />Save scene</button></div>
+    {saveState.error && <div className="error-banner" role="alert"><p>{saveState.status === 'conflict' ? 'This scene changed in another tab or session. Your local canvas is still here. Download it before reloading the saved scene.' : saveState.error}</p><div className="error-actions"><button type="button" className="button secondary compact" onClick={downloadCanvas}><Download size={15} />Download local canvas</button><button type="button" className="button secondary compact" onClick={() => { void reload(); }}>Reload saved scene</button>{saveState.status === 'error' && <button type="button" className="button secondary compact" onClick={() => { void saver.save(); }}>Retry save</button>}</div></div>}
+    {error && <div className="error-banner" role="alert">{error}</div>}
+    {imageError && <div className="error-banner" role="alert">{imageError}<button type="button" className="text-button" onClick={() => { setImageError(''); setImageRetry((value) => value + 1); }}>Reload images</button></div>}
+    <div className="editor-layout"><div className="editor-canvas-column"><div className="canvas-controls editor-tools">
+      <div className="tool-group" role="group" aria-label="Drawing tools">{drawingTools.map(({ id, name, icon: Icon }) => <button type="button" key={id} className={`icon-button ${tool === id ? 'selected' : ''}`} aria-label={name} title={name} aria-pressed={tool === id} onClick={() => setTool(id)}><Icon size={18} /></button>)}</div>
+      <div className="tool-group" role="group" aria-label="Insert objects">{shapeTools.map(({ id, name, icon: Icon }) => <button type="button" key={id} className="icon-button" aria-label={name} title={name} disabled={canvas.objects.length >= 500} onClick={() => addShape(id)}><Icon size={18} /></button>)}</div>
+      <div className="history-tools"><button type="button" className="icon-button" aria-label="Undo" disabled={!history.past.length} onClick={() => apply({ type: 'undo' })}><Undo2 size={18} /></button><button type="button" className="icon-button" aria-label="Redo" disabled={!history.future.length} onClick={() => apply({ type: 'redo' })}><Redo2 size={18} /></button><button type="button" className="icon-button" aria-label="Delete selected layer" disabled={!selected || selected.locked} onClick={deleteSelected}><Trash2 size={18} /></button></div>
+    </div><div className="editor-options"><label>Drawing color<input type="color" value={color} onChange={(event) => setColor(event.target.value)} /></label><label>Drawing size<input type="number" min={1} max={200} value={strokeWidth} onChange={(event) => { if (Number.isFinite(event.target.valueAsNumber)) setStrokeWidth(clamp(event.target.valueAsNumber, 1, 200)); }} /></label><label>Zoom<select value={zoom} onChange={(event) => setZoom(Number(event.target.value))}><option value={0.5}>50%</option><option value={1}>100%</option><option value={1.5}>150%</option><option value={2}>200%</option></select></label><button type="button" className="text-button" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>Fit canvas</button><button type="button" className="button secondary compact import-button" disabled={importBusy || canvas.objects.length >= 500} onClick={() => setImportOpen(true)}><ImagePlus size={16} />Import image</button></div>
+    <div className="canvas-workspace"><div className="canvas-label"><span>EDITABLE SOURCE</span><span>1920 × 1080</span></div><div ref={frame} className={`canvas-frame saved-canvas tool-${tool}`} role="img" aria-label={`Editable scene canvas with ${canvas.objects.length} objects`} data-testid="scene-canvas"><Stage ref={stage} width={width} height={width * 9 / 16} scaleX={scale} scaleY={scale} x={pan.x} y={pan.y} draggable={tool === 'pan'} onDragEnd={(event) => { if (event.target === stage.current) setPan({ x: event.target.x(), y: event.target.y() }); }} onPointerDown={start} onPointerMove={move} onPointerUp={finish} onPointerLeave={finish} onPointerCancel={finish}>
+      <Layer listening={false}><Rect width={1920} height={1080} fill={canvas.background} /></Layer>
+      <Layer>{canvas.objects.map((object) => <CanvasObjectView key={`${object.id}-${imageRetry}`} object={object} selected={selectedId === object.id} interactive={tool === 'select'} onSelect={() => setSelectedId(object.id)} onChange={changeObject} api={api} projectId={scene.projectId} onImageError={setImageError} />)}{draft && <Line listening={false} points={draft.points} stroke={draft.color} strokeWidth={draft.width} lineCap="round" lineJoin="round" tension={0.2} globalCompositeOperation={draft.eraser ? 'destination-out' : 'source-over'} />}</Layer>
+    </Stage></div><div className="canvas-footer"><span>{canvas.objects.length} editable {canvas.objects.length === 1 ? 'object' : 'objects'}</span><span>16:9 · Private scene</span></div></div><p className="canvas-note">Changes autosave after a short pause. Select to move, resize, or rotate. Eraser strokes mask earlier layers; originals remain intact. Ctrl/⌘ Z: undo · Ctrl/⌘ S: save.</p>
+    <div className="editor-ai-note"><strong>AI analysis and animation</strong><p>These will connect in the next milestones. No AI requests are made by this editor.</p><button type="button" className="button secondary compact" disabled>Analyze scene</button><button type="button" className="button primary compact" disabled>Generate animation</button></div></div>
+    <aside className="editor-sidebar" aria-label="Layers and object inspector"><section className="editor-inspector"><h2>Inspector</h2><label className="editor-background">Scene background<input type="color" value={canvas.background} onChange={(event) => commit({ ...canvas, background: event.target.value })} /></label>{selected ? <><p className="muted small">{layerName(selected)}{selected.locked ? ' · Locked' : ''}</p><fieldset disabled={selected.locked}><legend className="sr-only">Selected object properties</legend><div className="property-grid">{numberFields.filter(({ field }) => selected.type !== 'image' || field !== 'strokeWidth').map(({ field, label, min, max }) => <label key={field}>{label}<input type="number" min={min} max={max} step={field === 'opacity' ? 0.05 : 1} value={Math.round(selected[field] * 100) / 100} onChange={(event) => { if (Number.isFinite(event.target.valueAsNumber)) patch({ [field]: clamp(event.target.valueAsNumber, min, max) }); }} /></label>)}{['rect', 'ellipse', 'text'].includes(selected.type) && <label>Fill color<input type="color" value={selected.fill} onChange={(event) => patch({ fill: event.target.value })} /></label>}{selected.type !== 'image' && <label>Stroke color<input type="color" value={selected.stroke} onChange={(event) => patch({ stroke: event.target.value })} /></label>}{selected.type === 'text' && <><label className="property-wide">Text content<textarea maxLength={2000} value={selected.text} onChange={(event) => patch({ text: event.target.value })} /></label><label>Font size<input type="number" min={1} max={500} value={selected.fontSize} onChange={(event) => { if (Number.isFinite(event.target.valueAsNumber)) patch({ fontSize: clamp(event.target.valueAsNumber, 1, 500) }); }} /></label></>}</div></fieldset>{selected.type === 'image' && <ImageCropInspector object={selected} api={api} projectId={scene.projectId} onChange={(crop) => patch({ crop })} />}</> : <p className="muted small">Select a layer to edit its position, size, and appearance.</p>}</section>
+    <section className="editor-layers"><h2>Layers <span className="count">{canvas.objects.length}</span></h2><p className="muted small">Top row draws in front.</p>{!canvas.objects.length && <p className="empty-layers">Draw, add a shape, or import your original artwork.</p>}<ol>{[...canvas.objects].reverse().map((object) => { const index = canvas.objects.findIndex((item) => item.id === object.id); const number = index + 1; return <li key={object.id} className={selectedId === object.id ? 'selected' : ''}><button type="button" className="layer-select" aria-label={`Select layer ${number}: ${layerName(object)}`} aria-pressed={selectedId === object.id} onClick={() => { setSelectedId(object.id); setTool('select'); }}><span className="layer-type">{object.type === 'image' ? 'IMG' : object.type === 'text' ? 'TXT' : String(number).padStart(2, '0')}</span><span>{layerName(object)}</span></button><div className="layer-actions"><button type="button" className="icon-button" aria-label={`${object.hidden ? 'Show' : 'Hide'} layer ${number}`} aria-pressed={object.hidden} onClick={() => commit(patchObject(canvas, object.id, { hidden: !object.hidden }, true))}>{object.hidden ? <EyeOff size={14} /> : <Eye size={14} />}</button><button type="button" className="icon-button" aria-label={`${object.locked ? 'Unlock' : 'Lock'} layer ${number}`} aria-pressed={object.locked} onClick={() => commit(patchObject(canvas, object.id, { locked: !object.locked }, true))}>{object.locked ? <Lock size={14} /> : <Unlock size={14} />}</button><button type="button" className="icon-button" aria-label={`Raise layer ${number}`} disabled={object.locked || index === canvas.objects.length - 1} onClick={() => reorder(index, 1)}><ArrowUp size={14} /></button><button type="button" className="icon-button" aria-label={`Lower layer ${number}`} disabled={object.locked || index === 0} onClick={() => reorder(index, -1)}><ArrowDown size={14} /></button></div></li>; })}</ol></section></aside></div>
+    {importOpen && <ImportDialog onClose={() => setImportOpen(false)} onImport={importImage} />}
+  </section>;
+}
