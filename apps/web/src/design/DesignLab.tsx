@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, Check, ChevronRight, Film, FolderOpen, Image, Layers3, LockKeyhole, MousePointer2, PanelLeft, Pencil, Plus, Search, SlidersHorizontal, Sparkles, Type, Undo2 } from 'lucide-react';
 import { ActionMenu, Badge, Button, Dialog, EmptyState, Field, IconButton, Notice, Skeleton, Tabs } from '../ui/Primitives';
-import { SceneArtwork } from './SceneArtwork';
+import { SceneArtwork } from '../ui/SceneArtwork';
+import '../styles.css';
 import './design-lab.css';
 import './marketing.css';
 import './dashboard.css';

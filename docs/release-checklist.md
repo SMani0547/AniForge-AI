@@ -35,6 +35,7 @@ The container smoke runs API and worker separately with external networking disa
 3. Leave the Auth emulator URL empty. Enable the guest button only if Anonymous Auth is enabled and its paid-use implications have been accepted. Never put server settings under `VITE_*`.
 4. Run `npm run build:release`. It validates public configuration before bundling, rejects missing/placeholder/demo values, unapproved `VITE_*` names and non-HTTPS/non-API endpoints, then scans the output. Validation proves syntax only; it cannot verify account access or API reachability.
 5. `firebase.json` runs this build as a Hosting predeploy hook. Firebase supplies `GCLOUD_PROJECT`, which must equal the frontend Firebase project. A plain unconfigured `npm run build` cannot bypass this normal deploy hook. Do not remove the hook to make a blocked release appear successful.
+6. Once the actual Hosting origin is known, set the public homepage's absolute canonical URL, `og:url` and `og:image` in `apps/web/index.html`, rebuild and verify the deployed social preview. See [homepage assets and metadata](homepage.md). Keep private project content out of public metadata.
 
 Vite loads `.env.local` plus mode-specific files such as `.env.release.local`; shell environment values have priority. Check for stale overrides when validation fails. [Vite environment behavior](https://vite.dev/guide/env-and-mode), [Firebase deploy hooks](https://firebase.google.com/docs/cli#predeploy_and_postdeploy_hooks).
 

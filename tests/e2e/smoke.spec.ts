@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('unconfigured foundation exposes an honest, functional local sketch preview', async ({ page }, testInfo) => {
   const browserErrors: string[] = [];
   page.on('pageerror', (error) => browserErrors.push(error.message));
-  await page.goto('/');
+  await page.goto('/projects');
   await expect(page.getByRole('heading', { name: 'Your story. Next frame.' })).toBeVisible();
   await expect(page.getByText('Connect Firebase to save your projects')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();

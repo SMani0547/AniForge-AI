@@ -1,5 +1,44 @@
 # UI upgrade results
 
+## U2 — public homepage
+
+Recorded October 13, 2026 (Pacific/Fiji). **Local implementation and U2 acceptance passed.** The public `/` route now has its own responsive page and loading boundary. U3's project dashboard is next; application screens retain their existing workflows.
+
+### Changes and evidence
+
+- Original-art hero, real navigation anchors, four workflow steps, alternating feature demonstrations, artwork showcase, creator-control information, six FAQs and opening/closing calls to action.
+- Open studio reaches `/projects`; Try drawing opens `/studio/preview` before any generation. The application brand returns home through the existing leave guard. Configured Firebase entry was tested through real local Auth/Firestore/Storage emulators; the unconfigured entry retains its unavailable state and working playground.
+- Local vector layer visibility, a manually authored shot-direction field and palette comparison provide working demonstrations. Each is labeled; none calls a model, saves a project or represents generated video. Current AI availability and original-MP4 export limitations are explicit.
+- Root loading excludes Firebase, the application and Konva. `main.tsx` selects the entry; application CSS loads with `App.tsx`. The development-only design lab reuses the original artwork from `ui/SceneArtwork.tsx`.
+- Mobile navigation includes expanded/hidden states and Escape focus restoration; FAQs are native disclosures. There is no autoplay. Reduced motion, focus and overflow checks cover the homepage's interactions.
+- Original favicon, editable social SVG, exported 1200×630 PNG, title/description and social metadata. No dependency added. Known-origin metadata and deployment verification are documented in [homepage details](homepage.md) and the [release checklist](release-checklist.md).
+- [Nine unmodified browser captures](ui-u2/README.md) record desktop/tablet/phone layouts and product/showcase/FAQ sections. Visual review covered the hero at all three sizes, product examples, showcase, FAQ, full phone layout and exported social card. [Asset provenance](ui-assets.json) distinguishes these illustrations from AI output.
+
+### Actual validation
+
+| Command / check | Result |
+| --- | --- |
+| `npm run typecheck` | Passed all workspaces and tooling; invoked with `npm.cmd` in the restricted PowerShell shell. |
+| `npm run lint` | Passed; final invocation used `npm.cmd`. |
+| `npm test` | 200 tests passed across 15 files. |
+| `npm run test:e2e` | Eight tests passed in 23.9 seconds: three homepage tests plus five existing design/app tests. |
+| `npm run test:emulators` | 36 tests passed in 1.6 minutes, zero retries, after the fixture fixes below. |
+| `npm run build` | Shared/API/web builds passed; browser artifact scan passed across 15 files. |
+| Production artifact inspection | Design-lab text markers absent. Homepage static imports resolve to the shared React/icon entry and two icon chunks, without a static App or Konva import. This is a bounded inspection, not a full performance/security audit. |
+| Responsive/browser checks | 1440px, 768px and 390px widths; no document overflow, browser exceptions or Firebase/editor/private-service requests on root loading. Both CTA paths, local controls, metadata assets, mobile navigation and keyboard FAQ verified. |
+| `node scripts/render-social-preview.mjs` | Exported 1200×630 PNG successfully; inspected the actual export. Fontconfig emitted cache-directory warnings in the restricted shell. |
+| `git diff --check` | Passed. |
+
+Vite reports the homepage-specific JS at 18.24 kB (5.64 kB gzip), homepage CSS at 20.39 kB (4.65 kB gzip), and the shared entry JS at 224.29 kB (70.17 kB gzip), with additional small icon chunks. These are emitted bundle sizes, not total transfer measurements, Lighthouse scores or field-performance claims. The broad U6 performance/accessibility audit remains planned.
+
+The first emulator run had **34 passes and two failures**. The new homepage scenario increased shared loopback traffic until the baseline network-recovery scenario encountered HTTP 429. Its rerun now uses a dedicated real Fastify instance against the same isolated Firebase emulators, retaining production rate limits. A video quota fixture used wall time and advanced across UTC midnight, legitimately resetting the daily allowance. It now starts at a fixed midday instant. Production quotas and API behavior were not changed; the full suite passed after these fixes. No successful API response or AI result was fabricated.
+
+PowerShell initially blocked the `npm.ps1` wrapper for typecheck/lint; using `npm.cmd` ran the same scripts successfully without changing execution policy. Existing Zod/Rollup annotation, Java deprecated-Unsafe, emulator listener-count and Playwright color warnings remain visible. Test emulators shut down cleanly. The final check found no development server listening at `127.0.0.1:5173`; run `npm run dev:emulators` for the homepage plus saved local projects, or `npm run dev` with your existing configuration.
+
+### Remaining gates
+
+No cloud credentials were required for U2. Live Gemini analysis, video/edit output, cloud access, Docker, remote CI and deployment are still unverified. Once the real Hosting origin is known, set absolute canonical/OG URLs and verify deployed previews; no public domain has been invented. The previous U1 external Artcraft visual-inspection blocker remains open. U2 does not claim to resolve it or to prove an exact visual match. Continue with U3 dashboard/onboarding, then U4/U5 editor and generation presentation.
+
 ## U1 — visual foundation and screen designs
 
 Recorded October 13, 2026 (Pacific/Fiji). **Local implementation and acceptance checks passed. One external reference-inspection task remains blocked.** The existing product homepage/dashboard/editor have not been replaced; their migration belongs to U2–U5.

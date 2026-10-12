@@ -1,16 +1,24 @@
 {
-  "version": 1,
+  "version": 2,
   "recordedOn": "2026-10-13",
   "assets": [
     {
       "id": "quiet-observatory",
-      "source": "apps/web/src/design/SceneArtwork.tsx",
+      "source": "apps/web/src/ui/SceneArtwork.tsx",
       "author": "Codex, authored for this AniForge repository change",
       "rights": "Original code-native vector composition; no third-party artwork used. Distributed as repository source under the project's licensing decisions.",
       "kind": "original-vector-illustration",
-      "placements": ["homepage study", "sample dashboard cards", "editor composition study"],
+      "placements": [
+        "homepage study",
+        "sample dashboard cards",
+        "editor composition study",
+        "public homepage hero, feature demonstrations and artwork showcase"
+      ],
       "disclosure": "Original vector artwork / design study, not AI output",
-      "variants": ["base lavender palette", "CSS hue rotation for the second sample card"],
+      "variants": [
+        "base lavender palette",
+        "CSS hue rotation for the second sample card"
+      ],
       "actualAniforgeGeneratedOutput": false
     },
     {
@@ -19,7 +27,11 @@
       "author": "Codex, authored for AniForge",
       "rights": "Original typographic af composition in CSS; no external logo file imported.",
       "kind": "code-native-brand-study",
-      "placements": ["homepage", "dashboard", "footer"]
+      "placements": [
+        "homepage",
+        "dashboard",
+        "footer"
+      ]
     },
     {
       "id": "lucide-icons",
@@ -27,7 +39,12 @@
       "author": "Lucide contributors",
       "rights": "ISC; preserve package license and notices",
       "kind": "existing-vector-icon-system",
-      "placements": ["navigation", "toolbars", "buttons", "empty states"]
+      "placements": [
+        "navigation",
+        "toolbars",
+        "buttons",
+        "empty states"
+      ]
     },
     {
       "id": "system-typography",
@@ -35,17 +52,43 @@
       "author": "Respective font authors",
       "rights": "Uses installed fonts through CSS; no font binaries copied or redistributed",
       "kind": "system-font-stack",
-      "placements": ["all U1 studies"]
+      "placements": [
+        "all U1 studies"
+      ]
     },
     {
       "id": "local-ui-evidence",
-      "source": "docs/ui-u1/ and generated test-results/ screenshots",
+      "source": "docs/ui-u1/, docs/ui-u2/ and generated test-results/ screenshots",
       "author": "Captured by local Playwright tests of AniForge",
       "rights": "Repository UI and original sample art; no real user media or provider output",
       "kind": "product-and-prototype-screenshots",
-      "placements": ["design review documentation"],
+      "placements": [
+        "design review documentation"
+      ],
       "disclosure": "Distinguish existing-app baselines from new design studies; emulator error/loading capture is test-controlled.",
       "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "public-homepage-social-card",
+      "source": "apps/web/public/social-preview.svg and social-preview.png",
+      "author": "Codex, authored for AniForge",
+      "rights": "Original repository-authored vector composition and system-font text; PNG exported with the existing Sharp dependency.",
+      "kind": "original-vector-social-card",
+      "placements": [
+        "HTML social-preview metadata"
+      ],
+      "disclosure": "Original vector illustration; live AI verification pending",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "public-homepage-favicon",
+      "source": "apps/web/public/favicon.svg",
+      "author": "Codex, authored for AniForge",
+      "rights": "Original af monogram paths; no external logo file.",
+      "kind": "vector-brand-mark",
+      "placements": [
+        "browser favicon"
+      ]
     }
   ],
   "externalReference": {

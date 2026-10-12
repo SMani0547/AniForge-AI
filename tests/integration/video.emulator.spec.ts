@@ -30,7 +30,8 @@ async function fixture() {
   const png = await sharp({ create: { width: 1920, height: 1080, channels: 3, background: '#0000ff' } }).png().toBuffer();
   const asset = await repository.uploadAsset(project.id, scene.id, ownerId, { bytes: png, width: 1920, height: 1080 });
   const request: VideoRequest = { projectId: project.id, sceneId: scene.id, ownerId, input: { jobId: randomUUID(), expectedRevision: scene.revision, snapshotAssetId: asset.id, copyrightAttested: true, confirmPaid: true } };
-  let now = Date.now(); const ledger = new VideoLedger(db, () => now); const queued: JobKey[] = [];
+  // The quota test advances an hour; wall-clock starts near midnight can reset the UTC day.
+  let now = Date.parse('2026-10-13T12:00:00.000Z'); const ledger = new VideoLedger(db, () => now); const queued: JobKey[] = [];
   const service = new VideoService(ledger, () => ({ enqueue: async (key) => { queued.push(key); } }), storage, 2);
   let dispatches = 0; let resumes = 0;
   const output = { bytes, mimeType: 'video/mp4' as const, model: 'TEST-FIXTURE-NOT-GOOGLE', interactionId: 'server-only-fixture-interaction' };

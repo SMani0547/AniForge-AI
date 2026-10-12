@@ -49,4 +49,4 @@ Local Playwright screenshots are separate, executable browser evidence for AniFo
 
 ## Migration order
 
-U2 builds the full public `/` homepage using these tokens/components and adds the remaining FAQ/showcase/metadata content. U3 migrates authenticated projects. U4 migrates the saved editor while preserving state ownership. U5 migrates generation/revisions. Component adoption must retain current access control, error recovery, import affirmation, paid consent and source/video separation. No cloud credentials are needed to review this foundation.
+U2 now implements the full public `/` homepage using these tokens/styles, with FAQ, showcase and metadata content; shared original artwork lives in `apps/web/src/ui/SceneArtwork.tsx`. See [homepage details](homepage.md). U3 migrates authenticated projects. U4 migrates the saved editor while preserving state ownership. U5 migrates generation/revisions. Component adoption must retain current access control, error recovery, import affirmation, paid consent and source/video separation. No cloud credentials are needed to review this foundation.

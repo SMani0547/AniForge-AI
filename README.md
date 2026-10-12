@@ -4,6 +4,7 @@ An original-art anime studio built with React, Konva, Fastify, Firebase and serv
 
 ## Current functionality
 
+- Standalone public homepage with original artwork, interactive local examples, FAQ and direct links to saved projects or the unsaved drawing playground. It loads without Firebase or the editor.
 - Responsive dark project gallery, Firebase Google sign-in, optional anonymous sign-in, and owner-only project CRUD/duplication backed by Firestore when configured.
 - Saved canonical scene JSON with autosave/manual save, revision conflicts, pencil/brush/eraser, shapes/text, selection/transforms, layers, inspector and undo/redo. Cloud projects use the saved editor; the separate no-sign-in playground remains explicitly **unsaved**.
 - Private PNG/JPEG/WEBP imports through the authenticated API, original-content affirmation and manual panel cropping. Images are validated and normalized to PNG; media bytes stay outside Firestore. Project copies receive independent images.
@@ -26,7 +27,7 @@ npm ci
 npm run dev:emulators
 ```
 
-The frontend is at `http://127.0.0.1:5173`; choose **Continue as a guest**, create a project, and open the saved editor. Firebase Auth, Firestore and Storage run locally in the isolated `demo-aniforge` project. Gemini is disabled, and the launcher ignores personal environment files and cloud credentials. Use **Create manual shot plan** to edit and save direction without an AI call. The first run downloads official emulator binaries. See [local emulators](docs/local-emulators.md) for prerequisites, ports and data lifetime.
+The frontend is at `http://127.0.0.1:5173`; choose **Open studio**, then **Continue as a guest**, create a project, and open the saved editor. Firebase Auth, Firestore and Storage run locally in the isolated `demo-aniforge` project. Gemini is disabled, and the launcher ignores personal environment files and cloud credentials. Use **Create manual shot plan** to edit and save direction without an AI call. The first run downloads official emulator binaries. See [local emulators](docs/local-emulators.md) for prerequisites, ports and data lifetime.
 
 `npm run dev` starts the normal servers instead, using your configured environment. Without Firebase configuration, it provides only the explicitly unsaved playground and setup guidance. API health is `http://localhost:8080/health`.
 
@@ -82,7 +83,7 @@ The pinned Firebase CLI is a development dependency and currently brings transit
 
 [TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
 
-[UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md) tracks the homepage, dashboard and editor redesign. U1 adds a development-only [design lab](http://127.0.0.1:5173/design) with responsive screen studies and reusable components; run the local dev server first. Current product screens migrate in U2–U5. See [U1 results](docs/ui-upgrade-results.md), [visual system](docs/ui-design-system.md) and [screenshots](docs/ui-u1/README.md). The external Artcraft visual review remains pending because no browser connection was available.
+[UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md) tracks the homepage, dashboard and editor redesign. U1 provides a development-only [design lab](http://127.0.0.1:5173/design) with responsive studies and reusable components. U2 implements the public [homepage](http://127.0.0.1:5173/); run the local server first. Dashboard/editor migration continues in U3–U5. See [actual results](docs/ui-upgrade-results.md), [homepage implementation](docs/homepage.md), [visual system](docs/ui-design-system.md) and [U2 screenshots](docs/ui-u2/README.md). The external Artcraft visual review remains pending because no browser connection was available.
 
 Phase 6 local release preparation is recorded in [the results](docs/phase-6-results.md). Cloud setup and live verification remain deferred by the owner; the full release is not complete. Follow the [release checklist](docs/release-checklist.md), [three-minute demo script](docs/demo-script.md) and [eight-slide outline](docs/pitch-outline.md). A [labeled local screenshot](docs/demo/README.md) documents test-fixture behavior, not Google output. The final demo video and PDF deck still need genuine evidence.
 

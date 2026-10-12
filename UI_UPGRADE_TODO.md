@@ -1,6 +1,6 @@
 # AniForge AI — UI upgrade roadmap
 
-Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation implemented; external reference visual review pending. U2–U6 remain planned.** See [U1 results](docs/ui-upgrade-results.md) and the development-only `/design` preview.
+Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation and U2 public homepage implemented; external reference visual review pending. U3–U6 remain planned.** See [actual UI results](docs/ui-upgrade-results.md), the public `/` homepage and the development-only `/design` preview.
 
 ## Brief
 
@@ -29,7 +29,7 @@ The drawing editor must open **before** AI analysis or video generation. A new p
 
 ## Current gaps to address
 
-- `App.tsx` combines public introduction, sign-in, project gallery and studio routing. The current homepage does not have its own layout or route treatment.
+- U2 separated the public homepage from application loading. The project gallery still includes its previous introduction; U3 will simplify the dashboard.
 - The gallery uses generic “No scene preview” thumbnails and lacks a strong resume-work hierarchy.
 - Canvas controls, shot planning, generation and video versions create a long page. Key editing actions need a consistent workspace layout.
 - Most presentation lives in a large `styles.css`; reusable components and visual tokens need clear ownership.
@@ -52,20 +52,22 @@ The local design/interaction acceptance is met. The external reference review re
 
 ## Phase U2 — new public homepage
 
-- [ ] Give `/` a dedicated landing page and marketing navigation: Product, How it works, Examples, FAQ and Open studio. Every link must have a real destination; sections may use anchors.
-- [ ] Build a prominent hero with an original artwork/editor composition, a concise product promise, primary **Open studio** CTA to `/projects` and secondary **Try drawing** CTA to `/studio/preview`.
-- [ ] Draft headline direction: “Your sketch. Your story. In motion.” Support it with concrete source-editing, shot-planning and versioning language rather than unsupported speed/quality claims.
-- [ ] Show the workflow visually: Draw or import → Plan the shot → Generate a clip → Revise and compare. Make the first step usable without a generated scene.
-- [ ] Add alternating feature demonstrations for editable layers, reviewed shot plans and preserved video versions; use large product visuals with concise captions.
-- [ ] Add a showcase using rights-cleared original art. Label illustration/concept media accurately; publish “Made with AniForge” video only after genuine app generation is verified.
-- [ ] Add a compact creator-control section: editable source, separate video versions, authenticated project access and explicit paid generation consent. Avoid certifications, absolute security claims or unverified ownership/legal promises.
-- [ ] Add FAQ covering source vs video editing, account requirements, original artwork, paid generation and original-MP4 export limitations.
-- [ ] Finish with a strong closing CTA and a useful footer. Include only maintained links; do not invent pricing, testimonials, customer logos, adoption counts or availability claims.
-- [ ] Build responsive navigation, optimized poster images and optional user-controlled video. Respect reduced motion; avoid autoplay audio and scroll-jacking.
-- [ ] Add page title, description, favicon and an original social preview; set canonical/public URLs only when known. Keep private project content out of public metadata.
-- [ ] Show a clear current availability notice while live AI remains unverified. Move deployment instructions into documentation/development help, retaining useful in-product unavailable states.
+- [x] Give `/` a dedicated landing page and marketing navigation: Product, How it works, Examples, FAQ and Open studio. Every link must have a real destination; sections may use anchors.
+- [x] Build a prominent hero with an original artwork/editor composition, a concise product promise, primary **Open studio** CTA to `/projects` and secondary **Try drawing** CTA to `/studio/preview`.
+- [x] Draft headline direction: “Your sketch. Your story. In motion.” Support it with concrete source-editing, shot-planning and versioning language rather than unsupported speed/quality claims.
+- [x] Show the workflow visually: Draw or import → Plan the shot → Generate a clip → Revise and compare. Make the first step usable without a generated scene.
+- [x] Add alternating feature demonstrations for editable layers, reviewed shot plans and preserved video versions; use large product visuals with concise captions.
+- [x] Add a showcase using rights-cleared original art. Label illustration/concept media accurately; publish “Made with AniForge” video only after genuine app generation is verified.
+- [x] Add a compact creator-control section: editable source, separate video versions, authenticated project access and explicit paid generation consent. Avoid certifications, absolute security claims or unverified ownership/legal promises.
+- [x] Add FAQ covering source vs video editing, account requirements, original artwork, paid generation and original-MP4 export limitations.
+- [x] Finish with a strong closing CTA and a useful footer. Include only maintained links; do not invent pricing, testimonials, customer logos, adoption counts or availability claims.
+- [x] Build responsive navigation, optimized poster images and optional user-controlled video. Respect reduced motion; avoid autoplay audio and scroll-jacking.
+- [x] Add page title, description, favicon and an original social preview; set canonical/public URLs only when known. Keep private project content out of public metadata.
+- [x] Show a clear current availability notice while live AI remains unverified. Move deployment instructions into documentation/development help, retaining useful in-product unavailable states.
 
 **Acceptance:** `/` is a complete standalone homepage at phone, tablet and desktop sizes. Both CTAs work with configured and unconfigured Firebase. Landing-page loading does not fetch private projects or eagerly load Konva/the editor.
+
+**Local acceptance met:** responsive homepage and both editor entry paths verified with and without Firebase configuration. Original vector examples are labeled; live AI remains unverified. Social URLs await the real deployment origin. See [implementation](docs/homepage.md), [results](docs/ui-upgrade-results.md) and [captures](docs/ui-u2/README.md).
 
 ## Phase U3 — project dashboard and onboarding
 
