@@ -1,0 +1,38 @@
+{
+  "name": "aniforge-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @aniforge/shared && concurrently -k -n api,web \"npm run dev -w @aniforge/api\" \"npm run dev -w @aniforge/web\"",
+    "build": "npm run build -w @aniforge/shared && npm run build -w @aniforge/api && npm run build -w @aniforge/web",
+    "typecheck": "npm run build -w @aniforge/shared && npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "smoke:analysis": "npm run smoke:analysis -w @aniforge/api --",
+    "smoke:video": "npm run smoke:video -w @aniforge/api --",
+    "smoke:edit": "npm run smoke:edit -w @aniforge/api --"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^24.10.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.56.0",
+    "vitest": "4.1.11"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.0"
+  }
+}

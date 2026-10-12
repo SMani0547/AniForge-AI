@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // All project data passes through the authenticated, owner-checking API.
+    // Admin SDK access bypasses these rules and is controlled by IAM.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

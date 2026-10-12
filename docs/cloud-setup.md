@@ -1,0 +1,177 @@
+# Cloud setup and deployment
+
+This is a runbook, not a deployment record. No credentials, cloud resources, live model response, uploaded MP4, or deployed URL are supplied by the repository. Phase 1 implements the app foundation, project/scene API, and separate server-side AI smoke commands. Asset upload, queued generation, and the worker described below belong to later milestones. Track executed checks and blockers in `TODO.md`.
+
+## Required accounts, credentials, and configuration
+
+| Item | Where to obtain it | Where it belongs |
+| --- | --- | --- |
+| Google Cloud project with billing enabled | Cloud Console; add Firebase to this same project | `GOOGLE_CLOUD_PROJECT` on the API; project selected in Firebase CLI |
+| Firebase web app configuration | Firebase Console > Project settings > Your apps > Web app | `apps/web/.env.local`: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID` |
+| Google / anonymous sign-in providers | Firebase Console > Authentication > Sign-in method | Console configuration; the browser obtains a Firebase ID token |
+| Local Application Default Credentials (ADC) | `gcloud auth application-default login` | Local gcloud credential store; never commit it |
+| Gemini API key and model entitlement | Google AI Studio, using the intended billing project | Local `apps/api/.env`; production Secret Manager binding to `GEMINI_API_KEY` |
+| Analysis and video model IDs | Current official model documentation and account access | `GEMINI_ANALYSIS_MODEL`, `GEMINI_VIDEO_MODEL`; see [model verification and smoke tests](model-verification.md) |
+| Private media bucket name | Cloud Storage setup below | `GCS_BUCKET` on API and, later, worker |
+| API runtime service account | IAM setup below | Cloud Run service identity, with resource-scoped grants |
+| Deployer login | `gcloud auth login`, `firebase login` | Local CLI credential stores, separate from ADC |
+| Container registry authorization | `gcloud auth configure-docker` | Local Docker credential helper |
+| Tasks invoker and worker service accounts | Later worker setup below | Server configuration only; no browser credentials |
+
+Firebase web configuration is public application identification. The Gemini key and service-account private keys are secrets. Do not put them in `VITE_*`, frontend code, a Docker build argument, a command-line key literal, a commit, a screenshot, or a test report. Cloud Run uses its attached service identity; a downloaded service-account JSON key is unnecessary. [Firebase web configuration](https://firebase.google.com/docs/projects/api-keys), [Cloud Run service identity](https://docs.cloud.google.com/run/docs/securing/service-identity).
+
+The Gemini API and Google Cloud deployment use distinct authentication paths: an API key with model access for Gemini, and ADC/IAM for Firestore, Storage, and Cloud Run. A successful cloud login does not prove access to a paid video model. Check current [Gemini billing](https://ai.google.dev/gemini-api/docs/billing) and pricing in AI Studio; do not assume free-tier access or entitlement from a model ID.
+
+## 1. Install tools and select the project
+
+Install Node.js 24, Git, [Google Cloud CLI](https://docs.cloud.google.com/sdk/docs/install), [Firebase CLI](https://firebase.google.com/docs/cli), and Docker Desktop with Linux containers. Commands below run in PowerShell from the repository root. Substitute the project ID and globally unique bucket name before running; these commands create billable infrastructure.
+
+```powershell
+$projectId = "YOUR_PROJECT_ID"
+$region = "us-central1"
+$bucketName = "YOUR_GLOBALLY_UNIQUE_PRIVATE_BUCKET"
+$runtimeAccount = "aniforge-api@$projectId.iam.gserviceaccount.com"
+$registryHost = "$region-docker.pkg.dev"
+
+gcloud auth login
+gcloud config set project $projectId
+firebase login
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com firestore.googleapis.com storage.googleapis.com secretmanager.googleapis.com iamcredentials.googleapis.com identitytoolkit.googleapis.com firebase.googleapis.com generativelanguage.googleapis.com
+```
+
+In Cloud Console, link a billing account and configure a budget with alerts. Budgets notify; they do not automatically cap spend. In Firebase Console, add Firebase to the selected project and verify the billing plan required by the services in use. Choose compatible data locations deliberately; the region above is an example. Initial setup needs permissions to enable APIs, create resources/service accounts, and grant IAM. Ask the project administrator to perform setup if these permissions are unavailable; do not give the runtime account Owner or Editor.
+
+## 2. Configure Firebase Auth and Firestore
+
+1. Register a Firebase **Web app** and copy its public configuration to `apps/web/.env.local` using the example in the repository.
+2. Enable **Google** sign-in, select the support email, and enable **Anonymous** for the demo entry point. Also set `VITE_ENABLE_ANONYMOUS_AUTH=true` in the frontend environment to show the guest button; its safe default is false. Anonymous accounts still have individual Firebase UIDs and owner-isolated projects. Clearing browser data or signing out can lose access to an unlinked anonymous account; use Google for work that must be retained.
+3. In Authentication > Settings > Authorized domains, add the actual Hosting domain and any custom domain. For local development explicitly add `localhost` in the development project; new projects may omit it by default. [Firebase Google sign-in](https://firebase.google.com/docs/auth/web/google-signin), [authorized domain behavior](https://firebase.google.com/docs/auth/faq-and-troubleshooting).
+4. Create a Cloud Firestore database in **Native mode**, database ID **`(default)`**, with the intended location and production rules. The API uses that default database.
+5. Deploy the repository's deny-all browser rules:
+
+```powershell
+firebase deploy --only firestore:rules --project $projectId
+```
+
+All data access goes through the API. Firebase Admin bypasses Firestore rules and is governed by IAM, so every API route must verify the Firebase token and enforce project ownership. The provided rules are defense against direct browser SDK access, not a replacement for server authorization. [Firestore server access and rules](https://firebase.google.com/docs/firestore/security/overview).
+
+## 3. Create private storage and a runtime identity
+
+```powershell
+gcloud iam service-accounts create aniforge-api --display-name "AniForge API runtime"
+gcloud projects add-iam-policy-binding $projectId --member "serviceAccount:$runtimeAccount" --role roles/datastore.user
+gcloud projects add-iam-policy-binding $projectId --member "serviceAccount:$runtimeAccount" --role roles/firebaseauth.viewer
+gcloud storage buckets create "gs://$bucketName" --project $projectId --location $region --uniform-bucket-level-access --public-access-prevention
+```
+
+The API calls `verifyIdToken(token, true)` to reject revoked sessions and disabled users. That extra check reads the Auth user record and needs `firebaseauth.users.get`; the predefined Firebase Authentication Viewer role supplies it. It does not grant user creation, deletion, or other Auth mutations. A project administrator can substitute a narrower custom role. [Session revocation checks](https://firebase.google.com/docs/auth/admin/manage-sessions), [Firebase Auth IAM roles](https://docs.cloud.google.com/iam/docs/roles-permissions/firebaseauth).
+
+Phase 1 has no media upload endpoints and needs no bucket access. When the asset milestone is implemented, grant only object operations on this dedicated bucket:
+
+```powershell
+gcloud storage buckets add-iam-policy-binding "gs://$bucketName" --member "serviceAccount:$runtimeAccount" --role roles/storage.objectUser
+```
+
+Do not grant `allUsers` or `allAuthenticatedUsers` bucket access. Uniform bucket-level access removes object ACLs; public access prevention blocks accidental public grants. The Object User role provides object read/write/delete operations without bucket administration. [Storage IAM roles](https://docs.cloud.google.com/storage/docs/access-control/iam-roles), [bucket creation](https://docs.cloud.google.com/storage/docs/creating-buckets), [public access prevention](https://docs.cloud.google.com/storage/docs/public-access-prevention).
+
+`storage.rules` denies Firebase Storage browser access. It does **not** govern server GCS calls or arbitrary GCS buckets. If using a Firebase-managed default bucket, initialize Storage in Firebase Console, inspect the selected bucket, and deploy `firebase deploy --only storage --project $projectId`. For the dedicated GCS bucket created above, IAM and public access prevention are the controls; deploying Firebase rules does not secure it by itself.
+
+For a future signed-URL implementation, object access and signing are separate permissions. An identity creating V4 URLs needs `iam.serviceAccounts.signBlob` on the signing service account, commonly via `roles/iam.serviceAccountTokenCreator` scoped to that account. Do not grant Token Creator broadly on the project. The signer also needs the corresponding object read/write permission. Grant signing only when that feature is implemented, keep URLs short lived and object specific, and authorize ownership before issuing each URL. An API proxy can avoid signing permissions. [Signed-URL prerequisites](https://docs.cloud.google.com/storage/docs/access-control/signing-urls-with-helpers).
+
+If direct browser PUT/GET requests to signed URLs are added, configure bucket CORS for the exact local/Hosting origins, required methods and headers. CORS is a browser policy, not authorization. The Phase 1 frontend does not yet upload to this bucket.
+
+## 4. Enable and prove real Gemini access
+
+In [Google AI Studio](https://aistudio.google.com/), select the intended project, complete the applicable paid billing setup, and create a server API key. Apply compatible API restrictions for the Generative Language API. Verify that the account has access to the exact analysis/video models in the current official documentation. A 403 or model-not-found response is a blocker; never substitute a fabricated result.
+
+Copy `apps/api/.env.example` to `apps/api/.env` and set `GEMINI_API_KEY`, model IDs, and `ENABLE_REAL_AI=true`. The verified defaults are `GEMINI_ANALYSIS_MODEL=gemini-3.8-flash` and `GEMINI_VIDEO_MODEL=gemini-omni-1.1-flash`; the Omni model requires paid access. Follow [model verification and smoke tests](model-verification.md) for the dated official evidence, original-image affirmation, commands, safe errors, and actual output evidence. Run analysis and video separately; a valid analysis result does not establish video access. Live requests may be billed. CI only uses declared test fixtures and never invokes a paid model.
+
+Create the production secret in **Secret Manager > Create secret**, name it `aniforge-gemini-api-key`, and paste the key into the secret value field. Record its numeric version (initially `1`). This avoids placing the value in shell history. Then grant the runtime account access to this secret alone:
+
+```powershell
+gcloud secrets add-iam-policy-binding aniforge-gemini-api-key --member "serviceAccount:$runtimeAccount" --role roles/secretmanager.secretAccessor
+```
+
+The Cloud Run deployment below binds a numbered secret version. Rotate by creating a new version and deploying a revision with that version; do not silently change a running revision's intended key. Secret access is checked for the runtime service identity. [Cloud Run secret configuration](https://docs.cloud.google.com/run/docs/configuring/services/secrets).
+
+## 5. Run the project API locally
+
+```powershell
+gcloud auth application-default login
+gcloud auth application-default set-quota-project $projectId
+npm ci
+npm run dev
+```
+
+The ADC user needs Firestore access, Firebase Auth user-read permission for revocation checks, and permission to use the development quota project. Set `GOOGLE_CLOUD_PROJECT` in `apps/api/.env` to the same project as the frontend Firebase configuration. Set `VITE_API_BASE_URL=http://localhost:8080/api/v1` and `ALLOWED_ORIGINS=http://localhost:5173`. A cloud service-account impersonation workflow is also possible if approved by the administrator; a private key file is not required.
+
+Without Firebase configuration, the UI explains what is missing. Without the backend project configuration, local `/health` remains available and project routes fail explicitly rather than using fake persistence. Production startup requires a project ID. A healthy process does not prove Firestore credentials or Gemini access; sign in and create/read a project to verify integration.
+
+Run the complete local quality gate before deployment:
+
+```powershell
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+## 6. Build and deploy the API container
+
+This runbook builds the Dockerfile from the **repository root**, including `packages/shared` and the root lockfile. Do not run a standalone `apps/api` source deploy: it omits the shared workspace. The deployer needs Artifact Registry write access on the repository, Cloud Run deployment permissions, and Service Account User (`iam.serviceAccounts.actAs`) on the runtime account. Grant public invocation through an administrator if the deployer cannot change service IAM. Cloud Run's service agent must be able to read the image; same-project Artifact Registry is the intended setup. [Container deployment permissions](https://docs.cloud.google.com/run/docs/deploying).
+
+```powershell
+gcloud artifacts repositories create aniforge --repository-format docker --location $region --description "AniForge application containers"
+gcloud auth configure-docker $registryHost
+$imageTag = git rev-parse --short HEAD
+$imageName = "$registryHost/$projectId/aniforge/api:$imageTag"
+docker build --platform linux/amd64 --file apps/api/Dockerfile --tag $imageName .
+docker push $imageName
+
+gcloud run deploy aniforge-api --image $imageName --region $region --service-account $runtimeAccount --allow-unauthenticated --port 8080 --memory 512Mi --cpu 1 --min 0 --max 3 --timeout 60 --set-env-vars "NODE_ENV=production,GOOGLE_CLOUD_PROJECT=$projectId,GCS_BUCKET=$bucketName,ENABLE_REAL_AI=false,ALLOWED_ORIGINS=https://$projectId.web.app" --set-secrets "GEMINI_API_KEY=aniforge-gemini-api-key:1"
+$apiUrl = gcloud run services describe aniforge-api --region $region --format "value(status.url)"
+Invoke-RestMethod "$apiUrl/health"
+```
+
+Use a unique immutable image tag for each reviewed revision. If there is no commit yet, set an explicit unique release tag. Keep `ENABLE_REAL_AI=false` for the foundation deployment; real smoke tests are server CLI commands, not public generation endpoints. Set the verified model variables and enable real AI only with the runtime AI milestone and its usage controls. Binding a key does not activate generation by itself.
+
+Cloud Run allows public **network invocation** so browsers can reach the API, but project/scene requests still require a Firebase ID token and server ownership checks. The public health endpoint contains no credentials. Configure `ALLOWED_ORIGINS` with every actual frontend origin (comma separated); if changing it with gcloud, use an env YAML file or a custom `--set-env-vars` delimiter so commas inside its value are preserved. CORS does not replace token verification.
+
+The Dockerfile runs as an unprivileged user and contains compiled API/shared code with production dependencies. Docker context ignores local secrets and artifacts. Docker build and cloud deployment must be verified in an environment with Docker/Cloud CLI access; repository builds alone do not establish container or cloud success. Optional Cloud Build automation requires enabling `cloudbuild.googleapis.com` and configuring a build identity; the command sequence above uses local Docker and does not depend on Cloud Build.
+
+## 7. Build and deploy Hosting
+
+Set the production Firebase web configuration and `VITE_API_BASE_URL` to the Cloud Run URL plus `/api/v1` in `apps/web/.env.production.local`. These Vite values are baked into the bundle and require a rebuild after changes. Keep the API's origin allowlist and Auth authorized domains synchronized with the published site.
+
+```powershell
+npm run build
+firebase deploy --only hosting,firestore:rules --project $projectId
+```
+
+`firebase.json` already points to `apps/web/dist`, sets an SPA fallback, and configures static cache/security headers. No Hosting initialization is needed. `.firebaserc.example` is an optional project alias template; the explicit `--project` flags avoid relying on an implicit target. The frontend calls Cloud Run directly; no synchronous video-generation Hosting rewrite is configured. [Hosting configuration](https://firebase.google.com/docs/hosting/full-config).
+
+Verify Google and anonymous sign-in, create/rename/duplicate/delete, reload saved projects, sign out, and confirm a second user cannot access the first user's project. Test a deep link such as `/studio/PROJECT_ID` after refresh, the browser CORS console, and 401 without a token. Record the actual site/API URLs and date in the milestone report. Do not mark media or generation gates complete from a successful Hosting deploy.
+
+## 8. Later milestone: a separate private Cloud Tasks worker
+
+No worker or enqueue endpoint exists in Phase 1. These are setup requirements for the jobs milestone, not instructions to point a queue at the current API. Deploy a separate worker service **without public invocation**, with its own runtime account. Only the dedicated Tasks invoker account receives `roles/run.invoker` on that worker. User routes belong on the public API; do not rely on an `/internal` path or a spoofable `X-CloudTasks-*` header as authentication. [Cloud Tasks with private Cloud Run](https://docs.cloud.google.com/run/docs/triggering/using-tasks).
+
+Required later configuration: `CLOUD_TASKS_QUEUE`, `CLOUD_TASKS_LOCATION`, `WORKER_URL`, and `TASKS_SERVICE_ACCOUNT`. `WORKER_URL` includes the handler path; the OIDC audience is the worker's service base URL unless an explicitly configured custom audience is used.
+
+After a worker implementation and its authentication tests exist:
+
+1. Enable `cloudtasks.googleapis.com`, create a queue in the intended region, and set conservative dispatch rate, concurrency, retry count, and backoff compatible with paid-model limits.
+2. Create `aniforge-worker` and `aniforge-tasks-invoker` service accounts. Give the worker only its Firestore, bucket object, and Gemini-secret permissions. The Tasks invoker does not need media or secret access.
+3. Grant the API runtime `roles/cloudtasks.enqueuer` on this queue and `roles/iam.serviceAccountUser` on the Tasks invoker account so it may attach that identity to tasks. Preserve the Google-managed Cloud Tasks service agent's required service-agent role; do not grant that role to the API account. [Authenticated HTTP tasks](https://docs.cloud.google.com/tasks/docs/creating-http-target-tasks).
+4. Deploy the worker with authenticated invocation and grant `roles/run.invoker` only to the Tasks invoker on this service. Enqueue with an OIDC token using that account and the exact expected audience.
+5. Verify worker OIDC issuer/audience/identity at the trusted boundary, validate the task payload, load the job from Firestore, and recheck its owner/project relationships. A user ID in a task body is not independently trusted.
+6. Make job state changes idempotent. Store provider operation/interaction IDs before retrying so task redelivery cannot blindly create duplicate paid generations. Persist successful MP4s and immutable versions before reporting success. Handle terminal failures, timeouts, 429s, and restart recovery explicitly.
+7. Use resumable polling or Cloud Run Jobs when work can exceed a task dispatch deadline; never depend on a browser connection remaining open.
+
+These settings require an implementation review and live authenticated task verification before enabling paid production jobs. Exact queue and worker resources remain unresolved until that milestone.
+
+## Evidence and remaining manual steps
+
+The machine used for implementation has no supplied cloud credentials or configured Gemini key, and gcloud/Firebase CLI were unavailable at foundation inspection. Repository tests can validate schemas, ownership logic, error handling, and explicit provider fixtures; they cannot prove billing, production IAM, real MP4 output, or a deployment. Required external work remains: tool installation, project/billing selection, Auth providers and authorized domains, Firestore creation, ADC, private bucket/IAM, Gemini entitlement and secret, container push, Cloud Run deploy, Hosting deploy, and real integration verification. Keep results for each gate separate in `TODO.md`.
