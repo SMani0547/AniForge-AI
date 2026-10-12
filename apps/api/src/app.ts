@@ -2,20 +2,21 @@ import Fastify, { type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { z, ZodError } from 'zod';
-import { createProjectSchema, resourceIdSchema, updateProjectSchema, updateSceneSchema } from '@aniforge/shared';
+import { analyzeSceneSchema, createProjectSchema, resourceIdSchema, updateProjectSchema, updateSceneSchema } from '@aniforge/shared';
 import { ApiError } from './errors.js';
 import { assertOwner, type ProjectRepository } from './repository.js';
 import type { Config } from './config.js';
 import { IMAGE_TYPES, MAX_UPLOAD_BYTES, normalizeImage } from './assets/images.js';
+import type { SceneAnalysisService } from './analysis.js';
 
-interface Dependencies { config: Config; repository: ProjectRepository | null; verifyToken: ((token: string) => Promise<string>) | null; logger?: boolean }
+interface Dependencies { config: Config; repository: ProjectRepository | null; verifyToken: ((token: string) => Promise<string>) | null; analysis?: SceneAnalysisService | null; logger?: boolean }
 const projectParams = z.object({ projectId: resourceIdSchema });
 const sceneParams = projectParams.extend({ sceneId: resourceIdSchema });
 const assetParams = projectParams.extend({ assetId: resourceIdSchema });
 const listQuery = z.strictObject({ cursor: z.string().min(1).max(2048).optional(), limit: z.coerce.number().int().min(1).max(100).default(25) });
 const uploadQuery = z.strictObject({ sceneId: resourceIdSchema, copyrightAttested: z.literal('true') });
 
-export function buildApp({ config, repository, verifyToken, logger = false }: Dependencies) {
+export function buildApp({ config, repository, verifyToken, analysis = null, logger = false }: Dependencies) {
   const app = Fastify({ logger: logger ? { redact: ['req.headers.authorization', 'req.headers.cookie'] } : false, bodyLimit: 700_000, requestTimeout: 30_000 });
   const identities = new WeakMap<FastifyRequest, string>();
   const data = <T>(request: FastifyRequest, value: T) => ({ data: value, error: null, requestId: request.id });
@@ -37,7 +38,7 @@ export function buildApp({ config, repository, verifyToken, logger = false }: De
     reply.status(status).send({ data: null, error: { code, message }, requestId: request.id });
   });
   app.setNotFoundHandler((request, reply) => reply.code(404).send({ data: null, error: { code: 'NOT_FOUND', message: 'Route not found.' }, requestId: request.id }));
-  app.get('/health', async (request) => data(request, { status: 'ok', service: 'aniforge-api', firebaseConfigured: !!repository, milestone: 'canvas-persistence' }));
+  app.get('/health', async (request) => data(request, { status: 'ok', service: 'aniforge-api', firebaseConfigured: !!repository, milestone: 'scene-analysis' }));
   app.get('/api/v1/health', async (request) => data(request, { status: 'ok', firebaseConfigured: !!repository }));
 
   app.register(async (api) => {
@@ -54,6 +55,10 @@ export function buildApp({ config, repository, verifyToken, logger = false }: De
       }
     });
     api.addContentTypeParser([...IMAGE_TYPES], { parseAs: 'buffer', bodyLimit: MAX_UPLOAD_BYTES }, (_request, body, done) => done(null, body));
+    api.get('/ai/analysis-status', async (request, reply) => {
+      reply.header('Cache-Control', 'private, no-store');
+      return data(request, analysis?.availability() ?? { available: false, reason: 'Scene analysis requires configured Firebase, private Storage and server-side Google AI credentials. See docs/cloud-setup.md.', model: null });
+    });
     api.get('/projects', async (request) => data(request, await store().list(uid(request), listQuery.parse(request.query))));
     api.post('/projects', async (request, reply) => {
       const input = createProjectSchema.parse(request.body);
@@ -88,6 +93,13 @@ export function buildApp({ config, repository, verifyToken, logger = false }: De
       const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);
       const changes = updateSceneSchema.parse(request.body);
       return data(request, await store().updateScene(projectId, sceneId, uid(request), changes));
+    });
+    api.post('/projects/:projectId/scenes/:sceneId/analyze', async (request, reply) => {
+      const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);
+      const input = analyzeSceneSchema.parse(request.body);
+      if (!analysis) throw new ApiError(503, 'ANALYSIS_SETUP_REQUIRED', 'Configure Firebase, private Storage and server-side Google AI analysis. See docs/cloud-setup.md.');
+      reply.header('Cache-Control', 'private, no-store');
+      return data(request, await analysis.analyze({ projectId, sceneId, ownerId: uid(request), input }));
     });
     api.post('/projects/:projectId/assets', { bodyLimit: MAX_UPLOAD_BYTES }, async (request, reply) => {
       const { projectId } = projectParams.parse(request.params); await owned(request, projectId);

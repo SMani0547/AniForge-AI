@@ -112,7 +112,7 @@ test('guest imports, edits, saves and reloads an actual editable scene through F
   await expect(staleTab.getByRole('status').filter({ hasText: 'Save conflict' })).toBeVisible();
   await expect(staleTab.getByRole('button', { name: 'Save scene', exact: true })).toBeDisabled();
   const downloadPromise = staleTab.waitForEvent('download');
-  await staleTab.getByRole('button', { name: 'Download local canvas', exact: true }).click();
+  await staleTab.getByRole('button', { name: 'Download local scene', exact: true }).click();
   const download = await downloadPromise;
   const downloadPath = testInfo.outputPath('conflict-local-canvas.json');
   await download.saveAs(downloadPath);

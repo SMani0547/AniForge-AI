@@ -1,27 +1,31 @@
-import type { Canvas, Scene } from '@aniforge/shared';
+import { shotPlanSchema, type Canvas, type Scene, type ShotPlan } from '@aniforge/shared';
 import { ApiError, errorMessage } from './api';
 
 export type SaveState = { status: 'saved' | 'unsaved' | 'saving' | 'error' | 'conflict'; dirty: boolean; revision: number; error: string };
+export type SceneDocument = Pick<Scene, 'canvas' | 'shotPlan'>;
 
 /** Serializes revision-checked writes and retains changes made during an in-flight save. */
 export class SceneSaver {
-  private canvas: Canvas;
+  private current: SceneDocument;
   private saved: string;
   private inFlight: Promise<void> | null = null;
   private listeners = new Set<(state: SaveState) => void>();
   state: SaveState;
-  constructor(scene: Scene, private readonly write: (revision: number, canvas: Canvas) => Promise<Scene>) {
-    this.canvas = scene.canvas;
-    this.saved = JSON.stringify(scene.canvas);
+  constructor(scene: Scene, private readonly write: (revision: number, document: SceneDocument) => Promise<Scene>) {
+    this.current = { canvas: scene.canvas, shotPlan: scene.shotPlan };
+    this.saved = JSON.stringify(this.current);
     this.state = { status: 'saved', dirty: false, revision: scene.revision, error: '' };
   }
   subscribe(listener: (state: SaveState) => void) { this.listeners.add(listener); listener(this.state); return () => { this.listeners.delete(listener); }; }
   private update(patch: Partial<SaveState>) { this.state = { ...this.state, ...patch }; this.listeners.forEach((listener) => listener(this.state)); }
-  setCanvas(canvas: Canvas) {
-    this.canvas = canvas;
-    const dirty = JSON.stringify(canvas) !== this.saved;
-    const status = this.state.status === 'conflict' || this.state.status === 'saving' || this.state.status === 'error' ? this.state.status : dirty ? 'unsaved' : 'saved';
-    this.update({ dirty, status });
+  get document(): SceneDocument { return this.current; }
+  setCanvas(canvas: Canvas) { this.setDocument({ ...this.current, canvas }); }
+  setShotPlan(shotPlan: ShotPlan | null) { this.setDocument({ ...this.current, shotPlan }); }
+  private setDocument(document: SceneDocument) {
+    this.current = document;
+    const dirty = JSON.stringify(document) !== this.saved;
+    const status = this.state.status === 'conflict' || this.state.status === 'saving' ? this.state.status : dirty ? 'unsaved' : 'saved';
+    this.update({ dirty, status, ...(status === 'unsaved' || status === 'saved' ? { error: '' } : {}) });
   }
   save(): Promise<void> {
     if (this.inFlight) return this.inFlight;
@@ -32,11 +36,12 @@ export class SceneSaver {
   private async flush() {
     this.update({ status: 'saving', error: '' });
     try {
-      while (JSON.stringify(this.canvas) !== this.saved) {
-        const submitted = this.canvas;
+      while (JSON.stringify(this.current) !== this.saved) {
+        const submitted = this.current;
+        if (submitted.shotPlan && !shotPlanSchema.safeParse(submitted.shotPlan).success) throw new Error('Complete the required shot plan fields before saving. Your draft is kept locally.');
         const result = await this.write(this.state.revision, submitted);
         this.saved = JSON.stringify(submitted);
-        this.update({ revision: result.revision, dirty: JSON.stringify(this.canvas) !== this.saved });
+        this.update({ revision: result.revision, dirty: JSON.stringify(this.current) !== this.saved });
       }
       this.update({ status: 'saved', dirty: false });
     } catch (error) {

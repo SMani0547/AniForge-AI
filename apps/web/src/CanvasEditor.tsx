@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Layer, Line, Rect, Stage } from 'react-konva';
 import type Konva from 'konva';
-import type { Canvas, CanvasObject, ImageCrop, Scene } from '@aniforge/shared';
+import type { Canvas, CanvasObject, ImageCrop, Scene, ShotPlan } from '@aniforge/shared';
 import { ArrowDown, ArrowUp, Brush, Circle, Download, Eraser, Eye, EyeOff, Hand, ImagePlus, Lock, Minus, MousePointer2, Pencil, Redo2, Save, Square, Trash2, Type, Undo2, Unlock } from 'lucide-react';
 import { errorMessage, type ProjectApi } from './api';
 import { baseObject, clamp, createShape, editorHistory, editorReducer, layerName, patchObject, strokeObject, type EditorAction, type EditorTool } from './editor';
@@ -10,6 +10,7 @@ import { CanvasObjectView } from './CanvasObjectView';
 import { ImportDialog } from './ImportDialog';
 import { ImageCropInspector } from './ImageCropInspector';
 import { setNavigationGuard } from './navigationGuard';
+import { AnalysisPanel } from './AnalysisPanel';
 
 const drawingTools = [{ id: 'select', name: 'Select', icon: MousePointer2 }, { id: 'pencil', name: 'Pencil', icon: Pencil }, { id: 'brush', name: 'Brush', icon: Brush }, { id: 'eraser', name: 'Eraser', icon: Eraser }, { id: 'pan', name: 'Pan canvas', icon: Hand }] as const;
 const shapeTools = [{ id: 'rect', name: 'Add rectangle', icon: Square }, { id: 'ellipse', name: 'Add ellipse', icon: Circle }, { id: 'line', name: 'Add line', icon: Minus }, { id: 'text', name: 'Add text', icon: Type }] as const;
@@ -19,7 +20,12 @@ const numberFields = [{ field: 'x', label: 'X position', min: -10000, max: 10000
 export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: ProjectApi; onReload: () => Promise<void> }) {
   const [history, setHistory] = useState(() => editorHistory(scene.canvas));
   const historyRef = useRef(history);
-  const saver = useMemo(() => new SceneSaver(scene, (revision, canvas) => api.saveScene(scene.projectId, scene.id, revision, canvas)), [scene, api]);
+  const saver = useMemo(() => new SceneSaver(scene, (revision, document) => api.saveScene(scene.projectId, scene.id, revision, document.canvas, document.shotPlan)), [scene, api]);
+  const [shotPlan, setShotPlan] = useState(scene.shotPlan);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
+  const analysisBusyRef = useRef(false);
+  const changeAnalysisBusy = useCallback((busy: boolean) => { analysisBusyRef.current = busy; setAnalysisBusy(busy); }, []);
+  const changeShotPlan = useCallback((plan: ShotPlan | null) => { setShotPlan(plan); saver.setShotPlan(plan); }, [saver]);
   const [saveState, setSaveState] = useState(saver.state);
   const [tool, setTool] = useState<EditorTool>('select');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -47,11 +53,11 @@ export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: Proj
     if (saveState.status !== 'unsaved') return;
     const timeout = setTimeout(() => { void saver.save(); }, 900);
     return () => clearTimeout(timeout);
-  }, [canvas, saver, saveState.status]);
+  }, [canvas, shotPlan, saver, saveState.status]);
   useEffect(() => {
-    const leave = () => (!saver.state.dirty && saver.state.status !== 'saving' && !importBusyRef.current) || window.confirm('Your scene has unsaved changes or an upload in progress. Unsaved changes may be lost, and requests already sent may still finish. Leave this scene?');
+    const leave = () => (!saver.state.dirty && saver.state.status !== 'saving' && !importBusyRef.current && !analysisBusyRef.current) || window.confirm('Your scene has unsaved changes, an upload, or analysis in progress. Unsaved changes may be lost, and requests already sent may still finish or incur charges. Leave this scene?');
     setNavigationGuard(leave);
-    function beforeUnload(event: BeforeUnloadEvent) { if (saver.state.dirty || saver.state.status === 'saving' || importBusyRef.current) { event.preventDefault(); event.returnValue = ''; } }
+    function beforeUnload(event: BeforeUnloadEvent) { if (saver.state.dirty || saver.state.status === 'saving' || importBusyRef.current || analysisBusyRef.current) { event.preventDefault(); event.returnValue = ''; } }
     window.addEventListener('beforeunload', beforeUnload);
     return () => { setNavigationGuard(null); window.removeEventListener('beforeunload', beforeUnload); };
   }, [saver]);
@@ -62,6 +68,7 @@ export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: Proj
   }, []);
 
   const apply = useCallback((action: EditorAction) => {
+    if (analysisBusyRef.current) return;
     try { const next = editorReducer(historyRef.current, action); historyRef.current = next; setHistory(next); saver.setCanvas(next.present); setError(''); }
     catch { setError('This change exceeds the scene limits (500 objects, 10,000 points per stroke). Undo or remove a layer before continuing.'); }
   }, [saver]);
@@ -75,6 +82,7 @@ export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: Proj
 
   useEffect(() => {
     function keyboard(event: KeyboardEvent) {
+      if (analysisBusyRef.current) return;
       if (document.querySelector('dialog[open]') || (event.target instanceof HTMLElement && (event.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)))) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') { event.preventDefault(); apply({ type: event.shiftKey ? 'redo' : 'undo' }); }
       else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void saver.save(); }
@@ -129,19 +137,19 @@ export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: Proj
     } finally { importBusyRef.current = false; setImportBusy(false); }
   }
   async function reload() {
-    if (saver.state.dirty && !window.confirm('Discard your local canvas changes and load the latest saved scene? Download your local canvas first if you want to keep a copy.')) return;
+    if (saver.state.dirty && !window.confirm('Discard your local canvas and shot plan changes and load the latest saved scene? Download your local scene first if you want to keep a copy.')) return;
     try { await onReload(); } catch (reason) { setError(errorMessage(reason)); }
   }
   function downloadCanvas() {
-    const url = URL.createObjectURL(new Blob([JSON.stringify({ sceneId: scene.id, canvas }, null, 2)], { type: 'application/json' }));
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ sceneId: scene.id, ...saver.document }, null, 2)], { type: 'application/json' }));
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${scene.id}-editable-canvas.json`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return <section className="saved-editor" aria-label="Saved scene editor">
     <div className="editor-savebar"><div><strong>{scene.title}</strong><span role="status" className={`save-status ${saveState.status}`}>{saveState.status === 'saved' ? `Saved · revision ${saveState.revision}` : saveState.status === 'saving' ? 'Saving changes…' : saveState.status === 'conflict' ? 'Save conflict · local changes kept' : saveState.status === 'error' ? 'Save failed · changes unsaved' : 'Unsaved changes'}</span></div><button type="button" className="button primary compact" disabled={!saveState.dirty || saveState.status === 'saving' || saveState.status === 'conflict'} onClick={() => { void saver.save(); }}><Save size={16} />Save scene</button></div>
-    {saveState.error && <div className="error-banner" role="alert"><p>{saveState.status === 'conflict' ? 'This scene changed in another tab or session. Your local canvas is still here. Download it before reloading the saved scene.' : saveState.error}</p><div className="error-actions"><button type="button" className="button secondary compact" onClick={downloadCanvas}><Download size={15} />Download local canvas</button><button type="button" className="button secondary compact" onClick={() => { void reload(); }}>Reload saved scene</button>{saveState.status === 'error' && <button type="button" className="button secondary compact" onClick={() => { void saver.save(); }}>Retry save</button>}</div></div>}
+    {saveState.error && <div className="error-banner" role="alert"><p>{saveState.status === 'conflict' ? 'This scene changed in another tab or session. Your local canvas and shot plan are still here. Download them before reloading the saved scene.' : saveState.error}</p><div className="error-actions"><button type="button" className="button secondary compact" onClick={downloadCanvas}><Download size={15} />Download local scene</button><button type="button" className="button secondary compact" onClick={() => { void reload(); }}>Reload saved scene</button>{saveState.status === 'error' && <button type="button" className="button secondary compact" onClick={() => { void saver.save(); }}>Retry save</button>}</div></div>}
     {error && <div className="error-banner" role="alert">{error}</div>}
     {imageError && <div className="error-banner" role="alert">{imageError}<button type="button" className="text-button" onClick={() => { setImageError(''); setImageRetry((value) => value + 1); }}>Reload images</button></div>}
-    <div className="editor-layout"><div className="editor-canvas-column"><div className="canvas-controls editor-tools">
+    <div className="editor-layout" inert={analysisBusy}><div className="editor-canvas-column"><div className="canvas-controls editor-tools">
       <div className="tool-group" role="group" aria-label="Drawing tools">{drawingTools.map(({ id, name, icon: Icon }) => <button type="button" key={id} className={`icon-button ${tool === id ? 'selected' : ''}`} aria-label={name} title={name} aria-pressed={tool === id} onClick={() => setTool(id)}><Icon size={18} /></button>)}</div>
       <div className="tool-group" role="group" aria-label="Insert objects">{shapeTools.map(({ id, name, icon: Icon }) => <button type="button" key={id} className="icon-button" aria-label={name} title={name} disabled={canvas.objects.length >= 500} onClick={() => addShape(id)}><Icon size={18} /></button>)}</div>
       <div className="history-tools"><button type="button" className="icon-button" aria-label="Undo" disabled={!history.past.length} onClick={() => apply({ type: 'undo' })}><Undo2 size={18} /></button><button type="button" className="icon-button" aria-label="Redo" disabled={!history.future.length} onClick={() => apply({ type: 'redo' })}><Redo2 size={18} /></button><button type="button" className="icon-button" aria-label="Delete selected layer" disabled={!selected || selected.locked} onClick={deleteSelected}><Trash2 size={18} /></button></div>
@@ -150,9 +158,10 @@ export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: Proj
       <Layer listening={false}><Rect width={1920} height={1080} fill={canvas.background} /></Layer>
       <Layer>{canvas.objects.map((object) => <CanvasObjectView key={`${object.id}-${imageRetry}`} object={object} selected={selectedId === object.id} interactive={tool === 'select'} onSelect={() => setSelectedId(object.id)} onChange={changeObject} api={api} projectId={scene.projectId} onImageError={setImageError} />)}{draft && <Line listening={false} points={draft.points} stroke={draft.color} strokeWidth={draft.width} lineCap="round" lineJoin="round" tension={0.2} globalCompositeOperation={draft.eraser ? 'destination-out' : 'source-over'} />}</Layer>
     </Stage></div><div className="canvas-footer"><span>{canvas.objects.length} editable {canvas.objects.length === 1 ? 'object' : 'objects'}</span><span>16:9 · Private scene</span></div></div><p className="canvas-note">Changes autosave after a short pause. Select to move, resize, or rotate. Eraser strokes mask earlier layers; originals remain intact. Ctrl/⌘ Z: undo · Ctrl/⌘ S: save.</p>
-    <div className="editor-ai-note"><strong>AI analysis and animation</strong><p>These will connect in the next milestones. No AI requests are made by this editor.</p><button type="button" className="button secondary compact" disabled>Analyze scene</button><button type="button" className="button primary compact" disabled>Generate animation</button></div></div>
+    </div>
     <aside className="editor-sidebar" aria-label="Layers and object inspector"><section className="editor-inspector"><h2>Inspector</h2><label className="editor-background">Scene background<input type="color" value={canvas.background} onChange={(event) => commit({ ...canvas, background: event.target.value })} /></label>{selected ? <><p className="muted small">{layerName(selected)}{selected.locked ? ' · Locked' : ''}</p><fieldset disabled={selected.locked}><legend className="sr-only">Selected object properties</legend><div className="property-grid">{numberFields.filter(({ field }) => selected.type !== 'image' || field !== 'strokeWidth').map(({ field, label, min, max }) => <label key={field}>{label}<input type="number" min={min} max={max} step={field === 'opacity' ? 0.05 : 1} value={Math.round(selected[field] * 100) / 100} onChange={(event) => { if (Number.isFinite(event.target.valueAsNumber)) patch({ [field]: clamp(event.target.valueAsNumber, min, max) }); }} /></label>)}{['rect', 'ellipse', 'text'].includes(selected.type) && <label>Fill color<input type="color" value={selected.fill} onChange={(event) => patch({ fill: event.target.value })} /></label>}{selected.type !== 'image' && <label>Stroke color<input type="color" value={selected.stroke} onChange={(event) => patch({ stroke: event.target.value })} /></label>}{selected.type === 'text' && <><label className="property-wide">Text content<textarea maxLength={2000} value={selected.text} onChange={(event) => patch({ text: event.target.value })} /></label><label>Font size<input type="number" min={1} max={500} value={selected.fontSize} onChange={(event) => { if (Number.isFinite(event.target.valueAsNumber)) patch({ fontSize: clamp(event.target.valueAsNumber, 1, 500) }); }} /></label></>}</div></fieldset>{selected.type === 'image' && <ImageCropInspector object={selected} api={api} projectId={scene.projectId} onChange={(crop) => patch({ crop })} />}</> : <p className="muted small">Select a layer to edit its position, size, and appearance.</p>}</section>
     <section className="editor-layers"><h2>Layers <span className="count">{canvas.objects.length}</span></h2><p className="muted small">Top row draws in front.</p>{!canvas.objects.length && <p className="empty-layers">Draw, add a shape, or import your original artwork.</p>}<ol>{[...canvas.objects].reverse().map((object) => { const index = canvas.objects.findIndex((item) => item.id === object.id); const number = index + 1; return <li key={object.id} className={selectedId === object.id ? 'selected' : ''}><button type="button" className="layer-select" aria-label={`Select layer ${number}: ${layerName(object)}`} aria-pressed={selectedId === object.id} onClick={() => { setSelectedId(object.id); setTool('select'); }}><span className="layer-type">{object.type === 'image' ? 'IMG' : object.type === 'text' ? 'TXT' : String(number).padStart(2, '0')}</span><span>{layerName(object)}</span></button><div className="layer-actions"><button type="button" className="icon-button" aria-label={`${object.hidden ? 'Show' : 'Hide'} layer ${number}`} aria-pressed={object.hidden} onClick={() => commit(patchObject(canvas, object.id, { hidden: !object.hidden }, true))}>{object.hidden ? <EyeOff size={14} /> : <Eye size={14} />}</button><button type="button" className="icon-button" aria-label={`${object.locked ? 'Unlock' : 'Lock'} layer ${number}`} aria-pressed={object.locked} onClick={() => commit(patchObject(canvas, object.id, { locked: !object.locked }, true))}>{object.locked ? <Lock size={14} /> : <Unlock size={14} />}</button><button type="button" className="icon-button" aria-label={`Raise layer ${number}`} disabled={object.locked || index === canvas.objects.length - 1} onClick={() => reorder(index, 1)}><ArrowUp size={14} /></button><button type="button" className="icon-button" aria-label={`Lower layer ${number}`} disabled={object.locked || index === 0} onClick={() => reorder(index, -1)}><ArrowDown size={14} /></button></div></li>; })}</ol></section></aside></div>
+    <AnalysisPanel scene={scene} api={api} saver={saver} plan={shotPlan} onPlanChange={changeShotPlan} onBusyChange={changeAnalysisBusy} importBusy={importBusy} />
     {importOpen && <ImportDialog onClose={() => setImportOpen(false)} onImport={importImage} />}
   </section>;
 }

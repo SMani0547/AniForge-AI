@@ -30,7 +30,7 @@ export function safeProviderError(error: unknown): AiProviderError {
     return new AiProviderError('AI_TIMEOUT', 'Google AI timed out. The provider may still finish and charge for this request; inspect AI Studio before retrying.');
   }
   if (status >= 500 && status < 600) {
-    return new AiProviderError('AI_UNAVAILABLE', 'Google AI is temporarily unavailable. Inspect AI Studio for an existing result before submitting a new video request.', true);
+    return new AiProviderError('AI_UNAVAILABLE', 'Google AI is temporarily unavailable. The request may already be billed; inspect AI Studio before submitting again.', true);
   }
   return new AiProviderError('AI_REQUEST_FAILED', 'The Google AI request failed. Check network access and server configuration. No successful result was recorded.');
 }

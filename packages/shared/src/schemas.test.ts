@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetSchema, canvasSchema, createProjectSchema, emptyScene, sceneSchema, timelineSchema, updateSceneSchema } from './index.js';
+import { analyzeSceneSchema, analysisResultSchema, assetSchema, canvasSchema, createProjectSchema, emptyScene, sceneSchema, timelineSchema, updateSceneSchema } from './index.js';
 
 describe('persisted source schemas', () => {
   it('round-trips editable scene JSON independently of Konva', () => {
@@ -38,5 +38,34 @@ describe('persisted source schemas', () => {
     expect(assetSchema.safeParse(asset).success).toBe(true);
     expect(assetSchema.safeParse({ ...asset, copyrightAttested: false }).success).toBe(false);
     expect(assetSchema.safeParse({ ...asset, width: 16000, height: 16000 }).success).toBe(false);
+  });
+});
+
+describe('analysis boundary schemas', () => {
+  const request = { analysisId: 'bd7f7d76-d0c6-4fb9-ad7f-41ab407fd381', expectedRevision: 4, snapshotAssetId: 'snapshot_1', notes: 'Original geometric sketch', copyrightAttested: true, confirmPaid: true };
+  it('requires explicit content rights and paid consent with a revision and stable request ID', () => {
+    expect(analyzeSceneSchema.parse(request)).toEqual(request);
+    for (const field of ['analysisId', 'expectedRevision', 'snapshotAssetId', 'copyrightAttested', 'confirmPaid']) {
+      const incomplete: Record<string, unknown> = { ...request }; delete incomplete[field];
+      expect(analyzeSceneSchema.safeParse(incomplete).success).toBe(false);
+    }
+    expect(analyzeSceneSchema.safeParse({ ...request, confirmPaid: false }).success).toBe(false);
+    expect(analyzeSceneSchema.safeParse({ ...request, copyrightAttested: false }).success).toBe(false);
+  });
+  it('rejects URLs, client-selected models and excessive notes at the analysis boundary', () => {
+    expect(analyzeSceneSchema.safeParse({ ...request, snapshotAssetId: 'https://example.com/private.png' }).success).toBe(false);
+    expect(analyzeSceneSchema.safeParse({ ...request, model: 'client-selected-provider' }).success).toBe(false);
+    expect(analyzeSceneSchema.safeParse({ ...request, ownerId: 'another-user' }).success).toBe(false);
+    expect(analyzeSceneSchema.safeParse({ ...request, notes: 'x'.repeat(8001) }).success).toBe(false);
+  });
+  it('validates suggested plans while excluding server-only interaction metadata', () => {
+    const result = { analysisId: request.analysisId, sourceRevision: 4, snapshotAssetId: 'snapshot_1', model: 'unit-test-fixture', analyzedAt: '2026-10-12T00:00:00.000Z', shotPlan: { sceneSummary: 'An original geometric shape', subjects: [{ name: 'Shape', appearance: 'A blue rectangle' }], action: 'Slight movement', camera: { shotType: 'Wide', movement: 'Static' }, environment: 'Plain background', mood: 'Calm', animationPrompt: 'Move the original blue rectangle gently.', preserve: ['Blue color'], uncertainties: [] } };
+    expect(analysisResultSchema.parse(JSON.parse(JSON.stringify(result)))).toEqual(result);
+    expect(analysisResultSchema.safeParse({ ...result, interactionId: 'server-only' }).success).toBe(false);
+    expect(analysisResultSchema.safeParse({ ...result, shotPlan: { ...result.shotPlan, subjects: [] } }).success).toBe(false);
+    const scene = emptyScene('project_1', 'scene_1', result.analyzedAt);
+    const saved = sceneSchema.parse({ ...scene, shotPlan: result.shotPlan });
+    expect(saved.canvas).toEqual(scene.canvas);
+    expect(saved.shotPlan).toEqual(result.shotPlan);
   });
 });

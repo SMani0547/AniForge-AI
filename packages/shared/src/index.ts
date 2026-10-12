@@ -17,6 +17,26 @@ export const shotPlanSchema = z.strictObject({
 });
 export type ShotPlan = z.infer<typeof shotPlanSchema>;
 
+export const analyzeSceneSchema = z.strictObject({
+  analysisId: z.uuid(),
+  expectedRevision: z.number().int().nonnegative(),
+  snapshotAssetId: resourceIdSchema,
+  notes: z.string().trim().max(8000).default(''),
+  copyrightAttested: z.literal(true),
+  confirmPaid: z.literal(true),
+});
+export type AnalyzeScene = z.infer<typeof analyzeSceneSchema>;
+export const analysisResultSchema = z.strictObject({
+  analysisId: z.uuid(), sourceRevision: z.number().int().nonnegative(),
+  snapshotAssetId: resourceIdSchema, shotPlan: shotPlanSchema,
+  model: z.string().min(1).max(200), analyzedAt: z.iso.datetime(),
+});
+export type AnalysisResult = z.infer<typeof analysisResultSchema>;
+export const analysisAvailabilitySchema = z.strictObject({
+  available: z.boolean(), reason: z.string().max(1000), model: z.string().min(1).max(200).nullable(),
+});
+export type AnalysisAvailability = z.infer<typeof analysisAvailabilitySchema>;
+
 const objectBase = z.strictObject({
   id: resourceIdSchema,
   x: z.number().finite().min(-10000).max(10000),

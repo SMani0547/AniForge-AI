@@ -6,11 +6,13 @@ AniForge stores editable scene data separately from rendered video. A generated 
 
 | Workspace | Responsibility |
 | --- | --- |
-| `apps/web` | React/Vite/TypeScript studio, Firebase Auth, paginated gallery, editable canvas/layers/crop, revision-aware autosave, authenticated image loading |
-| `apps/api` | Fastify, Firebase Admin ownership checks, Firestore revisions, private image normalization/storage/copy/cleanup, server-only Google AI smoke commands |
+| `apps/web` | React/Vite/TypeScript studio, Firebase Auth, paginated gallery, editable canvas/layers/crop and shot plan, revision-aware autosave, canonical snapshot rendering and analysis review |
+| `apps/api` | Fastify, Firebase Admin ownership checks, Firestore revisions, private media, real Gemini analysis with durable request/usage records, server-only video smoke commands |
 | `packages/shared` | Strict TypeScript/Zod API and editable scene contracts shared by browser and server |
 
 The frontend never imports Firebase Admin or `@google/genai`. Public Firebase web configuration belongs in the Vite environment. Gemini credentials remain on the server. Local development may display an explicit setup state when credentials are absent; it must not manufacture successful sign-in, database writes, or AI output. Test fixtures are injected by tests and are not an alternative production provider.
+
+Phase 3 adds an authenticated synchronous analysis route with a 40-second default provider deadline. A browser export of the saved canvas is uploaded as private PNG; a transaction checks its ownership, scene revision and metadata before reserving an analysis ID and user allowance. The provider receives image bytes and notes only from the server. Structured results pass Zod validation before a server-only analysis record is marked complete. Replaying the same ID cannot automatically create another paid call. Suggestions never overwrite the source or saved plan; explicit application uses the ordinary revision-checked scene save.
 
 ```mermaid
 flowchart LR
@@ -19,7 +21,8 @@ flowchart LR
   A -->|Verify token| F
   A -->|Check owner, validate JSON| D[(Firestore)]
   A -->|Authorized image proxy| M[(Private Cloud Storage)]
-  S[Server-only smoke command] --> G[Google AI API]
+  A -->|Saved snapshot and notes| G[Google AI API]
+  S[Server-only smoke command] --> G
   S --> O[Local verified output artifacts]
   H[Firebase Hosting] --> B
 ```
@@ -29,6 +32,8 @@ Production API startup requires a Cloud project ID. Local health can boot withou
 ## Data and trust boundaries
 
 Project documents live at `projects/{projectId}` and contain `ownerId`; scenes are children at `projects/{projectId}/scenes/{sceneId}`. Every user route authenticates before accessing a project and checks ownership before reading or mutating its scenes. Cross-owner access is concealed with 404. Client-provided ownership and timestamps never authorize an operation. Zod schemas define accepted input and output.
+
+Analysis records live at `projects/{projectId}/analyses/{analysisId}` and contain input fingerprints, source revision, private snapshot reference, state, safe error/result and a server-only provider interaction ID. `analysisUsage/{hashedUid}` stores the owner, UTC-day attempt count and bounded active reservation across API instances. These are accessed only through Firebase Admin. Usage survives project deletion so deleting a project cannot reset the allowance. Completed/failed request IDs are not automatically re-dispatched; a crash may leave a pending ID requiring provider inspection.
 
 All Firestore browser access is denied by `firestore.rules`. Admin SDK calls bypass rules, so IAM protects the database identity and the API enforces per-user isolation. This backend-only approach keeps the ownership policy in one application boundary. [Firestore security model](https://firebase.google.com/docs/firestore/security/overview).
 

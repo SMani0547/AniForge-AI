@@ -6,6 +6,7 @@ const schema = z.object({
   GOOGLE_CLOUD_PROJECT: z.string().trim().default(''),
   GCS_BUCKET: z.string().trim().default(''),
   ALLOWED_ORIGINS: z.string().default('http://localhost:5173,http://127.0.0.1:5173'),
+  MAX_ANALYSES_PER_USER_PER_DAY: z.coerce.number().int().min(1).max(100).default(20),
 });
 export type Config = z.infer<typeof schema>;
 export function readConfig(env: NodeJS.ProcessEnv = process.env): Config {

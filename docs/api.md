@@ -19,6 +19,8 @@ Successful user responses have `{ "data": ..., "error": null, "requestId": "..."
 | GET | `/api/v1/projects/:projectId/scenes` | List the project's saved editable scenes |
 | GET | `/api/v1/projects/:projectId/scenes/:sceneId` | Read an owned scene |
 | PATCH | `/api/v1/projects/:projectId/scenes/:sceneId` | Save editable scene data with required `expectedRevision` |
+| GET | `/api/v1/ai/analysis-status` | Authenticated analysis configuration status; does not call Google or prove model entitlement |
+| POST | `/api/v1/projects/:projectId/scenes/:sceneId/analyze` | Analyze an authorized saved canvas snapshot with the real server provider; return a validated suggestion |
 | POST | `/api/v1/projects/:projectId/assets?sceneId=...&copyrightAttested=true` | Authenticated raw-image upload proxy; returns normalized asset metadata |
 | GET | `/api/v1/projects/:projectId/assets/:assetId` | Owner-authorized asset metadata, excluding storage path |
 | GET | `/api/v1/projects/:projectId/assets/:assetId/content` | Authenticated PNG bytes with `Cache-Control: private, no-store` |
@@ -37,13 +39,40 @@ Removing an image object does not delete its private source asset; media remains
 
 Missing/invalid Firebase tokens return 401. Missing projects and other users' projects return 404. Invalid input returns 400. Missing local backend configuration reports 503 rather than falling back to memory persistence. Server errors return a safe message; underlying cloud credentials or raw provider payloads must not be exposed. The API validates ownership even when a child scene ID is known.
 
+## Scene analysis
+
+Save the editable scene first, export its full canvas to a 1920×1080 PNG, and upload it through the private asset proxy. The browser renders fresh Konva nodes at canonical resolution, loads visible images with authenticated requests, and excludes editor selections, zoom and pan. A failed image fetch/decode aborts export. The API verifies the uploaded snapshot's owner, project, scene, readiness and dimensions against a saved scene revision. The raster is a client export, not an independently re-rendered server proof of the canvas's pixels.
+
+POST the following JSON to the scene's `/analyze` endpoint:
+
+```json
+{
+  "analysisId": "bd7f7d76-d0c6-4fb9-ad7f-41ab407fd381",
+  "expectedRevision": 4,
+  "snapshotAssetId": "PRIVATE_SNAPSHOT_ASSET_ID",
+  "notes": "Suggest a gentle camera move while preserving the original composition.",
+  "copyrightAttested": true,
+  "confirmPaid": true
+}
+```
+
+Both affirmations are mandatory. Notes are limited to 8,000 characters. The server chooses the model; external image URLs, credentials, owner IDs and client-selected models are rejected. A scene must contain visible source content. Configuration requires `ENABLE_REAL_AI=true`, a server `GEMINI_API_KEY`, and the configured analysis model; the status route reports configuration only, without proving that Google will accept the key or model.
+
+The success envelope contains `{analysisId,sourceRevision,snapshotAssetId,shotPlan,model,analyzedAt}`. The plan follows the shared strict schema. Provider interaction IDs stay in server-only records. Analysis does not change the source canvas or the saved shot plan. The user reviews the suggestion, applies it explicitly and saves it with the normal scene revision check. A suggestion is tied to its source revision; edits made while it was running must be reviewed before applying it.
+
+The API reserves an analysis record and the user's daily attempt allowance together in Firestore before dispatch. The default allowance is 20 attempts per UTC day, with a 90-second per-user reservation while an analysis is running or uncertain. Failures consume an attempt. Reusing an analysis ID with the same request replays a completed result or its recorded failure without a new model call; altered input returns 409. A pending/uncertain ID is never automatically dispatched again, even after a server restart. Starting another request requires an explicit new ID and can incur another charge. The existing provider retries only explicit 429 rejections within its deadline; ambiguous network/server failures are not retried.
+
+The analysis provider deadline defaults to 40 seconds and may be configured from 1 to 45 seconds with `ANALYSIS_TIMEOUT_MS`. The browser waits longer than that deadline. An upstream timeout can still leave a charge at Google; inspect provider activity before starting another request. Quota/busy errors return 429, stale scene/request conflicts 409, disabled or unavailable credentials/configuration 503, invalid structured results 502, and provider timeouts 504. Safe errors never expose SDK messages, keys, image bytes or provider interaction IDs.
+
+Private analysis records and snapshots remain with their project until project deletion. The per-user usage record is separate, so deleting a project cannot reset the daily allowance. The local emulator launcher keeps Google calls disabled. Test suites inject an explicitly labeled provider fixture in isolated tests only; no runtime environment switch silently returns a fake successful plan.
+
 ## Not yet implemented
 
 The following remain planned routes from `BUILD_PLAN.md`:
 
 - Scene creation beyond the initial project scene: `POST /projects/:projectId/scenes`.
 - Separate signed upload/completion/media URL endpoints are unnecessary for the implemented authenticated proxy; they can be added if direct storage transfer is needed later.
-- Scene analysis, generation, conversational edit, version listing/selection, and export endpoints.
+- Generation, conversational edit, version listing/selection, and export endpoints.
 - Job polling and the authenticated internal worker handler.
 
 All future user routes inherit the same token, validation, and ownership requirements. Video generation/edit requests will enqueue jobs and return promptly. Worker authentication uses trusted Cloud Tasks OIDC identity, not Firebase user tokens or a header naming a queue. AI success is recorded only after validated real provider output is stored. Until those routes exist, use the opt-in server-side [AI smoke commands](model-verification.md) to test actual model access.

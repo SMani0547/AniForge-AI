@@ -1,6 +1,6 @@
 # Cloud setup and deployment
 
-This is a runbook, not a deployment record. No credentials, cloud resources, live model response, uploaded MP4, or deployed URL are supplied by the repository. The app implements auth/projects, a saved canvas and private image upload/copy/delete, plus separate server-side AI smoke commands. Integrated AI, queued generation and the worker remain later milestones. Track executed checks and blockers in `TODO.md`. For credential-free development now, use [local Firebase emulators](local-emulators.md).
+This is a runbook, not a deployment record. No credentials, cloud resources, live model response, uploaded MP4, or deployed URL are supplied by the repository. The app implements auth/projects, a saved canvas, private image upload/copy/delete, integrated scene analysis and editable shot plans, plus separate server-side AI smoke commands. Real model access is unverified; queued generation and its worker remain later milestones. Track executed checks and blockers in `TODO.md`. For credential-free development now, use [local Firebase emulators](local-emulators.md).
 
 ## Required accounts, credentials, and configuration
 
@@ -94,6 +94,22 @@ gcloud secrets add-iam-policy-binding aniforge-gemini-api-key --member "serviceA
 
 The Cloud Run deployment below binds a numbered secret version. Rotate by creating a new version and deploying a revision with that version; do not silently change a running revision's intended key. Secret access is checked for the runtime service identity. [Cloud Run secret configuration](https://docs.cloud.google.com/run/docs/configuring/services/secrets).
 
+### Enable integrated scene analysis when ready
+
+Phase 3 needs the Firebase/Auth/Firestore/private-bucket setup above plus the Gemini server key. Set `ENABLE_REAL_AI=true`, `GEMINI_ANALYSIS_MODEL=gemini-3.8-flash`, `ANALYSIS_TIMEOUT_MS=40000`, and `MAX_ANALYSES_PER_USER_PER_DAY=20` in the API environment. The analysis deadline accepts 1,000–45,000 milliseconds; it is separate from the longer `AI_TIMEOUT_MS` used by CLI video smoke tests. Analysis does not require video-model entitlement or valid video configuration. Choose a lower daily attempt limit if preferred; accepted values are 1–100.
+
+On the configured cloud service, after key binding and model access checks:
+
+```powershell
+gcloud run services update aniforge-api --region $region --update-env-vars "ENABLE_REAL_AI=true,GEMINI_ANALYSIS_MODEL=gemini-3.8-flash,ANALYSIS_TIMEOUT_MS=40000,MAX_ANALYSES_PER_USER_PER_DAY=20"
+```
+
+Sign in, open a saved original scene, enter notes, affirm content rights and possible API charges, and choose **Analyze scene**. Review the returned suggestion before applying it, edit the shot plan/prompt and save/reload. Record the real model, timestamp and validated result as live evidence. An enabled status indicator only means configuration was accepted; failed entitlement, malformed output, quotas and timeouts remain visible failures.
+
+The API runtime's existing Firestore role covers new server-only `projects/{projectId}/analyses/{analysisId}` and `analysisUsage/{hashedUid}` records. Existing deny-all client rules also protect these paths; no new analysis index is required. The daily limit counts reserved attempts, including failures, and a 90-second reservation limits concurrent requests per user across instances. A five-second preflight limit prevents a slow database/storage read from initiating a late provider request. These controls are not a provider billing cap and anonymous accounts remain individual users; set appropriate provider/project quotas and review billing separately.
+
+Analysis IDs are retained to prevent duplicate dispatch after retries or crashes. Ambiguous outcomes require checking Google activity before starting another request, since an aborted connection may still incur a charge. Snapshots and analysis records are private project content and are purged on project deletion; per-user daily usage records remain outside projects so deletion cannot reset the allowance. The standard emulator launcher forces real AI off even if a personal `.env` exists. Use the normal configured API workflow for an intentional real call; no secrets or paid requests are needed for manual shot plans.
+
 ## 5. Run the project API locally
 
 ```powershell
@@ -136,7 +152,7 @@ $apiUrl = gcloud run services describe aniforge-api --region $region --format "v
 Invoke-RestMethod "$apiUrl/health"
 ```
 
-Use a unique immutable image tag for each reviewed revision. If there is no commit yet, set an explicit unique release tag. Keep `ENABLE_REAL_AI=false` for the foundation deployment; real smoke tests are server CLI commands, not public generation endpoints. Set the verified model variables and enable real AI only with the runtime AI milestone and its usage controls. Binding a key does not activate generation by itself.
+Use a unique immutable image tag for each reviewed revision. If there is no commit yet, set an explicit unique release tag. Keep `ENABLE_REAL_AI=false` for initial deployment, then follow the explicit analysis enablement steps above. Video smoke tests remain server CLI commands; no public generation endpoint exists yet. Binding a key does not activate generation by itself.
 
 Image decoding consumes more memory than compressed file size. The example deliberately starts with low request concurrency and 1 GiB memory; validate peak memory under representative 16-megapixel uploads before raising concurrency. These are conservative starting settings, not a completed capacity test.
 
@@ -186,7 +202,7 @@ Pending uploads/copies become eligible for recovery after one hour; explicit cle
 
 ## 8. Later milestone: a separate private Cloud Tasks worker
 
-No AI worker or enqueue endpoint exists through Phase 2. These are setup requirements for the jobs milestone, not instructions to point a queue at the current API. Deploy a separate worker service **without public invocation**, with its own runtime account. Only the dedicated Tasks invoker account receives `roles/run.invoker` on that worker. User routes belong on the public API; do not rely on an `/internal` path or a spoofable `X-CloudTasks-*` header as authentication. [Cloud Tasks with private Cloud Run](https://docs.cloud.google.com/run/docs/triggering/using-tasks).
+No AI worker or enqueue endpoint exists through Phase 3. These are setup requirements for the jobs milestone, not instructions to point a queue at the current API. Deploy a separate worker service **without public invocation**, with its own runtime account. Only the dedicated Tasks invoker account receives `roles/run.invoker` on that worker. User routes belong on the public API; do not rely on an `/internal` path or a spoofable `X-CloudTasks-*` header as authentication. [Cloud Tasks with private Cloud Run](https://docs.cloud.google.com/run/docs/triggering/using-tasks).
 
 Required later configuration: `CLOUD_TASKS_QUEUE`, `CLOUD_TASKS_LOCATION`, `WORKER_URL`, and `TASKS_SERVICE_ACCOUNT`. `WORKER_URL` includes the handler path; the OIDC audience is the worker's service base URL unless an explicitly configured custom audience is used.
 

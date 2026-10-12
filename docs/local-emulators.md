@@ -26,6 +26,8 @@ npm run dev:emulators
 
 Open <http://127.0.0.1:5173>, choose **Continue as a guest**, then create/open a project. Import an original PNG/JPEG/WEBP, affirm your permission to use it, select a crop, and edit the canvas. Wait for **Saved · revision N** before refreshing. Image bytes remain in the local Storage emulator; editable object JSON remains in the local Firestore emulator.
 
+Phase 3 also includes **Create manual shot plan** below the canvas. Fill the required direction fields and animation prompt; valid plans save with the canvas and survive refresh. Incomplete drafts stay local and are not saved until valid. **Analyze scene** explains that real AI is disabled in this launcher. A local manual plan is user-authored, not a Gemini response.
+
 The development processes stop with Ctrl+C. Emulator data is temporary and resets when the emulator processes restart. Browser refresh is supported; restarting the local suite is not a durable cloud backup. After a restart, use a fresh browser context or sign out and sign in again if the old guest account no longer exists.
 
 | Service | Local address |
@@ -62,6 +64,8 @@ The emulator suite verifies:
 - More than 100 projects are reachable through pagination; cursors cannot be reused by another owner.
 - Independent private media copies survive deletion of the original project; project deletion removes stored bytes and child documents.
 - Injected storage failures and concurrent deletion/edits remain recoverable against the actual emulators. These tests intentionally fail storage operations to check rollback and cleanup; no success response is substituted.
+- Manual shot-plan persistence with real AI off; canonical 1920×1080 snapshot pixels, explicit suggestion review/apply, saved plan reload and provider failure preservation. The analysis browser test starts an isolated API with an explicitly labeled model fixture; authentication, database and private media still use real Firebase emulators. It is not evidence of a Google response.
+- Durable analysis request replay, concurrent reservations, daily attempt limits, ambiguous failures, stale/foreign inputs and deletion while analysis is running. Model fixtures are injected only by tests; the development API has no hidden fake-success provider.
 
 Screenshots and failed-test traces are written under `test-results/emulators`. Logs and downloaded emulator files are ignored by Git. Restricted Windows sandboxes may need permission to launch the Java/browser/Node child processes; an `uv_os_get_passwd`/`ENOMEM` failure was resolved during verification by running the same command with approved execution permissions.
 

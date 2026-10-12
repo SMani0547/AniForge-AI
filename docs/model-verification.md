@@ -7,6 +7,7 @@ Verified official documentation on **October 12, 2026**. Documentation verificat
 - The [Omni model card](https://ai.google.dev/gemini-api/docs/models/gemini-omni-flash) names stable `gemini-omni-1.1-flash`, image/text inputs, and video output.
 - The [Omni guide](https://ai.google.dev/gemini-api/docs/omni) documents `interactions.create` with image `data`/`mime_type` plus text; conversational edits use `previous_interaction_id`. `store=true` preserves conversation state. URI delivery uses `response_format.delivery='uri'`; the returned file must reach `ACTIVE` before download. Responses expose SDK `output_video` or REST `steps` video content.
 - [Structured outputs](https://ai.google.dev/gemini-api/docs/structured-output) documents Interactions JSON responses using `response_format: {type:'text', mime_type:'application/json', schema}`. Its example model is `gemini-3.8-flash`, the configurable analysis default here. Responses are still parsed and validated with our shared Zod shot-plan schema.
+- [Image understanding](https://ai.google.dev/gemini-api/docs/image-understanding#passing-inline-image-data) documents an Interactions image part with base64 `data` and `mime_type`, alongside text. Phase 3 uses this server-side request format for the saved-scene snapshot and creator notes.
 - [Pricing](https://ai.google.dev/gemini-api/docs/pricing#gemini-omni-flash) lists Omni on the paid tier; verify actual project pricing and quota before enabling it.
 - [Interaction retention](https://ai.google.dev/gemini-api/docs/interactions-overview#data-storage-and-retention) is finite. Preserve generated files independently; a stored interaction ID does not promise permanent edit access.
 
@@ -14,7 +15,7 @@ This implementation does not replace Omni with Veo. It does not invent a duratio
 
 ## Required credentials and configuration
 
-1. Create/select a Google AI Studio API project with billing enabled and paid Omni entitlement in the applicable region. Review quotas and set a Cloud Billing budget alert.
+1. Create/select a Google AI Studio API project with billing enabled and access to the configured analysis model. Analysis does not require Omni video entitlement. Video/edit smoke runs additionally require paid Omni access in the applicable region. Review quotas and set a Cloud Billing budget alert.
 2. Create a server API key. Put it in the ignored `apps/api/.env` for local work; use Secret Manager for Cloud Run. Never place it in a `VITE_*` variable or a committed file. See [cloud setup](cloud-setup.md) for cloud identities and deployment.
 3. Choose an original image you own or have permission to process. The CLI requires an explicit `--attest-original` affirmation for every run, including edits.
 4. Set these values locally. `ENABLE_REAL_AI=true` explicitly enables billable calls; do not enable it until billing and entitlement are confirmed.
@@ -23,11 +24,16 @@ This implementation does not replace Omni with Veo. It does not invent a duratio
 ENABLE_REAL_AI=true
 GEMINI_API_KEY=your-server-only-key
 GEMINI_ANALYSIS_MODEL=gemini-3.8-flash
+ANALYSIS_TIMEOUT_MS=40000
 GEMINI_VIDEO_MODEL=gemini-omni-1.1-flash
 AI_TIMEOUT_MS=300000
 ```
 
 The API workspace scripts load `.env` with Node's `--env-file-if-exists`. Existing process environment variables take precedence. Firebase credentials are not required for these local provider tests; app persistence and deployment require the separate cloud setup.
+
+The application analysis route reads `ANALYSIS_TIMEOUT_MS` independently of video configuration: default 40000, allowed 1000–45000 milliseconds. `GEMINI_VIDEO_MODEL` and the CLI's longer `AI_TIMEOUT_MS` cannot extend its synchronous deadline. This leaves time for the HTTP response before the browser/Hosting deadline. A slow model returns an explicit timeout instead of falling back to a sample plan. The standalone smoke commands retain their existing `AI_TIMEOUT_MS` deadline.
+
+Analysis sends `store=false`, so its interaction ID is provenance metadata, not a retained conversation for a later video edit. The prompt separates visible observations from proposed motion, quotes creator notes as data, and asks for uncertainties. Schema validation checks structure and bounds; it cannot prove that a model understood the drawing correctly. Review and edit the plan before generating a clip.
 
 ## Run from repository root (PowerShell)
 
@@ -55,6 +61,8 @@ A command exits 0 only after a real Google response has been validated and its o
 The current smoke result is **BLOCKED: no API key / paid opt-in / original input supplied**. The app's authenticated job queue, private GCS storage, playback, and immutable Firestore versions are later milestones; CLI files do not prove those app capabilities.
 
 Local verification on October 12, 2026: API TypeScript checking and provider ESLint passed; provider and HTTP transport suites passed **39 tests using mocked responses** on `@google/genai` 2.28.0. The HTTP tests exercise the installed SDK's documented response conversion and verify that signed download redirects do not receive API credentials. A regression test ensures an earlier conversation's video cannot count as a successful new edit. All three CLI commands were run without credentials and each exited 1 with `REAL_AI_DISABLED`, as required. Vitest/tsx initially hit Windows sandbox filesystem/account-lookup errors; the same commands ran successfully outside that sandbox after approval. These are disabled-mode and unit-test results, not real Google model results.
+
+Phase 3 provider verification on October 12, 2026: the focused provider/configuration/HTTP suites now pass **50 tests**, API TypeScript checking passes, and provider ESLint passes. Added coverage checks the analysis-only configuration, bounded analysis deadline including rate-limit backoff, creator-note framing, and the installed SDK's actual HTTP request/structured-response conversion. HTTP is intercepted in these tests; no Google request is sent. A credential-presence check found no `apps/api/.env`, no process API key, and no real-AI opt-in. **Real-model analysis remains unverified until credentials, billing opt-in, and an original input are supplied.** See the phase report for application and emulator checks.
 
 ## Failure handling
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AiConfiguration } from './config.js';
-import { createGoogleTransport } from './google-transport.js';
+import { createGoogleAnalysisProvider, createGoogleTransport } from './google-transport.js';
 import { safeProviderError } from './errors.js';
 
 const config: AiConfiguration = { apiKey: 'test-only-not-a-real-key', analysisModel: 'gemini-3.8-flash', videoModel: 'gemini-omni-1.1-flash', timeoutMs: 1_000 };
@@ -10,6 +10,35 @@ const signal = new AbortController().signal;
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Google HTTP transport boundaries', () => {
+  it('sends inline image and structured JSON through the installed SDK and reads its current-turn analysis', async () => {
+    const plan = {
+      sceneSummary: 'An original geometric shape', subjects: [{ name: 'Square', appearance: 'Blue' }],
+      action: 'Turn slowly', camera: { shotType: 'Wide', movement: 'Static' }, environment: 'White background',
+      mood: 'Calm', animationPrompt: 'The original blue square turns slowly in one shot.', preserve: ['Blue color'], uncertainties: [],
+    };
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      id: 'analysis-http-fixture', object: 'interaction', model: config.analysisModel,
+      status: 'completed', created: '2026-10-12T00:00:00Z', updated: '2026-10-12T00:00:00Z',
+      steps: [{ type: 'model_output', content: [{ type: 'text', text: JSON.stringify(plan) }] }],
+    }));
+    vi.stubGlobal('fetch', fetcher);
+    const provider = createGoogleAnalysisProvider({ apiKey: config.apiKey, analysisModel: config.analysisModel, timeoutMs: 40_000 });
+    const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]); // Signature-only test fixture, never a user-visible image.
+    expect(await provider.analyze({ sourceImage: { bytes, mimeType: 'image/png', copyrightAttested: true } })).toEqual({
+      shotPlan: plan, model: config.analysisModel, interactionId: 'analysis-http-fixture',
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const [url, init] = fetcher.mock.calls[0]!;
+    const request = new Request(url, init);
+    expect(request.url).toBe('https://generativelanguage.googleapis.com/v1beta/interactions');
+    expect(request.headers.get('x-goog-api-key')).toBe(config.apiKey);
+    expect(await request.json()).toMatchObject({
+      model: config.analysisModel, store: false, stream: false, background: false,
+      response_format: { type: 'text', mime_type: 'application/json', schema: { type: 'object', additionalProperties: false } },
+      input: expect.arrayContaining([{ type: 'image', data: bytes.toString('base64'), mime_type: 'image/png' }]),
+    });
+  });
+
   it('polls the fixed file API with server authentication and no automatic redirects', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ name: 'files/unit-test-file', state: 'ACTIVE' }));
     vi.stubGlobal('fetch', fetcher);

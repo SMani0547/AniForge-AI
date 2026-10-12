@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
-import type { AiConfiguration } from './config.js';
+import type { AiConfiguration, AnalysisConfiguration } from './config.js';
 import { AiProviderError } from './errors.js';
-import { GeminiOmniVideoProvider, type GoogleAiTransport } from './provider.js';
+import { GeminiOmniVideoProvider, GeminiSceneAnalysisProvider, type AnalysisProvider, type GoogleAiTransport } from './provider.js';
 
 const GOOGLE_API_ORIGIN = 'https://generativelanguage.googleapis.com';
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
@@ -10,7 +10,12 @@ export function createGoogleAiProvider(config: AiConfiguration): GeminiOmniVideo
   return new GeminiOmniVideoProvider(config, createGoogleTransport(config));
 }
 
-export function createGoogleTransport(config: AiConfiguration): GoogleAiTransport {
+/** Real Google transport only: no demo provider or fallback successful response. */
+export function createGoogleAnalysisProvider(config: AnalysisConfiguration): AnalysisProvider {
+  return new GeminiSceneAnalysisProvider(config, createGoogleTransport(config));
+}
+
+export function createGoogleTransport(config: AnalysisConfiguration): GoogleAiTransport {
   const client = new GoogleGenAI({ apiKey: config.apiKey, httpOptions: { timeout: config.timeoutMs } });
   return {
     create: async (request, signal) => client.interactions.create(request, { signal, timeout: config.timeoutMs, maxRetries: 0 }),

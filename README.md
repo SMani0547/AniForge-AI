@@ -1,12 +1,13 @@
 # AniForge AI
 
-An original-art anime studio built with React, Konva, Fastify, Firebase and server-side Google AI. The foundation and saved-canvas milestones are implemented; this repository is **not yet an end-to-end deployed animation studio**.
+An original-art anime studio built with React, Konva, Fastify, Firebase and server-side Google AI. The foundation, saved canvas and scene-analysis implementation are present; this repository is **not yet an end-to-end deployed animation studio**. Real Google model access remains unverified.
 
 ## Current functionality
 
 - Responsive dark project gallery, Firebase Google sign-in, optional anonymous sign-in, and owner-only project CRUD/duplication backed by Firestore when configured.
 - Saved canonical scene JSON with autosave/manual save, revision conflicts, pencil/brush/eraser, shapes/text, selection/transforms, layers, inspector and undo/redo. Cloud projects use the saved editor; the separate no-sign-in playground remains explicitly **unsaved**.
 - Private PNG/JPEG/WEBP imports through the authenticated API, original-content affirmation and manual panel cropping. Images are validated and normalized to PNG; media bytes stay outside Firestore. Project copies receive independent images.
+- Editable shot plans and prompt preview saved with the canvas. Configured real Gemini analysis receives a private canonical snapshot and returns a separate suggestion for explicit review/apply. Revision checks, durable request IDs, attempt limits and safe error states protect existing work. Manual plans work without AI credentials.
 - Real server-only Gemini scene analysis, Omni image-to-video and conversational-edit smoke commands. They require explicit paid opt-in, a server key and original-content affirmation. No fake/live fallback exists.
 - Cloud deployment configuration, private database/storage rules, CI and scoped credential documentation.
 
@@ -21,7 +22,7 @@ npm ci
 npm run dev:emulators
 ```
 
-The frontend is at `http://127.0.0.1:5173`; choose **Continue as a guest**, create a project, and open the saved editor. Firebase Auth, Firestore and Storage run locally in the isolated `demo-aniforge` project. Gemini is disabled, and the launcher ignores personal environment files and cloud credentials. The first run downloads official emulator binaries. See [local emulators](docs/local-emulators.md) for prerequisites, ports and data lifetime.
+The frontend is at `http://127.0.0.1:5173`; choose **Continue as a guest**, create a project, and open the saved editor. Firebase Auth, Firestore and Storage run locally in the isolated `demo-aniforge` project. Gemini is disabled, and the launcher ignores personal environment files and cloud credentials. Use **Create manual shot plan** to edit and save direction without an AI call. The first run downloads official emulator binaries. See [local emulators](docs/local-emulators.md) for prerequisites, ports and data lifetime.
 
 `npm run dev` starts the normal servers instead, using your configured environment. Without Firebase configuration, it provides only the explicitly unsaved playground and setup guidance. API health is `http://localhost:8080/health`.
 
@@ -63,6 +64,8 @@ npm audit --omit=dev
 
 Unit tests use explicitly isolated auth/repository/provider doubles. The unconfigured browser smoke tests cover rendering, drawing, undo/redo and mobile fit. The separate emulator suite exercises real local Auth, Firestore, Storage and browser save/reload; it does not prove production IAM or cloud deployment. See [Phase 2 results](docs/phase-2-results.md) and [Phase 1 results](docs/phase-1-results.md) for executed commands, counts and limitations.
 
+The Phase 3 browser test injects an explicitly labeled model fixture into a test-only API instance while using real local Firebase services. It checks the exported PNG's pixels, suggestion review, saved plan reload and error recovery. This is not live Gemini evidence. See [Phase 3 results](docs/phase-3-results.md) for the current checks and outstanding real-model gate.
+
 The pinned Firebase CLI is a development dependency and currently brings transitive npm advisories; the production dependency audit is separate. Do not run `npm audit fix --force` to downgrade the CLI or silently break its dependencies. The local emulators bind only to loopback.
 
 ## Repository and milestones
@@ -74,4 +77,4 @@ The pinned Firebase CLI is a development dependency and currently brings transit
 
 [TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
 
-Next: integrated Gemini analysis, Cloud Tasks video jobs, immutable revisions, timeline/download and deployment. Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.
+Next: prove real Gemini analysis access, implement Cloud Tasks video jobs, immutable revisions, timeline/download and deployment. Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.

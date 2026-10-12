@@ -32,12 +32,13 @@ Acceptance: a creator-owned image and editable objects survive save/reload at ca
 
 ## Phase 3 — scene analysis in the studio
 
-- [ ] Authorized saved source raster and analysis endpoint; request limits and Gemini opt-in.
-- [ ] Editable schema-valid shot plan, loading/error state and prompt preview.
-- [ ] Unit/schema tests and explicitly enabled live analysis evidence.
-- [ ] Run all phase checks, record results and commit.
+- [x] Authorized saved source raster and analysis endpoint; server-only Gemini opt-in, bounded deadlines, durable request replay and per-user attempt limits.
+- [x] Editable schema-valid shot plan, loading/error state and prompt preview; explicit suggestion application, revision checks and manual authoring without AI.
+- [x] Unit/schema/provider tests with explicit fixtures; no fake runtime AI success.
+- [ ] Explicitly enabled live Gemini analysis evidence. Blocked by absent server key/paid opt-in/original input; local provider fixtures do not satisfy this gate.
+- [x] Run typecheck, lint, 147 unit tests, build, 2 browser smoke tests and 17 emulator tests; record results in docs/phase-3-results.md and commit the implementation. Live Gemini evidence remains separately blocked above.
 
-Acceptance: an actual Google response yields editable shot-plan data while preserving original source.
+Acceptance: an actual Google response yields editable shot-plan data while preserving original source. The implementation and local test work are separate from this still-unverified real-model gate; see docs/phase-3-results.md.
 
 ## Phase 4 — queued real video generation
 
