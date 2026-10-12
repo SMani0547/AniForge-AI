@@ -42,13 +42,14 @@ Acceptance: an actual Google response yields editable shot-plan data while prese
 
 ## Phase 4 — queued real video generation
 
-- [ ] Job schema/state machine, per-user quota/cost confirmation, Cloud Tasks enqueue and trusted OIDC worker.
-- [ ] Durable idempotent dispatch/polling, bounded retries and timeouts without duplicate paid generation.
-- [ ] Private GCS MP4 storage, immutable version metadata, status polling and player.
-- [ ] Ownership/job-state/worker identity/provider tests; live paid generation evidence.
-- [ ] Run all phase checks, record results and commit.
+- [x] Job schema/state machine, per-user quota/cost confirmation, Cloud Tasks enqueue and trusted OIDC worker implementation.
+- [x] Durable dispatch reservation/checkpoint recovery, bounded retries/timeouts and browser polling without automatic duplicate paid generation.
+- [x] Private GCS MP4 storage, immutable version metadata, status polling and player; original labeled test fixture plays after reload with real Firebase emulators.
+- [x] Ownership/job-state/worker identity/provider tests. Exact scope and results in docs/phase-4-results.md.
+- [ ] Live paid generation evidence and deployed Cloud Tasks/OIDC/recovery verification. No Gemini credentials, cloud setup, gcloud or Docker are available.
+- [x] Run phase checks, record actual results and commit the implementation. Real MP4 acceptance remains blocked above.
 
-Acceptance: browser receives a job ID promptly, terminal failures are visible, and a real stored MP4 remains playable after reload.
+Acceptance: browser receives a job ID promptly, terminal failures are visible, and a real Google-generated stored MP4 remains playable after reload. The local implementation is verified with an explicitly labeled original MP4 test fixture; it does not satisfy the real-model/cloud gate.
 
 ## Phase 5 — revisions, timeline and download
 

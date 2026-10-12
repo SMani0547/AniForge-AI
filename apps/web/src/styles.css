@@ -15,3 +15,11 @@
 @media(max-width:1100px){.editor-layout{grid-template-columns:minmax(0,1fr) 245px}.editor-options{gap:8px;padding:10px}.editor-tools{gap:7px}}
 @media(max-width:800px){.editor-layout{grid-template-columns:minmax(0,1fr)}.editor-sidebar{border-left:0;border-top:1px solid #29374e;display:grid;grid-template-columns:1fr 1fr}.editor-inspector{border-right:1px solid #29374e}.editor-layers ol{max-height:440px}.editor-savebar{padding:14px}.saved-editor .canvas-workspace{min-height:0}}
 @media(max-width:530px){.editor-sidebar{grid-template-columns:1fr}.editor-inspector{border-right:0}.editor-savebar>div{gap:6px;flex-direction:column;align-items:flex-start}.editor-savebar .button{font-size:11px}.editor-options label{font-size:9px}.editor-options{gap:9px}.editor-options .import-button{margin-left:0;font-size:10px}.editor-tools .history-tools{margin-left:0}.editor-tools .tool-group{gap:2px}.editor-tools .icon-button{width:31px;height:32px}.crop-fields{grid-template-columns:1fr 1fr}.import-dialog{padding:18px}.import-dialog p{font-size:11px}.import-dialog .dialog-actions{gap:7px}.import-dialog .dialog-actions .button{font-size:11px;padding:10px}.property-grid{grid-template-columns:1fr 1fr}.save-status{font-size:10px}.editor-layers ol{max-height:300px}}
+/* Private video jobs share the editor's existing accessible panel layout. */
+.video-jobs { list-style: none; padding: 0; display: grid; gap: .75rem; }
+.video-jobs li { padding: .9rem; border: 1px solid #334155; border-radius: .75rem; }
+.video-jobs p { margin-bottom: 0; }
+.video-player { display: grid; gap: .8rem; }
+.video-player label { display: grid; gap: .5rem; }
+.video-player select { max-width: 100%; }
+.video-player video { display: block; width: 100%; max-height: 70vh; border-radius: .75rem; background: #000; }

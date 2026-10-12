@@ -1,6 +1,6 @@
 # Cloud setup and deployment
 
-This is a runbook, not a deployment record. No credentials, cloud resources, live model response, uploaded MP4, or deployed URL are supplied by the repository. The app implements auth/projects, a saved canvas, private image upload/copy/delete, integrated scene analysis and editable shot plans, plus separate server-side AI smoke commands. Real model access is unverified; queued generation and its worker remain later milestones. Track executed checks and blockers in `TODO.md`. For credential-free development now, use [local Firebase emulators](local-emulators.md).
+This is a runbook, not a deployment record. No credentials, cloud resources, live model response, uploaded MP4, or deployed URL are supplied by the repository. The app implements auth/projects, a saved canvas, private image upload/copy/delete, integrated scene analysis and editable shot plans, plus separate server-side AI smoke commands. Queue-backed video generation, its private worker, immutable MP4 storage and player are implemented. Real model access and cloud deployment remain unverified. Track executed checks and blockers in `TODO.md`. For credential-free development now, use [local Firebase emulators](local-emulators.md).
 
 ## Required accounts, credentials, and configuration
 
@@ -12,11 +12,11 @@ This is a runbook, not a deployment record. No credentials, cloud resources, liv
 | Local Application Default Credentials (ADC) | `gcloud auth application-default login` | Local gcloud credential store; never commit it |
 | Gemini API key and model entitlement | Google AI Studio, using the intended billing project | Local `apps/api/.env`; production Secret Manager binding to `GEMINI_API_KEY` |
 | Analysis and video model IDs | Current official model documentation and account access | `GEMINI_ANALYSIS_MODEL`, `GEMINI_VIDEO_MODEL`; see [model verification and smoke tests](model-verification.md) |
-| Private media bucket name | Cloud Storage setup below | `GCS_BUCKET` on API and, later, worker |
+| Private media bucket name | Cloud Storage setup below | `GCS_BUCKET` on API and worker |
 | API runtime service account | IAM setup below | Cloud Run service identity, with resource-scoped grants |
 | Deployer login | `gcloud auth login`, `firebase login` | Local CLI credential stores, separate from ADC |
 | Container registry authorization | `gcloud auth configure-docker` | Local Docker credential helper |
-| Tasks invoker and worker service accounts | Later worker setup below | Server configuration only; no browser credentials |
+| Tasks invoker and worker service accounts | Worker setup below | Server configuration only; no browser credentials |
 
 Firebase web configuration is public application identification. The Gemini key and service-account private keys are secrets. Do not put them in `VITE_*`, frontend code, a Docker build argument, a command-line key literal, a commit, a screenshot, or a test report. Cloud Run uses its attached service identity; a downloaded service-account JSON key is unnecessary. [Firebase web configuration](https://firebase.google.com/docs/projects/api-keys), [Cloud Run service identity](https://docs.cloud.google.com/run/docs/securing/service-identity).
 
@@ -47,7 +47,7 @@ In Cloud Console, link a billing account and configure a budget with alerts. Bud
 2. Enable **Google** sign-in, select the support email, and enable **Anonymous** for the demo entry point. Also set `VITE_ENABLE_ANONYMOUS_AUTH=true` in the frontend environment to show the guest button; its safe default is false. Anonymous accounts still have individual Firebase UIDs and owner-isolated projects. Clearing browser data or signing out can lose access to an unlinked anonymous account; use Google for work that must be retained.
 3. In Authentication > Settings > Authorized domains, add the actual Hosting domain and any custom domain. For local development explicitly add `localhost` in the development project; new projects may omit it by default. [Firebase Google sign-in](https://firebase.google.com/docs/auth/web/google-signin), [authorized domain behavior](https://firebase.google.com/docs/auth/faq-and-troubleshooting).
 4. Create a Cloud Firestore database in **Native mode**, database ID **`(default)`**, with the intended location and production rules. The API uses that default database.
-5. Deploy the repository's deny-all browser rules and the asset cleanup collection-group index:
+5. Deploy the repository's deny-all browser rules and the asset/job collection-group and scene job/version indexes:
 
 ```powershell
 npx.cmd firebase deploy --only firestore:rules,firestore:indexes --project $projectId
@@ -152,7 +152,7 @@ $apiUrl = gcloud run services describe aniforge-api --region $region --format "v
 Invoke-RestMethod "$apiUrl/health"
 ```
 
-Use a unique immutable image tag for each reviewed revision. If there is no commit yet, set an explicit unique release tag. Keep `ENABLE_REAL_AI=false` for initial deployment, then follow the explicit analysis enablement steps above. Video smoke tests remain server CLI commands; no public generation endpoint exists yet. Binding a key does not activate generation by itself.
+Use a unique immutable image tag for each reviewed revision. If there is no commit yet, set an explicit unique release tag. Keep `ENABLE_REAL_AI=false` for initial deployment, then follow the explicit analysis enablement steps above. The queue-backed video endpoint remains disabled until the private worker setup in section 8 is complete. Binding a key does not activate generation by itself.
 
 Image decoding consumes more memory than compressed file size. The example deliberately starts with low request concurrency and 1 GiB memory; validate peak memory under representative 16-megapixel uploads before raising concurrency. These are conservative starting settings, not a completed capacity test.
 
@@ -175,7 +175,7 @@ Verify Google and anonymous sign-in, create/rename/duplicate/delete, import/crop
 
 ## 7a. Schedule private-media recovery before production use
 
-The API retries interrupted uploads, copies and deletes at startup and every five minutes while running. A Cloud Run service using request-based CPU allocation cannot guarantee timer execution while idle. Configure a scheduled recovery job for production; this is separate from the future AI worker. [Cloud Run CPU allocation](https://docs.cloud.google.com/run/docs/configuring/billing-settings).
+The API retries interrupted uploads, copies and deletes at startup and every five minutes while running. A Cloud Run service using request-based CPU allocation cannot guarantee timer execution while idle. Configure a scheduled recovery job for production; this is separate from the AI video worker. [Cloud Run CPU allocation](https://docs.cloud.google.com/run/docs/configuring/billing-settings).
 
 For an operator with ADC and the configured API environment, `npm run build` followed by `npm run cleanup:assets` performs one finite recovery pass. It returns nonzero on failure and retains cleanup records for retry. For Cloud Run, reuse the built API image and runtime account from step 6, without a Gemini secret:
 
@@ -200,23 +200,9 @@ This targets the authenticated Google Run API with OAuth; it does not expose a c
 
 Pending uploads/copies become eligible for recovery after one hour; explicit cleanup/delete records are retryable immediately. Removed canvas images remain private in their project until project deletion, so undo and saved references can still resolve. Duplication copies only images currently referenced by scenes. A deleted project retains only `{id, ownerId, lifecycle, deletedAt}` indefinitely, allowing repeated sweeps to remove late writes; titles, scenes, asset metadata and media are purged. The current sweep reads all outstanding records/tombstones: retention compaction and batched scheduling are needed before large-scale usage. No production recovery job or schedule has been deployed or verified yet.
 
-## 8. Later milestone: a separate private Cloud Tasks worker
+## 8. Deploy the private video worker and recovery schedule
 
-No AI worker or enqueue endpoint exists through Phase 3. These are setup requirements for the jobs milestone, not instructions to point a queue at the current API. Deploy a separate worker service **without public invocation**, with its own runtime account. Only the dedicated Tasks invoker account receives `roles/run.invoker` on that worker. User routes belong on the public API; do not rely on an `/internal` path or a spoofable `X-CloudTasks-*` header as authentication. [Cloud Tasks with private Cloud Run](https://docs.cloud.google.com/run/docs/triggering/using-tasks).
-
-Required later configuration: `CLOUD_TASKS_QUEUE`, `CLOUD_TASKS_LOCATION`, `WORKER_URL`, and `TASKS_SERVICE_ACCOUNT`. `WORKER_URL` includes the handler path; the OIDC audience is the worker's service base URL unless an explicitly configured custom audience is used.
-
-After a worker implementation and its authentication tests exist:
-
-1. Enable `cloudtasks.googleapis.com`, create a queue in the intended region, and set conservative dispatch rate, concurrency, retry count, and backoff compatible with paid-model limits.
-2. Create `aniforge-worker` and `aniforge-tasks-invoker` service accounts. Give the worker only its Firestore, bucket object, and Gemini-secret permissions. The Tasks invoker does not need media or secret access.
-3. Grant the API runtime `roles/cloudtasks.enqueuer` on this queue and `roles/iam.serviceAccountUser` on the Tasks invoker account so it may attach that identity to tasks. Preserve the Google-managed Cloud Tasks service agent's required service-agent role; do not grant that role to the API account. [Authenticated HTTP tasks](https://docs.cloud.google.com/tasks/docs/creating-http-target-tasks).
-4. Deploy the worker with authenticated invocation and grant `roles/run.invoker` only to the Tasks invoker on this service. Enqueue with an OIDC token using that account and the exact expected audience.
-5. Verify worker OIDC issuer/audience/identity at the trusted boundary, validate the task payload, load the job from Firestore, and recheck its owner/project relationships. A user ID in a task body is not independently trusted.
-6. Make job state changes idempotent. Store provider operation/interaction IDs before retrying so task redelivery cannot blindly create duplicate paid generations. Persist successful MP4s and immutable versions before reporting success. Handle terminal failures, timeouts, 429s, and restart recovery explicitly.
-7. Use resumable polling or Cloud Run Jobs when work can exceed a task dispatch deadline; never depend on a browser connection remaining open.
-
-These settings require an implementation review and live authenticated task verification before enabling paid production jobs. Exact queue and worker resources remain unresolved until that milestone.
+Phase 4 implements the queue-backed worker and authenticated generation routes. Follow [the complete video worker runbook](video-worker-setup.md) for queue limits, dedicated service accounts, OIDC, worker deployment, scheduled outbox recovery, paid enablement and live verification. WORKER_URL is now the exact service origin, without the handler path. These cloud steps have not been executed in this environment.
 
 ## Evidence and remaining manual steps
 

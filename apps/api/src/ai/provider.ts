@@ -33,6 +33,12 @@ export interface VideoProvider {
   edit(input: { interactionId: string; prompt: string }): Promise<VideoResult>;
 }
 
+export interface VideoCheckpoint { interactionId: string; fileName: string; model: string }
+export interface QueuedVideoProvider {
+  generate(input: { sourceImage: SourceImage; prompt: string }, checkpoint: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult>;
+  resume(checkpoint: VideoCheckpoint): Promise<VideoResult>;
+}
+
 export interface AnalysisResult {
   shotPlan: ShotPlan;
   model: string;
@@ -174,7 +180,7 @@ export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider impleme
     wait: (milliseconds: number, signal: AbortSignal) => Promise<void> = abortableWait,
   ) { super(videoConfig, transport, wait); }
 
-  async generate(input: { sourceImage: SourceImage; prompt: string }): Promise<VideoResult> {
+  async generate(input: { sourceImage: SourceImage; prompt: string }, checkpoint?: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult> {
     validateSourceImage(input.sourceImage);
     const prompt = validatePrompt(input.prompt);
     return this.video({
@@ -185,7 +191,7 @@ export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider impleme
       ],
       response_format: { type: 'video', delivery: 'uri', resolution: '720p', aspect_ratio: '16:9' },
       background: false, stream: false, store: true,
-    });
+    }, checkpoint);
   }
 
   async edit(input: { interactionId: string; prompt: string }): Promise<VideoResult> {
@@ -199,7 +205,29 @@ export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider impleme
     });
   }
 
-  private async video(request: InteractionRequest): Promise<VideoResult> {
+  async resume(checkpoint: VideoCheckpoint): Promise<VideoResult> {
+    return this.withDeadline(async (signal) => {
+      const bytes = await this.download(fileNameFromUri(checkpoint.fileName), signal);
+      return { bytes, mimeType: 'video/mp4', model: checkpoint.model, interactionId: checkpoint.interactionId };
+    });
+  }
+
+  private async download(name: string, signal: AbortSignal): Promise<Buffer> {
+    for (;;) {
+      const info = fileSchema.safeParse(await this.transport.getFile(name, signal));
+      if (!info.success) throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI returned invalid file status.');
+      const state = typeof info.data.state === 'string' ? info.data.state : info.data.state.name;
+      if (state === 'ACTIVE') break;
+      if (state === 'FAILED') throw new AiProviderError('AI_VIDEO_PROCESSING_FAILED', 'Google AI failed to process the generated video.');
+      if (state !== 'PROCESSING') throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI returned an unsupported video processing state.');
+      await this.wait(5_000, signal);
+    }
+    const bytes = await this.transport.downloadFile(name, signal);
+    validateMp4(bytes);
+    return bytes;
+  }
+
+  private async video(request: InteractionRequest, checkpoint?: (value: VideoCheckpoint) => Promise<void>): Promise<VideoResult> {
     return this.withDeadline(async (signal) => {
       const interaction = completedInteraction(await this.create(request, signal));
       const rawVideo = interaction.output_video ?? outputContents(interaction).reverse().find((content) => videoContentSchema.safeParse(content).success);
@@ -208,17 +236,11 @@ export class GeminiOmniVideoProvider extends GeminiSceneAnalysisProvider impleme
       let bytes: Buffer;
       if (parsed.data.uri) {
         const name = fileNameFromUri(parsed.data.uri);
-        for (;;) {
-          const info = fileSchema.safeParse(await this.transport.getFile(name, signal));
-          if (!info.success) throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI returned invalid file status.');
-          const state = typeof info.data.state === 'string' ? info.data.state : info.data.state.name;
-          if (state === 'ACTIVE') break;
-          if (state === 'FAILED') throw new AiProviderError('AI_VIDEO_PROCESSING_FAILED', 'Google AI failed to process the generated video.');
-          if (state !== 'PROCESSING') throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI returned an unsupported video processing state.');
-          await this.wait(5_000, signal);
-        }
-        bytes = await this.transport.downloadFile(name, signal);
+        await checkpoint?.({ interactionId: interaction.id, fileName: name, model: this.videoConfig.videoModel });
+        if (signal.aborted) throw new AiProviderError('AI_TIMEOUT', 'Video checkpoint took too long. Resume the saved download.');
+        bytes = await this.download(name, signal);
       } else if (parsed.data.data && parsed.data.data.length <= Math.ceil(MAX_VIDEO_BYTES / 3) * 4 && /^[A-Za-z0-9+/]+={0,2}$/.test(parsed.data.data) && parsed.data.data.length % 4 === 0) {
+        if (checkpoint) throw new AiProviderError('AI_BAD_RESPONSE', 'Google returned inline video instead of the requested resumable file. Inspect AI Studio before another generation.');
         bytes = Buffer.from(parsed.data.data, 'base64');
       } else {
         throw new AiProviderError('AI_NO_VIDEO', 'Google AI returned no usable MP4 data or URI.');

@@ -1,6 +1,10 @@
 {
-  "indexes": [],
+  "indexes": [
+    { "collectionGroup": "jobs", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "sceneId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] },
+    { "collectionGroup": "videoVersions", "queryScope": "COLLECTION", "fields": [{ "fieldPath": "sceneId", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }] }
+  ],
   "fieldOverrides": [
+    { "collectionGroup": "jobs", "fieldPath": "status", "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION" }, { "order": "DESCENDING", "queryScope": "COLLECTION" }, { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }] },
     {
       "collectionGroup": "assets",
       "fieldPath": "state",

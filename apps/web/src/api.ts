@@ -1,4 +1,4 @@
-import { analysisAvailabilitySchema, analysisResultSchema, assetSchema, projectPageSchema, projectSchema, sceneSchema, type AnalyzeScene, type Canvas, type Project, type ShotPlan } from '@aniforge/shared';
+import { analysisAvailabilitySchema, analysisResultSchema, assetSchema, projectPageSchema, projectSchema, sceneSchema, videoJobSchema, videoVersionSchema, type GenerateScene, type AnalyzeScene, type Canvas, type Project, type ShotPlan } from '@aniforge/shared';
 import { z } from 'zod';
 
 const envelopeSchema = z.object({
@@ -59,6 +59,18 @@ export function createApiClient(getToken: () => Promise<string | null>, baseUrl 
     getScene: (projectId: string, sceneId: string) => request(scenePath(projectId, sceneId), sceneSchema),
     saveScene: (projectId: string, sceneId: string, expectedRevision: number, canvas: Canvas, shotPlan?: ShotPlan | null) => request(scenePath(projectId, sceneId), sceneSchema, 'PATCH', { expectedRevision, canvas, ...(shotPlan === undefined ? {} : { shotPlan }) }),
     analysisStatus: () => request('/ai/analysis-status', analysisAvailabilitySchema),
+    videoStatus: () => request('/ai/video-status', analysisAvailabilitySchema),
+    generateScene: (projectId: string, sceneId: string, input: GenerateScene) => request(`${scenePath(projectId, sceneId)}/generate`, videoJobSchema, 'POST', input),
+    videoJobs: (projectId: string, sceneId: string) => request(`${scenePath(projectId, sceneId)}/jobs`, z.array(videoJobSchema)),
+    videoVersions: (projectId: string, sceneId: string) => request(`${scenePath(projectId, sceneId)}/versions`, z.array(videoVersionSchema)),
+    async getVideoContent(projectId: string, versionId: string, signal: AbortSignal): Promise<Blob> {
+      const token = await getToken();
+      if (!token) throw new ApiError('Sign in to play your video.', 401);
+      const response = await fetcher(`${baseUrl.replace(/\/$/, '')}${projectPath(projectId)}/versions/${encodeURIComponent(versionId)}/content`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.any([signal, AbortSignal.timeout(55_000)]) });
+      if (!response.ok) throw new ApiError('Could not load this private video. Try loading it again.', response.status);
+      if (!response.headers.get('content-type')?.startsWith('video/mp4') || Number(response.headers.get('content-length')) > 100 * 1024 * 1024) throw new ApiError('The video response is invalid or too large.', 502);
+      return response.blob();
+    },
     analyzeScene: (projectId: string, sceneId: string, input: AnalyzeScene) => request(`${scenePath(projectId, sceneId)}/analyze`, analysisResultSchema, 'POST', input, 55_000),
     uploadAsset: (projectId: string, sceneId: string, file: File) => request(`${projectPath(projectId)}/assets?sceneId=${encodeURIComponent(sceneId)}&copyrightAttested=true`, assetSchema, 'POST', file),
     getAsset: (projectId: string, assetId: string) => request(assetPath(projectId, assetId), assetSchema),

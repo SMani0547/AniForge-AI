@@ -26,6 +26,27 @@ function inlineVideo(id = 'real-id-shaped-test-fixture') {
 
 afterEach(() => vi.useRealTimers());
 
+describe('durable video file recovery with explicit transport fixtures', () => {
+  it('persists the completed file before download and resumes without another create', async () => {
+    const { provider, transport } = harness();
+    transport.create.mockResolvedValue({ id: 'fixture-interaction', status: 'completed', output_video: { mime_type: 'video/mp4', uri: 'files/fixture' } });
+    transport.getFile.mockResolvedValue({ state: 'ACTIVE' });
+    transport.downloadFile.mockRejectedValueOnce({ status: 503 }).mockResolvedValue(mp4Header);
+    const checkpoint = vi.fn(async () => { expect(transport.downloadFile).not.toHaveBeenCalled(); });
+    await expect(provider.generate({ sourceImage, prompt: 'TEST FIXTURE' }, checkpoint)).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' });
+    expect(checkpoint).toHaveBeenCalledWith({ interactionId: 'fixture-interaction', fileName: 'files/fixture', model: config.videoModel });
+    expect((await provider.resume({ interactionId: 'fixture-interaction', fileName: 'files/fixture', model: config.videoModel })).bytes).toEqual(mp4Header);
+    expect(transport.create).toHaveBeenCalledTimes(1);
+  });
+  it('does not download if checkpoint persistence fails', async () => {
+    const { provider, transport } = harness();
+    transport.create.mockResolvedValue({ id: 'fixture', status: 'completed', output_video: { mime_type: 'video/mp4', uri: 'files/fixture' } });
+    await expect(provider.generate({ sourceImage, prompt: 'TEST FIXTURE' }, async () => { throw new Error('Firestore unavailable'); })).rejects.toBeDefined();
+    expect(transport.downloadFile).not.toHaveBeenCalled();
+    expect(transport.create).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('real AI configuration gate', () => {
   it('fails closed without explicit opt-in or API key', () => {
     expect(() => readAiConfiguration({})).toThrow('ENABLE_REAL_AI=true');

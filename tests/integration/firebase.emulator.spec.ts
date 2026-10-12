@@ -2,17 +2,25 @@ import { expect, test, type APIRequestContext, type APIResponse } from '@playwri
 import { deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import { getAuth } from 'firebase-admin/auth';
 import { randomUUID } from 'node:crypto';
 import type { ApiEnvelope, Asset, CanvasObject, Project, ProjectPage, Scene } from '@aniforge/shared';
 import { originalImage } from './fixture.js';
+import { buildApp } from '../../apps/api/src/app.js';
+import { readConfig } from '../../apps/api/src/config.js';
+import { FirestoreProjectRepository } from '../../apps/api/src/repository.js';
+import { CloudAssetStorage } from '../../apps/api/src/assets/storage.js';
 
 if (process.env.ANIFORGE_EMULATOR_RUN !== 'true' || process.env.GOOGLE_CLOUD_PROJECT !== 'demo-aniforge' || process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8081' || process.env.FIREBASE_STORAGE_EMULATOR_HOST !== '127.0.0.1:9199') {
   throw new Error('Integration tests require the isolated demo-aniforge emulator environment.');
 }
-const api = 'http://127.0.0.1:8080/api/v1';
+let api: string;
 const admin = initializeApp({ projectId: 'demo-aniforge', storageBucket: 'demo-aniforge.appspot.com' }, 'integration-verifier');
 const db = getFirestore(admin);
 const bucket = getStorage(admin).bucket();
+// Keep the real production rate limit, with an isolated API counter for this suite.
+const app = buildApp({ config: readConfig({ NODE_ENV: 'test' }), repository: new FirestoreProjectRepository(db, new CloudAssetStorage(getStorage(admin), bucket.name)), verifyToken: async (token) => (await getAuth(admin).verifyIdToken(token, true)).uid });
+test.beforeAll(async () => { api = `${await app.listen({ port: 0, host: '127.0.0.1' })}/api/v1`; });
 
 async function identity(request: APIRequestContext) {
   const response = await request.post('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo-emulator-only', { data: { returnSecureToken: true } });
@@ -28,7 +36,7 @@ async function data<T>(response: APIResponse, status = 200) {
 }
 const baseObject = { x: 160, y: 130, width: 640, height: 480, rotation: 0, opacity: 1, locked: false, hidden: false, zIndex: 0, fill: '#4285f4', stroke: '#ffffff', strokeWidth: 2 };
 
-test.afterAll(async () => { await deleteApp(admin); });
+test.afterAll(async () => { await app.close(); await deleteApp(admin); });
 
 test('real Auth, Firestore and Storage enforce ownership and preserve independent duplicated media', async ({ request }) => {
   const owner = await identity(request); const stranger = await identity(request);

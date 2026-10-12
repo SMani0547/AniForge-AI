@@ -66,13 +66,33 @@ The analysis provider deadline defaults to 40 seconds and may be configured from
 
 Private analysis records and snapshots remain with their project until project deletion. The per-user usage record is separate, so deleting a project cannot reset the daily allowance. The local emulator launcher keeps Google calls disabled. Test suites inject an explicitly labeled provider fixture in isolated tests only; no runtime environment switch silently returns a fake successful plan.
 
+## Queued video generation
+
+All user routes below require Firebase bearer authentication and project ownership. The API returns the normal envelope; private metadata and media use `Cache-Control: private, no-store`.
+
+| Method | Route under `/api/v1` | Result |
+| --- | --- | --- |
+| GET | `/ai/video-status` | Configuration availability, not proof of entitlement |
+| POST | `/projects/:projectId/scenes/:sceneId/generate` | 202 with durable job; no browser wait on Google |
+| GET | `/projects/:projectId/jobs/:jobId` | Current state or safe terminal error |
+| GET | `/projects/:projectId/scenes/:sceneId/jobs` | Latest 30 jobs, newest first |
+| GET | `/projects/:projectId/scenes/:sceneId/versions` | Latest 30 immutable public version records |
+| GET | `/projects/:projectId/versions/:versionId/content` | Authenticated whole-file `video/mp4` response |
+
+Generation accepts only `{jobId,expectedRevision,snapshotAssetId,copyrightAttested:true,confirmPaid:true}`. `jobId` is a client UUID persisted in session storage before dispatch. A full-size private PNG and a schema-valid saved shot plan are required. Source revision, plan and assembled prompt are captured transactionally. The combined prompt limit is 8,000 characters; preview it before approving charges. A changed request with an existing ID returns 409; an identical ID replays its state without spending quota or creating a second generation. Quota/busy errors return 429. Failed attempts count against the per-user daily limit.
+
+The private worker is a **separate process** with `POST /internal/jobs/execute`, accepting only `{projectId,jobId}` and a verified Google OIDC token for the exact Tasks service account and worker origin. This handler does not exist on the public API. Cloud Tasks retries requests with active leases or recoverable media failures. Durable state and a scheduled recovery job cover lost queue submissions and abandoned workers. See [worker deployment and exact deadlines](video-worker-setup.md).
+
+The worker persists a completed Google file reference before downloading it. File/storage failures resume that existing file, with at most three worker claims. Ambiguous dispatch failures are terminal and never automatically regenerate; the user must inspect AI Studio before a new paid ID. Successful GCS bytes and immutable version publication precede `succeeded`. Versions expose the saved prompt/plan/revision, model, size and timestamps, but no provider interaction ID or bucket path. A generation never changes the current drawing or selected version. The UI initially plays the newest completed version and keeps an in-session selection; persistent version selection is Phase 5.
+
+MP4 bytes are limited to 100 MiB with a container sanity check. The browser downloads the whole authorized file into a Blob and reports codec/playback errors; no public bucket URL, signed download URL or range proxy is involved. Source snapshots, checkpoint records and versions stay private until project deletion. A deletion tombstone prevents late workers from publishing descendants, and the separate media cleanup sweep removes late writes.
+
 ## Not yet implemented
 
 The following remain planned routes from `BUILD_PLAN.md`:
 
 - Scene creation beyond the initial project scene: `POST /projects/:projectId/scenes`.
 - Separate signed upload/completion/media URL endpoints are unnecessary for the implemented authenticated proxy; they can be added if direct storage transfer is needed later.
-- Generation, conversational edit, version listing/selection, and export endpoints.
-- Job polling and the authenticated internal worker handler.
+- Conversational edit, persistent version selection, and export endpoints.
 
-All future user routes inherit the same token, validation, and ownership requirements. Video generation/edit requests will enqueue jobs and return promptly. Worker authentication uses trusted Cloud Tasks OIDC identity, not Firebase user tokens or a header naming a queue. AI success is recorded only after validated real provider output is stored. Until those routes exist, use the opt-in server-side [AI smoke commands](model-verification.md) to test actual model access.
+Future user routes inherit the same token, validation, and ownership requirements. Use the opt-in server-side [AI smoke commands](model-verification.md) and the queued live acceptance flow to verify actual Google model access. Labeled test fixtures are not live-model evidence.

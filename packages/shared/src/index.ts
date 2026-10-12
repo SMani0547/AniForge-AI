@@ -37,6 +37,30 @@ export const analysisAvailabilitySchema = z.strictObject({
 });
 export type AnalysisAvailability = z.infer<typeof analysisAvailabilitySchema>;
 
+export const generateSceneSchema = analyzeSceneSchema.omit({ analysisId: true, notes: true }).extend({ jobId: z.uuid() });
+export type GenerateScene = z.infer<typeof generateSceneSchema>;
+export const videoJobSchema = z.strictObject({
+  id: z.uuid(), projectId: resourceIdSchema, sceneId: resourceIdSchema,
+  status: z.enum(['queued', 'running', 'succeeded', 'failed']),
+  sourceRevision: z.number().int().nonnegative(), snapshotAssetId: resourceIdSchema,
+  createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+  resultVersionId: resourceIdSchema.nullable(), errorCode: z.string().nullable(), errorMessage: z.string().nullable(),
+});
+export type VideoJob = z.infer<typeof videoJobSchema>;
+export const videoVersionSchema = z.strictObject({
+  id: resourceIdSchema, projectId: resourceIdSchema, sceneId: resourceIdSchema,
+  parentVersionId: resourceIdSchema.nullable(), generationKind: z.literal('initial'),
+  model: z.string().min(1).max(200), prompt: z.string().min(1).max(32000),
+  sourceRevision: z.number().int().nonnegative(), snapshotAssetId: resourceIdSchema,
+  shotPlan: shotPlanSchema, mimeType: z.literal('video/mp4'), sizeBytes: z.number().int().positive().max(100 * 1024 * 1024),
+  createdAt: z.iso.datetime(),
+});
+export type VideoVersion = z.infer<typeof videoVersionSchema>;
+/** The exact prompt submitted by the worker; also shown before paid confirmation. */
+export function videoPrompt(plan: ShotPlan): string {
+  return `${plan.animationPrompt}\nScene: ${plan.sceneSummary}\nSubjects: ${plan.subjects.map((subject) => `${subject.name}: ${subject.appearance}`).join('; ')}\nAction: ${plan.action}\nCamera: ${plan.camera.shotType}; ${plan.camera.movement}\nEnvironment: ${plan.environment}\nMood: ${plan.mood}\nPreserve: ${plan.preserve.join('; ')}`;
+}
+
 const objectBase = z.strictObject({
   id: resourceIdSchema,
   x: z.number().finite().min(-10000).max(10000),

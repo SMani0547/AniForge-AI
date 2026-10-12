@@ -45,7 +45,7 @@ Asset reservations precede media writes. Duplication copies referenced images to
 
 Local development can use actual Firebase Auth, Firestore and Storage emulators with `npm run dev:emulators`. This mode uses `demo-aniforge`, isolated CLI configuration and no personal `.env` files; AI calls are disabled. Emulators exercise the SDK/database workflow without proving production IAM or billing. The no-sign-in playground stays separate and unsaved.
 
-## Later P0 services
+## Queued video services
 
 ```mermaid
 flowchart LR
@@ -58,11 +58,11 @@ flowchart LR
   A -->|Authorized scoped media access| B
 ```
 
-This worker path is planned; generation, job and export endpoints are not implemented yet. The intended state machine is `queued -> running -> succeeded|failed`. Task redelivery must be idempotent and preserve provider operation IDs. A model timeout, unsafe/malformed response, or denied entitlement must produce a visible failure and retain existing source and video versions.
+Phase 4 implements this worker path with `queued -> running -> succeeded|failed`, separate public API and private worker entry points, transactional quota/reservation, named Cloud Tasks and a scheduled outbox recovery command. The browser receives a job before generation runs. A worker claims a fenced lease, durably records dispatch intent, and checkpoints the completed Google file before downloading. Redelivery can recover that file without a new create call. A lost worker without a checkpoint becomes an explicit uncertain failure; no automatic duplicate paid generation is allowed. Job reads and recovery enforce a 30-minute lifetime. Deployment and live Google output remain unverified; see [worker setup](video-worker-setup.md).
 
 Media belongs in a private bucket under `users/{encodedUid}/projects/{projectId}/...`. The current authenticated proxy requires object read/write/delete access, but no signing permissions. Bucket IAM and public access prevention are independent of Firebase Storage rules. No public media bucket is needed.
 
-Each future video version records its parent version, scene/source snapshot, model, prompt, provider interaction ID when available, storage path, and creation state. Selecting an old version changes the scene selection; it never overwrites an MP4. Provider interaction metadata stays server-controlled. Follow-up editing must use a documented model operation and a real successful result before creating a successful new version.
+Each initial video version records a null parent, scene/source snapshot and revision, reviewed plan, model, prompt, interaction ID, storage path and content digest. Immutable GCS bytes are written before transactional version publication; the current source scene is not modified by completion. Only public version metadata reaches the browser, which fetches authorized whole-file MP4s into short-lived Blob URLs. Persistent selection, follow-up edits and timeline/download UI are Phase 5; old MP4s must remain immutable. Labeled fixture playback is covered by actual Firebase emulator/browser tests, separate from the real-model gate.
 
 ## Build and verification
 

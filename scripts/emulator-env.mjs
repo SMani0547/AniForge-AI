@@ -24,6 +24,7 @@ export function emulatorEnvironment(base = process.env) {
     NO_UPDATE_NOTIFIER: '1',
     METADATA_SERVER_DETECTION: 'none',
     ENABLE_REAL_AI: 'false',
+    ENABLE_VIDEO_GENERATION: 'false',
     GEMINI_API_KEY: '',
     PORT: '8080',
     ALLOWED_ORIGINS: 'http://localhost:5173,http://127.0.0.1:5173',

@@ -2,27 +2,29 @@ import Fastify, { type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { z, ZodError } from 'zod';
-import { analyzeSceneSchema, createProjectSchema, resourceIdSchema, updateProjectSchema, updateSceneSchema } from '@aniforge/shared';
+import { analyzeSceneSchema, generateSceneSchema, createProjectSchema, resourceIdSchema, updateProjectSchema, updateSceneSchema } from '@aniforge/shared';
 import { ApiError } from './errors.js';
 import { assertOwner, type ProjectRepository } from './repository.js';
 import type { Config } from './config.js';
 import { IMAGE_TYPES, MAX_UPLOAD_BYTES, normalizeImage } from './assets/images.js';
 import type { SceneAnalysisService } from './analysis.js';
+import type { VideoService } from './video.js';
 
-interface Dependencies { config: Config; repository: ProjectRepository | null; verifyToken: ((token: string) => Promise<string>) | null; analysis?: SceneAnalysisService | null; logger?: boolean }
+interface Dependencies { config: Config; repository: ProjectRepository | null; verifyToken: ((token: string) => Promise<string>) | null; analysis?: SceneAnalysisService | null; video?: VideoService | null; logger?: boolean }
 const projectParams = z.object({ projectId: resourceIdSchema });
 const sceneParams = projectParams.extend({ sceneId: resourceIdSchema });
 const assetParams = projectParams.extend({ assetId: resourceIdSchema });
 const listQuery = z.strictObject({ cursor: z.string().min(1).max(2048).optional(), limit: z.coerce.number().int().min(1).max(100).default(25) });
 const uploadQuery = z.strictObject({ sceneId: resourceIdSchema, copyrightAttested: z.literal('true') });
 
-export function buildApp({ config, repository, verifyToken, analysis = null, logger = false }: Dependencies) {
+export function buildApp({ config, repository, verifyToken, analysis = null, video = null, logger = false }: Dependencies) {
   const app = Fastify({ logger: logger ? { redact: ['req.headers.authorization', 'req.headers.cookie'] } : false, bodyLimit: 700_000, requestTimeout: 30_000 });
   const identities = new WeakMap<FastifyRequest, string>();
   const data = <T>(request: FastifyRequest, value: T) => ({ data: value, error: null, requestId: request.id });
   const store = () => { if (!repository) throw new ApiError(503, 'SETUP_REQUIRED', 'Configure Firebase and application-default credentials. See docs/cloud-setup.md.'); return repository; };
   const uid = (request: FastifyRequest) => { const id = identities.get(request); if (!id) throw new ApiError(401, 'UNAUTHENTICATED', 'Sign in to continue.'); return id; };
   const owned = async (request: FastifyRequest, projectId: string) => { const project = await store().get(projectId); assertOwner(project, uid(request)); return project; };
+  const videos = () => { if (!video) throw new ApiError(503, 'VIDEO_SETUP_REQUIRED', 'Configure private Storage, Cloud Tasks and the video worker. See docs/cloud-setup.md.'); return video; };
 
   app.register(cors, { origin: config.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()), methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'] });
   app.register(rateLimit, { max: 120, timeWindow: '1 minute' });
@@ -38,7 +40,7 @@ export function buildApp({ config, repository, verifyToken, analysis = null, log
     reply.status(status).send({ data: null, error: { code, message }, requestId: request.id });
   });
   app.setNotFoundHandler((request, reply) => reply.code(404).send({ data: null, error: { code: 'NOT_FOUND', message: 'Route not found.' }, requestId: request.id }));
-  app.get('/health', async (request) => data(request, { status: 'ok', service: 'aniforge-api', firebaseConfigured: !!repository, milestone: 'scene-analysis' }));
+  app.get('/health', async (request) => data(request, { status: 'ok', service: 'aniforge-api', firebaseConfigured: !!repository, milestone: 'queued-video' }));
   app.get('/api/v1/health', async (request) => data(request, { status: 'ok', firebaseConfigured: !!repository }));
 
   app.register(async (api) => {
@@ -55,6 +57,30 @@ export function buildApp({ config, repository, verifyToken, analysis = null, log
       }
     });
     api.addContentTypeParser([...IMAGE_TYPES], { parseAs: 'buffer', bodyLimit: MAX_UPLOAD_BYTES }, (_request, body, done) => done(null, body));
+    api.addHook('onSend', async (_request, reply) => { reply.header('Cache-Control', 'private, no-store'); });
+    api.get('/ai/video-status', async (request) => data(request, video?.availability() ?? { available: false, model: null, reason: 'Configure Firebase, Storage, Cloud Tasks and a private video worker. See docs/cloud-setup.md.' }));
+    api.post('/projects/:projectId/scenes/:sceneId/generate', async (request, reply) => {
+      const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);
+      const input = generateSceneSchema.parse(request.body);
+      return reply.code(202).send(data(request, await videos().generate({ projectId, sceneId, ownerId: uid(request), input })));
+    });
+    api.get('/projects/:projectId/jobs/:jobId', async (request) => {
+      const key = projectParams.extend({ jobId: z.uuid() }).parse(request.params); await owned(request, key.projectId);
+      return data(request, await videos().get(key, uid(request)));
+    });
+    api.get('/projects/:projectId/scenes/:sceneId/jobs', async (request) => {
+      const key = sceneParams.parse(request.params); await owned(request, key.projectId);
+      return data(request, await videos().ledger.list(key, uid(request)));
+    });
+    api.get('/projects/:projectId/scenes/:sceneId/versions', async (request) => {
+      const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);
+      return data(request, await videos().ledger.versions(projectId, sceneId, uid(request)));
+    });
+    api.get('/projects/:projectId/versions/:versionId/content', async (request, reply) => {
+      const { projectId, versionId } = projectParams.extend({ versionId: resourceIdSchema }).parse(request.params); await owned(request, projectId);
+      const bytes = await videos().content(projectId, versionId, uid(request));
+      return reply.type('video/mp4').header('X-Content-Type-Options', 'nosniff').send(bytes);
+    });
     api.get('/ai/analysis-status', async (request, reply) => {
       reply.header('Cache-Control', 'private, no-store');
       return data(request, analysis?.availability() ?? { available: false, reason: 'Scene analysis requires configured Firebase, private Storage and server-side Google AI credentials. See docs/cloud-setup.md.', model: null });

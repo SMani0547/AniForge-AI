@@ -10,6 +10,10 @@ import { SceneAnalysisService } from './analysis.js';
 import { FirestoreAnalysisLedger } from './analysis-ledger.js';
 import { readAnalysisConfiguration } from './ai/config.js';
 import { createGoogleAnalysisProvider } from './ai/google-transport.js';
+import { VideoLedger } from './video-ledger.js';
+import { VideoService } from './video.js';
+import { CloudVideoQueue } from './video-queue.js';
+import { readVideoConfig } from './video-config.js';
 
 const config = readConfig();
 const firebase = config.GOOGLE_CLOUD_PROJECT ? initializeApp({ projectId: config.GOOGLE_CLOUD_PROJECT, ...(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST ? {} : { credential: applicationDefault() }) }) : null;
@@ -20,7 +24,8 @@ const analysis = firebase && repository && storage ? new SceneAnalysisService(re
   const ai = readAnalysisConfiguration(process.env);
   return { model: ai.analysisModel, provider: createGoogleAnalysisProvider(ai) };
 }, config.MAX_ANALYSES_PER_USER_PER_DAY) : null;
-const app = buildApp({ config, repository, analysis, verifyToken: firebase ? async (token) => (await getAuth(firebase).verifyIdToken(token, true)).uid : null, logger: true });
+const video = firebase && storage ? new VideoService(new VideoLedger(getFirestore(firebase)), () => new CloudVideoQueue(readVideoConfig()), storage, config.MAX_VIDEOS_PER_USER_PER_DAY) : null;
+const app = buildApp({ config, repository, analysis, video, verifyToken: firebase ? async (token) => (await getAuth(firebase).verifyIdToken(token, true)).uid : null, logger: true });
 let cleanupRunning = false;
 const cleanup = async () => {
   if (!repository || cleanupRunning) return;

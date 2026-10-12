@@ -22,7 +22,8 @@
     "smoke:edit": "npm run smoke:edit -w @aniforge/api --",
     "dev:emulators": "npm run build -w @aniforge/shared && node scripts/emulators.mjs dev",
     "test:emulators": "npm run build -w @aniforge/shared && node scripts/emulators.mjs test",
-    "cleanup:assets": "npm run cleanup:assets -w @aniforge/api"
+    "cleanup:assets": "npm run cleanup:assets -w @aniforge/api",
+    "recover:videos": "npm run recover:videos -w @aniforge/api"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
