@@ -1,0 +1,10 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Browser SDK access is denied. Server access uses bucket IAM.
+    // Future signed URLs must be issued only after API ownership checks.
+    match /{object=**} {
+      allow read, write: if false;
+    }
+  }
+}
