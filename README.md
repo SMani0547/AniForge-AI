@@ -82,6 +82,8 @@ The pinned Firebase CLI is a development dependency and currently brings transit
 
 [TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
 
+[UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md) tracks the separately requested homepage, project dashboard and editor redesign, including visual direction, implementation order and acceptance checks. It is a plan; the redesign has not been implemented yet.
+
 Phase 6 local release preparation is recorded in [the results](docs/phase-6-results.md). Cloud setup and live verification remain deferred by the owner; the full release is not complete. Follow the [release checklist](docs/release-checklist.md), [three-minute demo script](docs/demo-script.md) and [eight-slide outline](docs/pitch-outline.md). A [labeled local screenshot](docs/demo/README.md) documents test-fixture behavior, not Google output. The final demo video and PDF deck still need genuine evidence.
 
 Hosting uses `npm run build:release` through its predeploy hook. Configure ignored `.env.local` or `.env.release.local` with actual public Firebase settings and an HTTPS API URL before running it; an ordinary unconfigured build is for local checks. Docker build/smoke and the optional `cloudbuild.yaml` remote build still require the corresponding tools/account. Required credentials and cloud steps are in [cloud setup](docs/cloud-setup.md), [worker setup](docs/video-worker-setup.md) and [model verification](docs/model-verification.md). Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.

@@ -2,6 +2,8 @@
 
 Updated October 13, 2026 (Pacific/Fiji). This is an implementation record, not evidence of deployment or paid model success.
 
+The separately requested visual redesign is planned in [UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md): new public homepage, project dashboard and professional editor workspace. Its unchecked tasks do not change the implementation or live-release status below.
+
 ## Phase 1 — foundation and model proof of concept
 
 - [x] Inspect BUILD_PLAN.md, CODEX_MASTER_PROMPT.md and AGENTS.md. Initial repository contained only these three files.
