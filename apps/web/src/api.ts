@@ -1,4 +1,4 @@
-import { projectSchema, type Project } from '@aniforge/shared';
+import { assetSchema, projectPageSchema, projectSchema, sceneSchema, type Canvas, type Project } from '@aniforge/shared';
 import { z } from 'zod';
 
 const envelopeSchema = z.object({
@@ -23,8 +23,8 @@ export function createApiClient(getToken: () => Promise<string | null>, baseUrl 
     try {
       const response = await fetcher(`${baseUrl.replace(/\/$/, '')}${path}`, {
         method,
-        headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': body instanceof Blob ? body.type : 'application/json' }) },
+        ...(body === undefined ? {} : { body: body instanceof Blob ? body : JSON.stringify(body) }),
         signal: controller.signal,
       });
       let raw: unknown;
@@ -37,7 +37,7 @@ export function createApiClient(getToken: () => Promise<string | null>, baseUrl 
         throw new ApiError(envelope.error?.message ?? 'The request failed. Please try again.', response.status, envelope.requestId);
       }
       const data = schema.safeParse(envelope.data);
-      if (!data.success) throw new ApiError('The API returned invalid project data. Please try again.', 502, envelope.requestId);
+      if (!data.success) throw new ApiError('The API returned invalid data. Please try again.', 502, envelope.requestId);
       return data.data;
     } catch (error) {
       if (error instanceof ApiError) throw error;
@@ -46,13 +46,35 @@ export function createApiClient(getToken: () => Promise<string | null>, baseUrl 
     } finally { clearTimeout(timeout); }
   }
   const projectPath = (id: string) => `/projects/${encodeURIComponent(id)}`;
+  const scenePath = (projectId: string, sceneId: string) => `${projectPath(projectId)}/scenes/${encodeURIComponent(sceneId)}`;
+  const assetPath = (projectId: string, assetId: string) => `${projectPath(projectId)}/assets/${encodeURIComponent(assetId)}`;
   return {
-    listProjects: () => request('/projects', z.array(projectSchema)),
+    listProjects: (cursor?: string) => request(`/projects${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`, projectPageSchema),
     getProject: (id: string) => request(projectPath(id), projectSchema),
     createProject: (title: string) => request('/projects', projectSchema, 'POST', { title, description: '' }),
     renameProject: (id: string, title: string) => request(projectPath(id), projectSchema, 'PATCH', { title }),
     duplicateProject: (id: string) => request(`${projectPath(id)}/duplicate`, projectSchema, 'POST', {}),
     deleteProject: (id: string) => request(projectPath(id), z.null(), 'DELETE'),
+    listScenes: (projectId: string) => request(`${projectPath(projectId)}/scenes`, z.array(sceneSchema)),
+    getScene: (projectId: string, sceneId: string) => request(scenePath(projectId, sceneId), sceneSchema),
+    saveScene: (projectId: string, sceneId: string, expectedRevision: number, canvas: Canvas) => request(scenePath(projectId, sceneId), sceneSchema, 'PATCH', { expectedRevision, canvas }),
+    uploadAsset: (projectId: string, sceneId: string, file: File) => request(`${projectPath(projectId)}/assets?sceneId=${encodeURIComponent(sceneId)}&copyrightAttested=true`, assetSchema, 'POST', file),
+    getAsset: (projectId: string, assetId: string) => request(assetPath(projectId, assetId), assetSchema),
+    async getAssetContent(projectId: string, assetId: string): Promise<Blob> {
+      const token = await getToken();
+      if (!token) throw new ApiError('Sign in to access your images.', 401);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20_000);
+      try {
+        const response = await fetcher(`${baseUrl.replace(/\/$/, '')}${assetPath(projectId, assetId)}/content`, { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal });
+        if (!response.ok) throw new ApiError('Could not load this private image. Check your connection and try again.', response.status);
+        if (!response.headers.get('content-type')?.startsWith('image/')) throw new ApiError('The server returned invalid image data.', 502);
+        return await response.blob();
+      } catch (error) {
+        if (error instanceof ApiError) throw error;
+        throw new ApiError(controller.signal.aborted ? 'Image loading timed out. Try again.' : 'Could not reach the image service. Try again.', controller.signal.aborted ? 408 : 0);
+      } finally { clearTimeout(timeout); }
+    },
   };
 }
 

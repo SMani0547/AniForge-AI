@@ -1,35 +1,38 @@
 # AniForge AI
 
-An original-art anime studio built with React, Konva, Fastify, Firebase and server-side Google AI. The foundation milestone is implemented; this repository is **not yet an end-to-end deployed animation studio**.
+An original-art anime studio built with React, Konva, Fastify, Firebase and server-side Google AI. The foundation and saved-canvas milestones are implemented; this repository is **not yet an end-to-end deployed animation studio**.
 
 ## Current functionality
 
 - Responsive dark project gallery, Firebase Google sign-in, optional anonymous sign-in, and owner-only project CRUD/duplication backed by Firestore when configured.
-- Canonical editable scene JSON and secure scene read/update endpoints. The current browser sketch playground is explicitly **unsaved**; persistence, imports and the full editor are the next milestone.
+- Saved canonical scene JSON with autosave/manual save, revision conflicts, pencil/brush/eraser, shapes/text, selection/transforms, layers, inspector and undo/redo. Cloud projects use the saved editor; the separate no-sign-in playground remains explicitly **unsaved**.
+- Private PNG/JPEG/WEBP imports through the authenticated API, original-content affirmation and manual panel cropping. Images are validated and normalized to PNG; media bytes stay outside Firestore. Project copies receive independent images.
 - Real server-only Gemini scene analysis, Omni image-to-video and conversational-edit smoke commands. They require explicit paid opt-in, a server key and original-content affirmation. No fake/live fallback exists.
 - Cloud deployment configuration, private database/storage rules, CI and scoped credential documentation.
 
-No real Google AI call, cloud persistence verification, Docker build or deployment has been completed in this environment. No MP4 has been generated. The app's generation button remains disabled until the queued generation milestone.
+No real Google AI call, production cloud persistence verification, Docker build or deployment has been completed in this environment. No MP4 has been generated. The app's generation button remains disabled until the queued generation milestone. Local Firebase emulators allow the saved editor to run without cloud credentials.
 
 ## Local start
 
-Install Node.js 24 LTS and npm 11. From this repository root:
+Install Node.js 24 LTS, npm 11 and Java 21+ (for emulators). From this repository root:
 
 ```powershell
 npm ci
-npm run dev
+npm run dev:emulators
 ```
 
-The frontend opens at `http://127.0.0.1:5173`; API health is `http://localhost:8080/health`. Without credentials, the sketch playground works and setup requirements are visible. Cloud project operations return explicit configuration/authentication errors.
+The frontend is at `http://127.0.0.1:5173`; choose **Continue as a guest**, create a project, and open the saved editor. Firebase Auth, Firestore and Storage run locally in the isolated `demo-aniforge` project. Gemini is disabled, and the launcher ignores personal environment files and cloud credentials. The first run downloads official emulator binaries. See [local emulators](docs/local-emulators.md) for prerequisites, ports and data lifetime.
 
-To enable Firebase persistence:
+`npm run dev` starts the normal servers instead, using your configured environment. Without Firebase configuration, it provides only the explicitly unsaved playground and setup guidance. API health is `http://localhost:8080/health`.
+
+To connect to cloud Firebase instead of local emulators:
 
 ```powershell
 Copy-Item apps/web/.env.example apps/web/.env.local
 Copy-Item apps/api/.env.example apps/api/.env
 ```
 
-Fill in public Firebase web configuration on the frontend and `GOOGLE_CLOUD_PROJECT` on the API. Enable Google sign-in, create Firestore, and authenticate local application-default credentials as described in [cloud setup](docs/cloud-setup.md). The server loads `apps/api/.env` automatically. Restart development servers after configuration changes. Set `VITE_ENABLE_ANONYMOUS_AUTH=true` only if anonymous Auth is enabled in the Firebase console.
+Fill in public Firebase web configuration on the frontend, and `GOOGLE_CLOUD_PROJECT` plus `GCS_BUCKET` on the API. Enable Google sign-in, create Firestore/private storage, and authenticate local application-default credentials as described in [cloud setup](docs/cloud-setup.md). The server loads `apps/api/.env` automatically. Restart development servers after configuration changes. Set `VITE_ENABLE_ANONYMOUS_AUTH=true` only if anonymous Auth is enabled in the Firebase console.
 
 Server secrets belong in ignored API environment files or Secret Manager. Never put a Gemini key or service-account credential in `VITE_*`, browser code or Git. There is no need to send secrets in chat.
 
@@ -54,10 +57,13 @@ npm run test
 npm run build
 npx playwright install chromium
 npm run test:e2e
-npm audit
+npm run test:emulators
+npm audit --omit=dev
 ```
 
-Unit tests use explicitly isolated auth/repository/provider doubles. The unconfigured browser smoke tests cover actual rendering, drawing, undo/redo and mobile fit; they do not prove Firebase persistence. See [actual Phase 1 results](docs/phase-1-results.md) for executed commands, counts and limitations.
+Unit tests use explicitly isolated auth/repository/provider doubles. The unconfigured browser smoke tests cover rendering, drawing, undo/redo and mobile fit. The separate emulator suite exercises real local Auth, Firestore, Storage and browser save/reload; it does not prove production IAM or cloud deployment. See [Phase 2 results](docs/phase-2-results.md) and [Phase 1 results](docs/phase-1-results.md) for executed commands, counts and limitations.
+
+The pinned Firebase CLI is a development dependency and currently brings transitive npm advisories; the production dependency audit is separate. Do not run `npm audit fix --force` to downgrade the CLI or silently break its dependencies. The local emulators bind only to loopback.
 
 ## Repository and milestones
 
@@ -68,4 +74,4 @@ Unit tests use explicitly isolated auth/repository/provider doubles. The unconfi
 
 [TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
 
-Next: saved editable canvas and private image import/cropping; then integrated Gemini analysis, Cloud Tasks video jobs, immutable revisions, timeline/download and deployment. Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.
+Next: integrated Gemini analysis, Cloud Tasks video jobs, immutable revisions, timeline/download and deployment. Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.

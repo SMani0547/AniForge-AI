@@ -2,12 +2,12 @@
 
 AniForge stores editable scene data separately from rendered video. A generated MP4 remains a flat clip. The P0 sequence is foundation/auth/projects, canvas and private assets, Gemini analysis, queued video, immutable conversational revisions, and deployment verification. `BUILD_PLAN.md` remains the product blueprint; `TODO.md` records implementation and test evidence.
 
-## Foundation boundaries
+## Implemented boundaries
 
 | Workspace | Responsibility |
 | --- | --- |
-| `apps/web` | React/Vite/TypeScript studio, Firebase Auth, project gallery, editor shell, API requests with Firebase ID tokens |
-| `apps/api` | Fastify API, Firebase Admin token verification, ownership checks, Firestore persistence, server-only Google AI smoke commands |
+| `apps/web` | React/Vite/TypeScript studio, Firebase Auth, paginated gallery, editable canvas/layers/crop, revision-aware autosave, authenticated image loading |
+| `apps/api` | Fastify, Firebase Admin ownership checks, Firestore revisions, private image normalization/storage/copy/cleanup, server-only Google AI smoke commands |
 | `packages/shared` | Strict TypeScript/Zod API and editable scene contracts shared by browser and server |
 
 The frontend never imports Firebase Admin or `@google/genai`. Public Firebase web configuration belongs in the Vite environment. Gemini credentials remain on the server. Local development may display an explicit setup state when credentials are absent; it must not manufacture successful sign-in, database writes, or AI output. Test fixtures are injected by tests and are not an alternative production provider.
@@ -18,6 +18,7 @@ flowchart LR
   B -->|Firebase ID token| A[Cloud Run: Fastify API]
   A -->|Verify token| F
   A -->|Check owner, validate JSON| D[(Firestore)]
+  A -->|Authorized image proxy| M[(Private Cloud Storage)]
   S[Server-only smoke command] --> G[Google AI API]
   S --> O[Local verified output artifacts]
   H[Firebase Hosting] --> B
@@ -31,7 +32,13 @@ Project documents live at `projects/{projectId}` and contain `ownerId`; scenes a
 
 All Firestore browser access is denied by `firestore.rules`. Admin SDK calls bypass rules, so IAM protects the database identity and the API enforces per-user isolation. This backend-only approach keeps the ownership policy in one application boundary. [Firestore security model](https://firebase.google.com/docs/firestore/security/overview).
 
-Scene source uses canonical coordinates, object IDs, transforms, styles, layer ordering, and source asset references. Saving JSON preserves editability; a raster preview or generated clip cannot substitute for this source. API support for scene JSON is the persistence foundation, not evidence that the full brush/import/crop editor has been implemented.
+Scene source uses canonical 1920×1080 coordinates, object IDs, transforms, styles, layer ordering and source asset references. The saved editor loads this JSON and uses it as its source of truth; no Konva framework internals or base64 images are stored. Revisions provide optimistic concurrency: the server atomically rejects stale saves and increments the revision on success. The client serializes saves and retains edits made while a request is in flight; a conflict requires an explicit reload before subsequent saves.
+
+Images enter through an owner-authenticated binary upload proxy. Signature checks, bounded decoding, EXIF orientation and PNG normalization occur server-side. An asset has its own immutable media path and an attestation; scenes retain a reference and editable crop rectangle. Browsers fetch image bytes with Firebase ID tokens and display temporary Blob URLs. There are no permanent public media URLs or bucket keys in the client.
+
+Asset reservations precede media writes. Duplication copies referenced images to new IDs and project paths while the destination is hidden; a final transaction checks source revisions and publishes the copied scenes and metadata together. Deletion marks a project unavailable before purging descendants and media. Durable operation records allow cleanup retry after a failed request or restart; they must not be mistaken for user-visible projects. Recovery scheduling in a deployed Cloud Run service is a separate operational requirement.
+
+Local development can use actual Firebase Auth, Firestore and Storage emulators with `npm run dev:emulators`. This mode uses `demo-aniforge`, isolated CLI configuration and no personal `.env` files; AI calls are disabled. Emulators exercise the SDK/database workflow without proving production IAM or billing. The no-sign-in playground stays separate and unsaved.
 
 ## Later P0 services
 
@@ -46,14 +53,14 @@ flowchart LR
   A -->|Authorized scoped media access| B
 ```
 
-This worker path is planned; Phase 1 does not expose generation, job, asset, or export endpoints. The intended state machine is `queued -> running -> succeeded|failed`. Task redelivery must be idempotent and preserve provider operation IDs. A model timeout, unsafe/malformed response, or denied entitlement must produce a visible failure and retain existing source and video versions.
+This worker path is planned; generation, job and export endpoints are not implemented yet. The intended state machine is `queued -> running -> succeeded|failed`. Task redelivery must be idempotent and preserve provider operation IDs. A model timeout, unsafe/malformed response, or denied entitlement must produce a visible failure and retain existing source and video versions.
 
-Media belongs in a private bucket under `users/{uid}/projects/{projectId}/...`. Future upload completion validates stored metadata before registering an asset; reads issue short-lived signed access only after ownership checks or proxy through the API. Bucket IAM, public access prevention, and signing permissions are independent of Firebase Storage rules. No public media bucket is needed.
+Media belongs in a private bucket under `users/{encodedUid}/projects/{projectId}/...`. The current authenticated proxy requires object read/write/delete access, but no signing permissions. Bucket IAM and public access prevention are independent of Firebase Storage rules. No public media bucket is needed.
 
 Each future video version records its parent version, scene/source snapshot, model, prompt, provider interaction ID when available, storage path, and creation state. Selecting an old version changes the scene selection; it never overwrites an MP4. Provider interaction metadata stays server-controlled. Follow-up editing must use a documented model operation and a real successful result before creating a successful new version.
 
 ## Build and verification
 
-Node 24 and npm workspaces provide a single lockfile. Build shared contracts before API and web. Every milestone runs typecheck, lint, Vitest, and production build; Playwright covers the applicable browser smoke. CI has real AI disabled and no cloud credentials. Provider unit tests exercise explicit mocked responses; a real smoke run and deployment verification are separate evidence gates.
+Node 24 and npm workspaces provide a single lockfile. Build shared contracts before API and web. Every milestone runs typecheck, lint, Vitest and production build; Playwright covers the unconfigured preview and a separate real-emulator saved-editor suite. CI installs Java 21, keeps real AI disabled and needs no cloud credentials. Provider unit tests exercise explicit mocked responses; real-model smoke runs and deployment verification remain separate evidence gates.
 
 Firebase Hosting serves `apps/web/dist` with SPA routing. Cloud Run runs the unprivileged API container built from repository root. The runtime gets ADC from its service identity and the Gemini key from Secret Manager. See [the deployment runbook](cloud-setup.md) and [current API contract](api.md).

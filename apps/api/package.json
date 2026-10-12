@@ -10,7 +10,8 @@
     "start": "node dist/server.js",
     "smoke:analysis": "tsx --env-file-if-exists=.env scripts/smoke.ts analysis",
     "smoke:video": "tsx --env-file-if-exists=.env scripts/smoke.ts video",
-    "smoke:edit": "tsx --env-file-if-exists=.env scripts/smoke.ts edit"
+    "smoke:edit": "tsx --env-file-if-exists=.env scripts/smoke.ts edit",
+    "cleanup:assets": "node --env-file-if-exists=.env dist/cleanup.js"
   },
   "dependencies": {
     "@aniforge/shared": "0.1.0",
@@ -19,7 +20,8 @@
     "@google/genai": "2.28.0",
     "fastify": "^5.7.4",
     "firebase-admin": "^14.5.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "tsx": "^4.21.0"

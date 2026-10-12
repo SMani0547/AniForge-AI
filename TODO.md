@@ -14,21 +14,21 @@ Updated October 12, 2026 (Pacific/Fiji). This is an implementation record, not e
 - [x] Verify current official Omni request/response and structured-output docs; pin tested SDK in lockfile.
 - [x] Firebase rules, root-context Dockerfile, CI, complete credential/cloud runbook.
 - [x] Typecheck, lint, unit tests, production build, browser smoke and dependency audit pass. Exact results and limitations in docs/phase-1-results.md.
-- [ ] Real Firebase login/project persistence verified against emulator or cloud.
+- [x] Real Firebase anonymous login/project persistence verified against Google's local emulators in Phase 2. Production Google sign-in/IAM remain unverified.
 - [ ] Real Gemini schema-valid analysis, initial playable MP4 and follow-up edited MP4. Blocked by absent credentials, paid enablement and original source input.
 
-Acceptance: local app and API boot; secure project routes and schemas pass tests; standalone server CLI requests real Google AI only when enabled; no credentials in browser. Gate 1 cloud persistence and model gates stay unverified until configured.
+Acceptance: local app and API boot; secure project routes and schemas pass tests; standalone server CLI requests real Google AI only when enabled; no credentials in browser. Local Gate 1 is now evidenced by emulator tests. Production persistence and real model gates stay unverified until configured.
 
 ## Phase 2 — editable canvas and private assets
 
-- [ ] Persist canvas from web, debounce/manual save and reload proof.
-- [ ] Select/move/resize, shapes/text, editable layers, lock/hide/reorder, bounded undo/redo.
-- [ ] Private image upload, signature/type/size validation, rights affirmation, manual panel crop and authorized downloads.
-- [ ] Atomic asset references/duplication and reliable deletion cleanup; limit/page project lists beyond 100.
-- [ ] Emulator/integration tests and browser test proving a saved edit survives refresh.
-- [ ] Run typecheck, lint, tests, build and E2E; record actual results and commit.
+- [x] Persist canvas from web, debounce/manual save and reload proof; revision conflicts retain local edits for download/recovery.
+- [x] Select/move/resize/rotate, shapes/text, editable layers, lock/hide/reorder, bounded undo/redo, zoom/pan.
+- [x] Private image upload, signature/type/size validation, rights affirmation, manual panel crop and authorized downloads; crop remains editable after reload.
+- [x] Transactional asset references/duplication and durable deletion recovery; project lists paginated and tested with 105 projects.
+- [x] Actual Auth/Firestore/Storage emulator integration and browser test proving a saved edit survives refresh. Credential-free launcher and setup guide included.
+- [x] Run typecheck, lint, 98 unit tests, build, 2 unconfigured browser tests and 10 real-emulator integration/browser tests; record actual results in docs/phase-2-results.md and commit this milestone.
 
-Acceptance: a creator-owned image and editable objects survive save/reload at canonical 1920×1080 without embedding image bytes in Firestore.
+Acceptance: a creator-owned image and editable objects survive save/reload at canonical 1920×1080 without embedding image bytes in Firestore. Evidenced locally with actual emulators; see docs/phase-2-results.md. Cloud media/IAM and scheduled cleanup deployment remain release gates.
 
 ## Phase 3 — scene analysis in the studio
 
@@ -75,5 +75,8 @@ Acceptance: all six MVP gates in AGENTS.md evidenced, including real initial/edi
 - No GEMINI_API_KEY, GOOGLE_CLOUD_PROJECT or GOOGLE_APPLICATION_CREDENTIALS configured in the starting process environment. No credentials inferred or printed.
 - Firebase web configuration, enabled providers, Firestore database and API application-default credentials not supplied.
 - Real AI explicitly defaults off; paid account entitlement and an original input image are needed to execute billable smoke tests.
-- gcloud, Firebase CLI and Docker unavailable in this environment; cloud deployment/container build cannot be claimed.
+- Firebase CLI 15.33.0 is now a pinned local dependency; actual Firebase emulators ran with the existing Android Studio Java 25 runtime. Local Phase 2 needs no cloud credentials.
+- gcloud and Docker were unavailable at environment inspection; cloud deployment/container build cannot be claimed.
+- Production cleanup requires the documented Cloud Run Job/Scheduler and Firestore index setup. No cloud resources were created.
+- Production dependencies have no npm audit findings; Firebase CLI development dependencies have outstanding advisories recorded in docs/phase-2-results.md.
 - Follow the concrete setup in docs/cloud-setup.md and docs/model-verification.md. Keep secrets in local ignored server .env or Secret Manager, never chat or VITE_*.

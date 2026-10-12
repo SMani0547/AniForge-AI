@@ -32,13 +32,18 @@ const objectBase = z.strictObject({
   strokeWidth: z.number().min(0).max(200),
 });
 const points = z.array(z.number().finite().min(-10000).max(10000)).min(4).max(20000).refine((value) => value.length % 2 === 0, 'Coordinates must be x/y pairs');
+export const imageCropSchema = z.strictObject({
+  x: z.number().nonnegative(), y: z.number().nonnegative(),
+  width: z.number().positive(), height: z.number().positive(),
+});
+export type ImageCrop = z.infer<typeof imageCropSchema>;
 export const canvasObjectSchema = z.discriminatedUnion('type', [
   objectBase.extend({ type: z.literal('rect') }),
   objectBase.extend({ type: z.literal('ellipse') }),
   objectBase.extend({ type: z.literal('line'), points }),
   objectBase.extend({ type: z.literal('brushStroke'), points, tool: z.enum(['brush', 'eraser']) }),
   objectBase.extend({ type: z.literal('text'), text: z.string().max(2000), fontSize: z.number().positive().max(500) }),
-  objectBase.extend({ type: z.literal('image'), assetId: resourceIdSchema, crop: z.strictObject({ x: z.number().nonnegative(), y: z.number().nonnegative(), width: z.number().positive(), height: z.number().positive() }).nullable() }),
+  objectBase.extend({ type: z.literal('image'), assetId: resourceIdSchema, crop: imageCropSchema.nullable() }),
 ]);
 export type CanvasObject = z.infer<typeof canvasObjectSchema>;
 export const canvasSchema = z.strictObject({
@@ -58,6 +63,8 @@ export const projectSchema = z.strictObject({
   createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(), schemaVersion: z.literal(1),
 });
 export type Project = z.infer<typeof projectSchema>;
+export const projectPageSchema = z.strictObject({ items: z.array(projectSchema), nextCursor: z.string().min(1).max(2048).nullable() });
+export type ProjectPage = z.infer<typeof projectPageSchema>;
 export const createProjectSchema = z.strictObject({ title: projectSchema.shape.title, description: projectSchema.shape.description.optional() });
 export const updateProjectSchema = createProjectSchema.partial().refine((body) => Object.keys(body).length > 0, 'Provide at least one change');
 export const sceneSchema = z.strictObject({
@@ -65,14 +72,27 @@ export const sceneSchema = z.strictObject({
   order: z.number().int().min(0).max(99), canvas: canvasSchema,
   sourceAssetIds: z.array(resourceIdSchema).max(100), shotPlan: shotPlanSchema.nullable(),
   selectedVideoVersionId: resourceIdSchema.nullable(), timeline: timelineSchema,
-  updatedAt: z.iso.datetime(), schemaVersion: z.literal(1),
+  updatedAt: z.iso.datetime(), schemaVersion: z.literal(1), revision: z.number().int().nonnegative().default(0),
 });
 export type Scene = z.infer<typeof sceneSchema>;
-export const updateSceneSchema = z.strictObject({ title: projectSchema.shape.title.optional(), canvas: canvasSchema.optional(), shotPlan: shotPlanSchema.nullable().optional(), timeline: timelineSchema.optional() }).refine((body) => Object.keys(body).length > 0, 'Provide at least one change');
+export const updateSceneSchema = z.strictObject({ expectedRevision: z.number().int().nonnegative(), title: projectSchema.shape.title.optional(), canvas: canvasSchema.optional(), shotPlan: shotPlanSchema.nullable().optional(), timeline: timelineSchema.optional() }).refine((body) => Object.keys(body).some((key) => key !== 'expectedRevision'), 'Provide at least one change');
 export type ProjectUpdate = z.infer<typeof updateProjectSchema>;
 export type SceneUpdate = z.infer<typeof updateSceneSchema>;
 export function emptyScene(projectId: string, id: string, now: string): Scene {
   return sceneSchema.parse({ id, projectId, title: 'Scene 1', order: 0, canvas: { width: 1920, height: 1080, background: '#111827', objects: [] }, sourceAssetIds: [], shotPlan: null, selectedVideoVersionId: null, timeline: { trimStart: 0, trimEnd: 0, captions: [] }, updatedAt: now, schemaVersion: 1 });
 }
+
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_IMAGE_PIXELS = 16_000_000;
+export const assetSchema = z.strictObject({
+  id: resourceIdSchema, ownerId: z.string().min(1).max(128),
+  projectId: resourceIdSchema, sceneId: resourceIdSchema,
+  mimeType: z.literal('image/png'),
+  sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
+  width: z.number().int().positive().max(MAX_IMAGE_PIXELS),
+  height: z.number().int().positive().max(MAX_IMAGE_PIXELS),
+  copyrightAttested: z.literal(true), createdAt: z.iso.datetime(),
+}).refine((asset) => asset.width * asset.height <= MAX_IMAGE_PIXELS, 'Image dimensions exceed the pixel limit');
+export type Asset = z.infer<typeof assetSchema>;
 
 export interface ApiEnvelope<T> { data: T | null; error: { code: string; message: string } | null; requestId: string }

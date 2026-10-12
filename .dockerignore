@@ -21,3 +21,5 @@
 **/.firebase
 .firebaserc
 *.log
+**/.cache
+firebase-export-*
