@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "recordedOn": "2026-10-13",
   "assets": [
     {
@@ -112,6 +112,18 @@
         "docs/ui-u4/"
       ],
       "disclosure": "Local Firebase emulators; actual saved source, unavailable AI and recoverable local drafts. Not Google output.",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "u5-video-workspace-captures",
+      "source": "tests/e2e/video.emulator.spec.ts and tests/fixtures/*-square-test-only.mp4",
+      "author": "Actual AniForge Chromium captures with repository-authored geometric video fixtures",
+      "rights": "Original test animations and geometric drawing; no third-party media",
+      "kind": "actual-application-captures",
+      "placements": [
+        "docs/ui-u5/"
+      ],
+      "disclosure": "Local Firebase emulators and explicitly labeled TEST FIXTURE clips. These are not Google-generated results or production evidence.",
       "actualAniforgeGeneratedOutput": false
     }
   ],

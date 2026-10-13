@@ -33,4 +33,4 @@ Shortcuts pause in text inputs, textareas, selects, editable content, open dialo
 
 No new credential, cloud service, package or API schema is required by U4. Local saved projects use the existing Firebase emulator setup (`npm run dev:emulators`); run the web/API services according to the repository README. See [credential inventory and setup](cloud-setup.md) and the [release checklist](release-checklist.md) for production requirements. Production Firebase/Google access and paid Gemini evidence remain separate release gates.
 
-U5 still owns the generation form, version comparison and timeline visual redesign. U4 relocates those working tools and preserves their request/state handling; it does not add multiclip editing, baked MP4 captions, generated layers or live AI evidence. U6 owns the broader accessibility and performance audit.
+U5 now provides the [generation, comparison and timeline workspace](video-workspace.md) while preserving these request/state owners. It does not add multiclip editing, baked MP4 captions, generated layers or live AI evidence. U6 owns the broader accessibility and performance audit.

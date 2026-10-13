@@ -1,6 +1,6 @@
 # AniForge AI — UI upgrade roadmap
 
-Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation, U2 public homepage, U3 project dashboard and U4 source workspace implemented; external reference visual review pending. U5–U6 remain planned.** See [actual UI results](docs/ui-upgrade-results.md), `/`, `/projects` and the development-only `/design` preview.
+Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation, U2 public homepage, U3 project dashboard, U4 source workspace and U5 video workspace implemented; external reference visual review pending. U6 remains planned.** See [actual UI results](docs/ui-upgrade-results.md), `/`, `/projects` and the development-only `/design` preview.
 
 ## Brief
 
@@ -103,17 +103,19 @@ The local design/interaction acceptance is met. The external reference review re
 
 ## Phase U5 — generation, video revisions and timeline polish
 
-- [ ] Turn the generation form into a clear sequence: saved source, reviewed plan, request summary, permission/paid confirmation and Generate. Keep detailed prompts/provenance in expandable details.
-- [ ] Present queued/running/succeeded/failed states with honest status text, accessible announcements and safe recovery actions. Do not invent percentage completion or remaining-time estimates.
-- [ ] Allow ongoing source editing when the queued workflow permits it, while clearly identifying which saved source revision the job uses.
-- [ ] Create a useful empty video state with a path to plan/generate and a persistent return to drawing. When AI is unavailable, preserve manual editing and explain the limitation.
-- [ ] Give video playback a prominent stage and versions a readable strip/list. Show parent/revision, selected version and distinct actions for preview versus saved selection.
-- [ ] Improve side-by-side comparison, requested-change history and restore selection; keep originals immutable and both clips independently playable.
-- [ ] Present single-clip trim/caption preview as an intelligible timeline with a playhead and time fields. Keep keyboard-accessible exact inputs; do not imply multiclip/audio/encoded export exists.
-- [ ] Add a clear download panel: **Original MP4** and **Editable timeline JSON**. State that preview trim/captions are not baked into the MP4.
-- [ ] Preserve failed-edit recovery, request replay, ownership, paid consent and private media delivery. Never introduce automatic paid retries through UI lifecycle changes.
+- [x] Turn the generation form into a clear sequence: saved source, reviewed plan, request summary, permission/paid confirmation and Generate. Keep detailed prompts/provenance in expandable details.
+- [x] Present queued/running/succeeded/failed states with honest status text, accessible announcements and safe recovery actions. Do not invent percentage completion or remaining-time estimates.
+- [x] Allow ongoing source editing when the queued workflow permits it, while clearly identifying which saved source revision the job uses.
+- [x] Create a useful empty video state with a path to plan/generate and a persistent return to drawing. When AI is unavailable, preserve manual editing and explain the limitation.
+- [x] Give video playback a prominent stage and versions a readable strip/list. Show parent/revision, selected version and distinct actions for preview versus saved selection.
+- [x] Improve side-by-side comparison, requested-change history and restore selection; keep originals immutable and both clips independently playable.
+- [x] Present single-clip trim/caption preview as an intelligible timeline with a playhead and time fields. Keep keyboard-accessible exact inputs; do not imply multiclip/audio/encoded export exists.
+- [x] Add a clear download panel: **Original MP4** and **Editable timeline JSON**. State that preview trim/captions are not baked into the MP4.
+- [x] Preserve failed-edit recovery, request replay, ownership, paid consent and private media delivery. Never introduce automatic paid retries through UI lifecycle changes.
 
 **Acceptance:** the fixture-backed emulator flow still proves generation state handling, independent versions, restore, saved preview settings and exact download bytes. Real Google generation remains a separate release gate.
+
+**Local acceptance met:** reviewed-plan consent, lost-response replay, fixed queued source revisions, independent playback/comparison, preview versus saved selection, reloaded trim/captions, keyboard seeking, exact MP4/JSON downloads and failed-edit preservation pass with explicit test fixtures. Desktop and 390px phone layouts reviewed. See [video workspace](docs/video-workspace.md), [captures](docs/ui-u5/README.md) and [actual results](docs/ui-upgrade-results.md). Live Google verification remains deferred.
 
 ## Phase U6 — accessibility, performance and release review
 

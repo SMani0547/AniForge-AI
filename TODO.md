@@ -2,7 +2,7 @@
 
 Updated October 13, 2026 (Pacific/Fiji). This is an implementation record, not evidence of deployment or paid model success.
 
-The separately requested visual redesign is tracked in [UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md). U1's local visual system, U2's public homepage, U3's project dashboard and U4's source workspace are implemented; external reference visual review is pending. U5's generation and timeline polish is next. Local UI evidence does not change the live-release status below.
+The separately requested visual redesign is tracked in [UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md). U1's local visual system, U2's public homepage, U3's project dashboard, U4's source workspace and U5's video workspace are implemented; external reference visual review is pending. U6's accessibility, performance and release review is next. Local UI evidence does not change the live-release status below.
 
 ## Phase 1 — foundation and model proof of concept
 

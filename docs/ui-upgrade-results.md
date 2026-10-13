@@ -1,5 +1,40 @@
 # UI upgrade results
 
+## U5 — generation, versions and timeline
+
+Recorded October 13, 2026 (Pacific/Fiji). **Local U5 implementation and acceptance passed.** The Video workspace now leads with playback and parent comparison, with a source/plan/consent checklist alongside it. U6 accessibility, performance and release review is next.
+
+### Changes and evidence
+
+- Empty clips provide working drawing and shot-plan destinations. Generation requires explicit review of the current plan, ownership permission and paid consent; changing the plan invalidates its review. Detailed prompts and service information are expandable.
+- Activity exposes queued, generating/storing, completed and failed server states and each request's saved source revision. Drawing can continue after submission. Existing request IDs, safe replay and immutable versions are preserved; no automatic paid retries or invented progress indicators.
+- Independent parent/revised players lead the review area. Comparison can be hidden and pauses the parent. Version cards and the native selector distinguish preview from saved scene selection. Prompt/provenance history and original selection remain accessible.
+- The preview timeline has real playback controls, a keyboard-accessible playhead, trim bounds and caption bands. Exact fields and validation remain. MP4 and current timeline JSON downloads clearly describe their different contents; captions and trim are not encoded into the MP4.
+- [Video workspace behavior/setup](video-workspace.md), [ten actual captures](ui-u5/README.md), roadmap and provenance updated. No new dependency, credential, cloud service or API schema.
+
+### Actual validation
+
+| Command / check | Result |
+| --- | --- |
+| `npm.cmd run typecheck` | Passed shared/API/web and tooling, including browser tests. |
+| `npm.cmd run lint` | Passed. |
+| `npm test` | 200 tests passed across 15 files. |
+| `npm run test:e2e` | Nine tests passed in 15.8 seconds. |
+| `npm run test:emulators` | Full suite: 40 tests passed in 2.0 minutes, zero retries. |
+| Final video/capture check | The expanded video scenario also passed after the final visual adjustments: one test, 26.1 seconds including setup, using the same isolated test-profile Firebase emulators and Playwright configuration. |
+| `npm run build` | Shared/API/web production build and browser artifact scan passed. |
+| Visual review | Empty/queued/failed states, parent/revised playback at 1280px and 1440px, and comparison, exact fields and downloads at 390px reviewed. No phone page overflow. |
+
+The expanded video scenario uses a real Fastify server, Auth, Firestore and private Storage emulators. Explicitly labeled repository MP4 fixtures supply the provider output. It loses only the acknowledgement after a real generation reservation and proves replay keeps the same ID and a single provider dispatch. It verifies subsequent drawing saves do not alter the queued source revision, both versions play, hiding comparison pauses the parent, previewing does not save selection, restoring does, timeline settings survive reload, keyboard seeking reaches trim bounds, MP4 bytes remain exact, JSON matches the saved settings, and failed edits preserve both clips and selection. No live Google output is claimed.
+
+The first full emulator run passed 39/40: the new retry assertion inspected the request log before the asynchronous replay arrived. Waiting for that log corrected the test; the full rerun passed. Visual review then moved playback above the version controls, aligned consent checkboxes inline and removed a scroll artifact from the full-page capture. The final focused reruns passed. Existing Zod/Rollup annotation, Java deprecated-Unsafe, emulator listener-count and Playwright color warnings remain visible; emulators shut down cleanly.
+
+The final production build emits CanvasEditor JS at 80.55 kB (23.79 kB gzip) and its scoped CSS at 20.38 kB (4.24 kB gzip). Homepage JS remains 18.25 kB (5.64 kB gzip); App JS is 229.37 kB (67.62 kB gzip). These are build artifact sizes, not measured page transfers or a performance score. The browser artifact scan passed across 17 files. Documentation links and `git diff --check` passed.
+
+### Remaining gates and limits
+
+Trim/captions remain browser preview metadata. There is no encoded timeline export, multiclip editing or new offline draft persistence. Production Firebase/Google sign-in, billing/IAM, paid Gemini analysis/video/edit, remote CI, Docker and deployment remain deferred and unverified. Existing [cloud setup](cloud-setup.md) and [release checklist](release-checklist.md) document the required credentials and console steps; U5 adds none. U1's external visual reference inspection remains open. The broader accessibility, zoom and performance review belongs to U6.
+
 ## U4 — saved source editor workspace
 
 Recorded October 13, 2026 (Pacific/Fiji). **Local U4 implementation and acceptance passed.** Saved projects now open a canvas-centered Source workspace with tools/import/layers on the left and Properties or Shot plan on the right. Source/Video switching and the collapsible video panel preserve a single scene session. Compact screens use Canvas, Tools & layers and Inspector controls. U5 generation/version/timeline polish is next.
