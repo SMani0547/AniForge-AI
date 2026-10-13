@@ -13,6 +13,8 @@ Successful JSON responses have `{ "data": ..., "error": null, "requestId": "..."
 | GET | `/api/v1/projects?limit=25&cursor=...` | Owner-scoped cursor page, `{items,nextCursor}`; limit 1–100 |
 | POST | `/api/v1/projects` | Create an owned project and its initial editable scene |
 | GET | `/api/v1/projects/:projectId` | Read an owned project |
+| GET | `/api/v1/projects/:projectId/thumbnail` | Private 480×270 first-scene PNG for the current revision, or 204 when unavailable |
+| POST | `/api/v1/projects/:projectId/scenes/:sceneId/thumbnail?revision=N` | Raw 480×270 PNG, at most 600,000 bytes; owner/revision-checked derived preview publication |
 | PATCH | `/api/v1/projects/:projectId` | Update validated project fields |
 | DELETE | `/api/v1/projects/:projectId` | Hide the project, remove media and descendants, retain a private cleanup tombstone; safe to retry |
 | POST | `/api/v1/projects/:projectId/duplicate` | Copy editable scenes and referenced images to fresh IDs/storage paths, publish only when complete |
@@ -32,6 +34,8 @@ Scene PATCH requires `expectedRevision` and at least one of `title`, `canvas`, `
 Upload with a raw file body and its `Content-Type` (`image/png`, `image/jpeg` or `image/webp`), not JSON/base64. Requests must affirm rights using the literal query value `copyrightAttested=true`. The server checks the signature, decodes the image, rejects animation and excessive dimensions, applies EXIF orientation, strips metadata and stores a normalized PNG. Source and normalized output are limited to 10 MiB, with at most 16 million pixels. This preserves the full picture, not a byte-identical copy of the uploaded file. Crop coordinates remain editable source-pixel metadata in the scene.
 
 The upload proxy is the chosen alternative to signed upload URLs: registration and validation happen server-side, and browsers never receive bucket credentials or permanent public media URLs. Asset requests require an ID token every time; the frontend displays fetched image bytes through temporary browser Blob URLs. Private GCS paths are generated only on the server.
+
+Dashboard thumbnails follow the same private-media boundary. Their ready asset and `{assetId,revision}` reference at `projects/{projectId}/thumbnails/{sceneId}` publish atomically. The server rejects invalid PNG dimensions and stale scene revisions. Derived thumbnails never replace source JSON, serve as analysis input automatically or become public URLs. Old previews use durable cleanup; see [dashboard lifecycle and rollout](dashboard.md).
 
 Uploads reserve metadata before writing media, then finalize ownership/readiness. Project duplication keeps the destination hidden until its referenced images and scene documents can be published together, rechecking source revisions. Interrupted work uses durable reservations/tombstones for cleanup; startup and periodic retries complement retryable DELETE requests. Cloud Run cleanup caveats are in [cloud setup](cloud-setup.md).
 

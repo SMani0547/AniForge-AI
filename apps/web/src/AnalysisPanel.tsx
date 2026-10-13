@@ -21,7 +21,7 @@ function ShotPlanFields({ plan, onChange }: { plan: ShotPlan; onChange: (plan: S
 }
 
 type Attempt = { input: AnalyzeScene; document: string };
-export function AnalysisPanel({ scene, api, saver, plan, onPlanChange, onBusyChange, importBusy }: { scene: Scene; api: ProjectApi; saver: SceneSaver; plan: ShotPlan | null; onPlanChange: (plan: ShotPlan | null) => void; onBusyChange: (busy: boolean) => void; importBusy: boolean }) {
+export function AnalysisPanel({ scene, api, saver, plan, onPlanChange, onBusyChange, importBusy, onNotice }: { scene: Scene; api: ProjectApi; saver: SceneSaver; plan: ShotPlan | null; onPlanChange: (plan: ShotPlan | null) => void; onBusyChange: (busy: boolean) => void; importBusy: boolean; onNotice: (message: string) => void }) {
   const [availability, setAvailability] = useState<AnalysisAvailability | null>(null);
   const [setupError, setSetupError] = useState('');
   const [notes, setNotes] = useState('');
@@ -43,6 +43,8 @@ export function AnalysisPanel({ scene, api, saver, plan, onPlanChange, onBusyCha
   }, [api]);
   const validation = plan ? shotPlanSchema.safeParse(plan) : null;
   const stale = suggestion !== null && (suggestion.document !== JSON.stringify(saver.document) || suggestion.result.sourceRevision !== saver.state.revision);
+
+  useEffect(() => { onNotice(error ? 'Analysis needs attention. Your drawing and plan are kept.' : suggestion ? 'A shot plan suggestion is ready to review.' : ''); }, [error, suggestion, onNotice]);
 
   async function analyze(retry: boolean) {
     if (running.current || !availability?.available || !copyright || !paid || importBusy) return;
@@ -81,6 +83,7 @@ export function AnalysisPanel({ scene, api, saver, plan, onPlanChange, onBusyCha
 
   return <section className="analysis-panel" aria-label="Scene analysis and shot plan">
     <div className="analysis-heading"><div><h2>Shot plan</h2><p>Write your own direction, or ask Gemini to suggest a plan from the saved drawing. You decide what to apply.</p></div><span className="outline-tag">Editable storyboard</span></div>
+    <fieldset className="editable-shot-plan" disabled={busy}><legend>Your editable shot plan</legend>{plan ? <><p className="muted small">Edit all fields below. Valid changes save with your canvas. An incomplete draft stays local until the required fields are filled.</p><ShotPlanFields plan={plan} onChange={onPlanChange} />{validation?.success === false && <div className="plan-validation" role="status">Draft not yet valid: {[...new Set(validation.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`))].slice(0, 5).join('; ')}</div>}<details className="prompt-preview" open><summary>Prompt preview</summary><pre>{plan.animationPrompt || 'Write an animation prompt to preview it here.'}</pre>{plan.preserve.length > 0 && <p>Preserve: {plan.preserve.join('; ')}</p>}</details><button type="button" className="text-button" onClick={() => { if (window.confirm('Remove this shot plan? Your canvas will remain unchanged.')) onPlanChange(null); }}>Remove shot plan</button></> : <><p>No shot plan is saved. Manual plans are written by you and do not call an AI model.</p><button type="button" className="button secondary compact" onClick={() => onPlanChange(emptyShotPlan())}>Create manual shot plan</button></>}</fieldset>
     <div className="analysis-request">
       <h3>Analyze with Gemini</h3>
       <p className="analysis-availability" role="status">{setupError || (availability ? availability.reason : 'Checking server analysis configuration…')}{availability?.available && availability.model ? ` Model: ${availability.model}.` : ''}</p>
@@ -93,9 +96,9 @@ export function AnalysisPanel({ scene, api, saver, plan, onPlanChange, onBusyCha
       {busy && <p className="analysis-progress" role="status">{progress} Editing is paused until this request finishes.</p>}
       {retryAvailable && <p className="muted small">Retry uses the original snapshot and notes; it does not start a new request.</p>}
       {error && <div className="error-banner" role="alert">{error}<p>Your current shot plan and drawing have been kept.</p></div>}
-      <p className="muted small">Review and save your shot plan, then use Animate your scene below to request a video.</p>
+      <p className="muted small">Review and save your shot plan, then open Video to request a clip.</p>
     </div>
     {suggestion && <section className="analysis-suggestion" aria-label="Gemini suggestion"><h3>Gemini suggestion</h3><p className="muted small">{suggestion.result.model} · saved revision {suggestion.result.sourceRevision} · {new Date(suggestion.result.analyzedAt).toLocaleString()}</p><dl><dt>Summary</dt><dd>{suggestion.result.shotPlan.sceneSummary}</dd><dt>Subjects</dt><dd>{suggestion.result.shotPlan.subjects.map((subject, index) => <p key={index}>{subject.name}: {subject.appearance}</p>)}</dd><dt>Action</dt><dd>{suggestion.result.shotPlan.action}</dd><dt>Camera</dt><dd>{suggestion.result.shotPlan.camera.shotType} · {suggestion.result.shotPlan.camera.movement}</dd><dt>Environment</dt><dd>{suggestion.result.shotPlan.environment}</dd><dt>Mood</dt><dd>{suggestion.result.shotPlan.mood}</dd><dt>Preserve</dt><dd>{suggestion.result.shotPlan.preserve.join('\n') || 'No constraints suggested.'}</dd><dt>Uncertainties</dt><dd>{suggestion.result.shotPlan.uncertainties.join('\n') || 'No uncertainties reported. Review the suggestion yourself.'}</dd><dt>Animation prompt</dt><dd>{suggestion.result.shotPlan.animationPrompt}</dd></dl>{stale && <p className="error-banner" role="alert">The scene or plan has changed since this analysis. Analyze the current scene before applying a suggestion.</p>}<button type="button" className="button primary compact" disabled={busy || stale} onClick={() => { onPlanChange(structuredClone(suggestion.result.shotPlan)); setSuggestion(null); }}>Apply suggestion to shot plan</button><button type="button" className="text-button" disabled={busy} onClick={() => setSuggestion(null)}>Dismiss suggestion</button></section>}
-    <fieldset className="editable-shot-plan" disabled={busy}><legend>Your editable shot plan</legend>{plan ? <><p className="muted small">Edit all fields below. Valid changes save with your canvas. An incomplete draft stays local until the required fields are filled.</p><ShotPlanFields plan={plan} onChange={onPlanChange} />{validation?.success === false && <div className="plan-validation" role="status">Draft not yet valid: {[...new Set(validation.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`))].slice(0, 5).join('; ')}</div>}<details className="prompt-preview" open><summary>Prompt preview</summary><pre>{plan.animationPrompt || 'Write an animation prompt to preview it here.'}</pre>{plan.preserve.length > 0 && <p>Preserve: {plan.preserve.join('; ')}</p>}</details><button type="button" className="text-button" onClick={() => { if (window.confirm('Remove this shot plan? Your canvas will remain unchanged.')) onPlanChange(null); }}>Remove shot plan</button></> : <><p>No shot plan is saved. Manual plans are written by you and do not call an AI model.</p><button type="button" className="button secondary compact" onClick={() => onPlanChange(emptyShotPlan())}>Create manual shot plan</button></>}</fieldset>
+
   </section>;
 }

@@ -1,0 +1,158 @@
+{
+  "version": 7,
+  "recordedOn": "2026-10-13",
+  "assets": [
+    {
+      "id": "quiet-observatory",
+      "source": "apps/web/src/ui/SceneArtwork.tsx",
+      "author": "Codex, authored for this AniForge repository change",
+      "rights": "Original code-native vector composition; no third-party artwork used. Distributed as repository source under the project's licensing decisions.",
+      "kind": "original-vector-illustration",
+      "placements": [
+        "homepage study",
+        "sample dashboard cards",
+        "editor composition study",
+        "public homepage hero, feature demonstrations and artwork showcase"
+      ],
+      "disclosure": "Original vector artwork / design study, not AI output",
+      "variants": [
+        "base lavender palette",
+        "CSS hue rotation for the second sample card"
+      ],
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "aniforge-monogram-study",
+      "source": "apps/web/src/design/DesignLab.tsx",
+      "author": "Codex, authored for AniForge",
+      "rights": "Original typographic af composition in CSS; no external logo file imported.",
+      "kind": "code-native-brand-study",
+      "placements": [
+        "homepage",
+        "dashboard",
+        "footer"
+      ]
+    },
+    {
+      "id": "lucide-icons",
+      "source": "existing lucide-react package",
+      "author": "Lucide contributors",
+      "rights": "ISC; preserve package license and notices",
+      "kind": "existing-vector-icon-system",
+      "placements": [
+        "navigation",
+        "toolbars",
+        "buttons",
+        "empty states"
+      ]
+    },
+    {
+      "id": "system-typography",
+      "source": "installed Inter / Segoe UI / generic sans-serif; Consolas / monospace",
+      "author": "Respective font authors",
+      "rights": "Uses installed fonts through CSS; no font binaries copied or redistributed",
+      "kind": "system-font-stack",
+      "placements": [
+        "all U1 studies"
+      ]
+    },
+    {
+      "id": "local-ui-evidence",
+      "source": "docs/ui-u1/, docs/ui-u2/, docs/ui-u3/ and generated test-results/ screenshots",
+      "author": "Captured by local Playwright tests of AniForge",
+      "rights": "Repository UI and original sample art; no real user media or provider output",
+      "kind": "product-and-prototype-screenshots",
+      "placements": [
+        "design review documentation"
+      ],
+      "disclosure": "Distinguish existing-app baselines from new design studies; emulator error/loading capture is test-controlled.",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "public-homepage-social-card",
+      "source": "apps/web/public/social-preview.svg and social-preview.png",
+      "author": "Codex, authored for AniForge",
+      "rights": "Original repository-authored vector composition and system-font text; PNG exported with the existing Sharp dependency.",
+      "kind": "original-vector-social-card",
+      "placements": [
+        "HTML social-preview metadata"
+      ],
+      "disclosure": "Original vector illustration; live AI verification pending",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "public-homepage-favicon",
+      "source": "apps/web/public/favicon.svg",
+      "author": "Codex, authored for AniForge",
+      "rights": "Original af monogram paths; no external logo file.",
+      "kind": "vector-brand-mark",
+      "placements": [
+        "browser favicon"
+      ]
+    },
+    {
+      "id": "u3-private-preview-fixture",
+      "source": "tests/e2e/dashboard.emulator.spec.ts",
+      "author": "Created with actual AniForge drawing controls in local browser tests",
+      "rights": "Original geometric rectangle; no third-party media",
+      "kind": "saved-source-preview",
+      "placements": [
+        "U3 dashboard screenshots"
+      ],
+      "disclosure": "Actual private scene thumbnail from an original test drawing, not AI output",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "u4-saved-workspace-captures",
+      "source": "tests/e2e/workspace.emulator.spec.ts and tests/e2e/canvas.emulator.spec.ts",
+      "author": "Created with actual AniForge controls in local Chromium tests",
+      "rights": "Original geometric source drawing and repository-authored image fixture; no third-party media",
+      "kind": "actual-application-captures",
+      "placements": [
+        "docs/ui-u4/"
+      ],
+      "disclosure": "Local Firebase emulators; actual saved source, unavailable AI and recoverable local drafts. Not Google output.",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "u5-video-workspace-captures",
+      "source": "tests/e2e/video.emulator.spec.ts and tests/fixtures/*-square-test-only.mp4",
+      "author": "Actual AniForge Chromium captures with repository-authored geometric video fixtures",
+      "rights": "Original test animations and geometric drawing; no third-party media",
+      "kind": "actual-application-captures",
+      "placements": [
+        "docs/ui-u5/"
+      ],
+      "disclosure": "Local Firebase emulators and explicitly labeled TEST FIXTURE clips. These are not Google-generated results or production evidence.",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "u6-release-review-captures",
+      "source": "tests/e2e/homepage.spec.ts, ui-review.spec.ts, workspace.emulator.spec.ts and video.emulator.spec.ts",
+      "author": "Actual AniForge Chromium captures",
+      "rights": "Existing original repository vectors, saved geometric objects and explicitly labeled video fixtures; no third-party media",
+      "kind": "actual-application-captures",
+      "placements": [
+        "docs/ui-u6/"
+      ],
+      "disclosure": "Local UI review, Firebase emulators and TEST FIXTURE video; not real Google output or deployment evidence",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "playground-ui-parity-captures",
+      "source": "tests/e2e/smoke.spec.ts and tests/e2e/ui-review.spec.ts",
+      "author": "Actual AniForge Chromium captures",
+      "rights": "Original pointer-drawn stroke and application UI; no third-party media",
+      "kind": "actual-application-captures",
+      "placements": [
+        "docs/ui-playground/"
+      ],
+      "disclosure": "Unsaved local playground with AI disabled. Not Google output or deployment evidence.",
+      "actualAniforgeGeneratedOutput": false
+    }
+  ],
+  "externalReference": {
+    "url": "https://getartcraft.com/",
+    "usage": "Reference only; no site artwork, fonts, copy or logos downloaded for reuse. Visual browser review pending."
+  }
+}

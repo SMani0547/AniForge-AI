@@ -51,6 +51,18 @@ export function createApiClient(getToken: () => Promise<string | null>, baseUrl 
   return {
     listProjects: (cursor?: string) => request(`/projects${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`, projectPageSchema),
     getProject: (id: string) => request(projectPath(id), projectSchema),
+    saveThumbnail: (projectId: string, sceneId: string, revision: number, image: Blob) => request(`${scenePath(projectId, sceneId)}/thumbnail?revision=${revision}`, z.null(), 'POST', image),
+    async getThumbnail(projectId: string, signal: AbortSignal): Promise<Blob | null> {
+      const token = await getToken();
+      if (!token) throw new ApiError('Sign in to view project previews.', 401);
+      const response = await fetcher(`${baseUrl.replace(/\/$/, '')}${projectPath(projectId)}/thumbnail`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]) });
+      if (response.status === 204) return null;
+      if (!response.ok) throw new ApiError('Project preview unavailable.', response.status);
+      if (!response.headers.get('content-type')?.startsWith('image/png')) throw new ApiError('Invalid project preview.', 502);
+      const blob = await response.blob();
+      if (blob.size > 600_000) throw new ApiError('Project preview is too large.', 502);
+      return blob;
+    },
     createProject: (title: string) => request('/projects', projectSchema, 'POST', { title, description: '' }),
     renameProject: (id: string, title: string) => request(projectPath(id), projectSchema, 'PATCH', { title }),
     duplicateProject: (id: string) => request(`${projectPath(id)}/duplicate`, projectSchema, 'POST', {}),

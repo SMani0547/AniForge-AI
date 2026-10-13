@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#101114"/>
+<rect x="640" y="44" width="516" height="542" rx="28" fill="#232844"/>
+<circle cx="1012" cy="190" r="89" fill="#c3b9ee"/><circle cx="1018" cy="180" r="64" fill="#d3cbf0"/>
+<path d="m640 405 93-119 104 111 115-138 109 138 95-46v235H640Z" fill="#53577b"/>
+<path d="m640 463 130-97 117 104 103-93 166 94v115H640Z" fill="#373f61"/>
+<path d="M640 522q122-52 249-10t267 14v60H640Z" fill="#181f36"/>
+<path d="m777 586 92-95h37l-62 95Z" fill="#827eb1"/>
+<path d="M855 490v-83h88v83Z" fill="#bcc0d4"/><path d="M846 408a53 53 0 0 1 106 0Z" fill="#868cba"/>
+<path d="m898 363 53-34 7 11-53 34Z" fill="#d3cbf0"/><rect x="882" y="449" width="19" height="41" fill="#28304e"/><rect x="919" y="427" width="11" height="17" fill="#f2d89f"/>
+<g font-family="Segoe UI,Arial,sans-serif"><text x="64" y="99" fill="#f3f0e9" font-size="30" font-weight="600">aniforge AI</text>
+<text x="64" y="247" fill="#f3f0e9" font-size="72" letter-spacing="-3">Your sketch.</text><text x="64" y="329" fill="#f3f0e9" font-size="72" letter-spacing="-3">Your story.</text><text x="64" y="411" fill="#bbc4ff" font-size="72" letter-spacing="-3">In motion.</text>
+<text x="67" y="491" fill="#b4b7c1" font-size="20">A creative home for original stories.</text><text x="67" y="558" fill="#b4b7c1" font-size="14">Original vector illustration · Live AI verification pending</text></g></svg>

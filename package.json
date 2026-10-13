@@ -27,7 +27,8 @@
     "dev:emulators": "npm run build -w @aniforge/shared && node scripts/emulators.mjs dev",
     "test:emulators": "npm run build -w @aniforge/shared && node scripts/emulators.mjs test",
     "cleanup:assets": "npm run cleanup:assets -w @aniforge/api",
-    "recover:videos": "npm run recover:videos -w @aniforge/api"
+    "recover:videos": "npm run recover:videos -w @aniforge/api",
+    "review:web": "node scripts/review-web.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

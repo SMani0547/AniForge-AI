@@ -1,0 +1,95 @@
+{
+  "results": [
+    {
+      "foreground": "text",
+      "background": "bg",
+      "ratio": 16.588510552894416
+    },
+    {
+      "foreground": "text",
+      "background": "surface",
+      "ratio": 15.137116644434983
+    },
+    {
+      "foreground": "text",
+      "background": "raised",
+      "ratio": 13.307065280739643
+    },
+    {
+      "foreground": "muted",
+      "background": "bg",
+      "ratio": 9.425501740144737
+    },
+    {
+      "foreground": "muted",
+      "background": "surface",
+      "ratio": 8.600827591962524
+    },
+    {
+      "foreground": "muted",
+      "background": "raised",
+      "ratio": 7.561002331095147
+    },
+    {
+      "foreground": "accent",
+      "background": "bg",
+      "ratio": 11.1955299505987
+    },
+    {
+      "foreground": "accent",
+      "background": "surface",
+      "ratio": 10.21598908582595
+    },
+    {
+      "foreground": "accent",
+      "background": "raised",
+      "ratio": 8.980893578724482
+    },
+    {
+      "foreground": "danger",
+      "background": "bg",
+      "ratio": 11.213251080356832
+    },
+    {
+      "foreground": "danger",
+      "background": "surface",
+      "ratio": 10.232159724375123
+    },
+    {
+      "foreground": "danger",
+      "background": "raised",
+      "ratio": 8.995109214889526
+    },
+    {
+      "foreground": "success",
+      "background": "bg",
+      "ratio": 12.96703306785416
+    },
+    {
+      "foreground": "success",
+      "background": "surface",
+      "ratio": 11.832496441104885
+    },
+    {
+      "foreground": "success",
+      "background": "raised",
+      "ratio": 10.401967975439321
+    },
+    {
+      "foreground": "focus",
+      "background": "bg",
+      "ratio": 14.366603641890405
+    },
+    {
+      "foreground": "focus",
+      "background": "surface",
+      "ratio": 13.109613091436639
+    },
+    {
+      "foreground": "focus",
+      "background": "raised",
+      "ratio": 11.524683419620835
+    }
+  ],
+  "buttonRatio": 10.539043667269103
+}

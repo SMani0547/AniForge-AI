@@ -4,8 +4,9 @@ An original-art anime studio built with React, Konva, Fastify, Firebase and serv
 
 ## Current functionality
 
-- Responsive dark project gallery, Firebase Google sign-in, optional anonymous sign-in, and owner-only project CRUD/duplication backed by Firestore when configured.
-- Saved canonical scene JSON with autosave/manual save, revision conflicts, pencil/brush/eraser, shapes/text, selection/transforms, layers, inspector and undo/redo. Cloud projects use the saved editor; the separate no-sign-in playground remains explicitly **unsaved**.
+- Standalone public homepage with original artwork, interactive local examples, FAQ and direct links to saved projects or the unsaved drawing playground. It loads without Firebase or the editor.
+- Dedicated project dashboard with grid/list views, search/sort of loaded projects, private saved-source thumbnails, project action menus and dismissible onboarding. Creation opens the saved editor immediately. Firebase Google sign-in, optional anonymous sign-in and owner-only project CRUD/duplication use Firestore when configured.
+- Saved canonical scene JSON with autosave/manual save, revision conflicts, pencil/brush/eraser, shapes/text, selection/transforms, layers, inspector and undo/redo. Cloud projects use the saved editor; the separate no-sign-in playground remains explicitly **unsaved** and now uses the shared visual system with responsive tools, canvas and assistant panels. [Playground captures](docs/ui-playground/README.md).
 - Private PNG/JPEG/WEBP imports through the authenticated API, original-content affirmation and manual panel cropping. Images are validated and normalized to PNG; media bytes stay outside Firestore. Project copies receive independent images.
 - Editable shot plans and prompt preview saved with the canvas. Configured real Gemini analysis receives a private canonical snapshot and returns a separate suggestion for explicit review/apply. Revision checks, durable request IDs, attempt limits and safe error states protect existing work. Manual plans work without AI credentials.
 - Real server-only Gemini scene analysis, Omni image-to-video and conversational-edit smoke commands. They require explicit paid opt-in, a server key and original-content affirmation. No fake/live fallback exists.
@@ -26,7 +27,7 @@ npm ci
 npm run dev:emulators
 ```
 
-The frontend is at `http://127.0.0.1:5173`; choose **Continue as a guest**, create a project, and open the saved editor. Firebase Auth, Firestore and Storage run locally in the isolated `demo-aniforge` project. Gemini is disabled, and the launcher ignores personal environment files and cloud credentials. Use **Create manual shot plan** to edit and save direction without an AI call. The first run downloads official emulator binaries. See [local emulators](docs/local-emulators.md) for prerequisites, ports and data lifetime.
+The frontend is at `http://127.0.0.1:5173`; choose **Open studio**, then **Continue as a guest**, create a project, and open the saved editor. Firebase Auth, Firestore and Storage run locally in the isolated `demo-aniforge` project. Gemini is disabled, and the launcher ignores personal environment files and cloud credentials. Use **Create manual shot plan** to edit and save direction without an AI call. The first run downloads official emulator binaries. See [local emulators](docs/local-emulators.md) for prerequisites, ports and data lifetime.
 
 `npm run dev` starts the normal servers instead, using your configured environment. Without Firebase configuration, it provides only the explicitly unsaved playground and setup guidance. API health is `http://localhost:8080/health`.
 
@@ -82,7 +83,7 @@ The pinned Firebase CLI is a development dependency and currently brings transit
 
 [TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
 
-[UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md) tracks the separately requested homepage, project dashboard and editor redesign, including visual direction, implementation order and acceptance checks. It is a plan; the redesign has not been implemented yet.
+[UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md) tracks the homepage, dashboard and editor redesign. U1 provides a development-only [design lab](http://127.0.0.1:5173/design), U2 the public homepage and U3 the [project dashboard](http://127.0.0.1:5173/projects); run the local server first. U4 provides the saved Source/Video workspace with switchable phone panels; U5 adds reviewed generation, prominent playback, version comparison and a seekable preview timeline. U6 local accessibility/navigation/reflow checks and production loading measurements are documented in the [UI release review](docs/ui-release-review.md). See [actual results](docs/ui-upgrade-results.md), [dashboard behavior and setup](docs/dashboard.md), [visual system](docs/ui-design-system.md), [workspace behavior](docs/editor-workspace.md), [video workspace](docs/video-workspace.md) and [U5 screenshots](docs/ui-u5/README.md). The external Artcraft visual review and live cloud release gates remain pending.
 
 Phase 6 local release preparation is recorded in [the results](docs/phase-6-results.md). Cloud setup and live verification remain deferred by the owner; the full release is not complete. Follow the [release checklist](docs/release-checklist.md), [three-minute demo script](docs/demo-script.md) and [eight-slide outline](docs/pitch-outline.md). A [labeled local screenshot](docs/demo/README.md) documents test-fixture behavior, not Google output. The final demo video and PDF deck still need genuine evidence.
 

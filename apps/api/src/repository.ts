@@ -20,6 +20,8 @@ export interface ProjectRepository {
   uploadAsset(id: string, sceneId: string, ownerId: string, image: NormalizedImage): Promise<Asset>;
   asset(id: string, assetId: string, ownerId: string): Promise<Asset>;
   assetContent(id: string, assetId: string, ownerId: string): Promise<Buffer>;
+  thumbnail(id: string, ownerId: string): Promise<Buffer | null>;
+  saveThumbnail(id: string, sceneId: string, ownerId: string, revision: number, image: NormalizedImage): Promise<void>;
 }
 
 type AssetRecord = Asset & { storagePath: string; state: 'pending' | 'ready' | 'cleanup' };
@@ -193,6 +195,9 @@ export class FirestoreProjectRepository implements ProjectRepository {
     });
   }
   async uploadAsset(id: string, sceneId: string, ownerId: string, image: NormalizedImage): Promise<Asset> {
+    return this.storeImage(id, sceneId, ownerId, image);
+  }
+  private async storeImage(id: string, sceneId: string, ownerId: string, image: NormalizedImage, publish?: (transaction: Transaction, asset: Asset) => Promise<void>): Promise<Asset> {
     const storage = this.media(); const assetId = randomUUID(); const ref = this.ref(id).collection('assets').doc(assetId);
     const asset = assetSchema.parse({ id: assetId, ownerId, projectId: id, sceneId, mimeType: 'image/png', sizeBytes: image.bytes.length, width: image.width, height: image.height, copyrightAttested: true, createdAt: new Date().toISOString() });
     const storagePath = imageStoragePath(ownerId, id, assetId);
@@ -207,6 +212,7 @@ export class FirestoreProjectRepository implements ProjectRepository {
         await this.transactionOwner(transaction, this.ref(id), ownerId);
         const pending = (await transaction.get(ref)).data();
         if (!pending || pending.state !== 'pending') throw NOT_FOUND();
+        await publish?.(transaction, asset);
         transaction.update(ref, { state: 'ready' });
       });
       return asset;
@@ -225,6 +231,29 @@ export class FirestoreProjectRepository implements ProjectRepository {
   async asset(id: string, assetId: string, ownerId: string) { return publicAsset(await this.readAssetRecord(id, assetId, ownerId)); }
   async assetContent(id: string, assetId: string, ownerId: string) {
     const asset = await this.readAssetRecord(id, assetId, ownerId); return this.media().read(asset.storagePath);
+  }
+  async thumbnail(id: string, ownerId: string) {
+    const project = await this.get(id); assertOwner(project, ownerId);
+    const sceneId = project.sceneOrder[0]; if (!sceneId) return null;
+    const [scene, preview] = await Promise.all([this.scene(id, sceneId), this.ref(id).collection('thumbnails').doc(sceneId).get()]);
+    const raw = preview.data();
+    if (!scene || !raw || raw.revision !== scene.revision || typeof raw.assetId !== 'string') return null;
+    return this.assetContent(id, raw.assetId, ownerId);
+  }
+  async saveThumbnail(id: string, sceneId: string, ownerId: string, revision: number, image: NormalizedImage) {
+    // The preview reference and ready state publish together. A crash before
+    // publication leaves a pending reservation for the existing cleanup job.
+    let previous: string | undefined;
+    await this.storeImage(id, sceneId, ownerId, image, async (transaction, asset) => {
+        const current = (await transaction.get(this.ref(id).collection('scenes').doc(sceneId))).data();
+        const ref = this.ref(id).collection('thumbnails').doc(sceneId);
+        const old = (await transaction.get(ref)).data();
+        if (!current || current.revision !== revision) throw new ApiError(409, 'SCENE_CONFLICT', 'The scene changed before its preview was saved.');
+        if (old?.assetId) transaction.update(this.ref(id).collection('assets').doc(String(old.assetId)), { state: 'cleanup' });
+        transaction.set(ref, { assetId: asset.id, revision });
+        previous = old?.assetId as string | undefined;
+    });
+    if (previous) await this.cleanupAsset(this.ref(id).collection('assets').doc(previous), ownerId, id, previous).catch(() => {});
   }
   private async cleanupAsset(ref: DocumentReference, ownerId: string, projectId: string, assetId: string) {
     const shouldRemove = await this.db.runTransaction(async (transaction) => {

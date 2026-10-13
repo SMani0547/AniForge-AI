@@ -11,6 +11,7 @@ function fixture() {
   const scene = emptyScene(project.id, 'scene_1', project.createdAt);
   const asset: Asset = { id: 'asset_1', projectId: project.id, ownerId: 'alice', sceneId: scene.id, mimeType: 'image/png', sizeBytes: 100, width: 20, height: 10, copyrightAttested: true, createdAt: project.createdAt };
   const repository: ProjectRepository = {
+    thumbnail: async () => null, saveThumbnail: async () => {},
     list: vi.fn(async () => ({ items: [project], nextCursor: null })), get: vi.fn(async () => project),
     create: vi.fn(async () => project), update: vi.fn(async () => project),
     remove: vi.fn(async (_id, owner) => { assertOwner(project, owner); }), duplicate: vi.fn(async () => ({ ...project, id: 'copy_1' })),
