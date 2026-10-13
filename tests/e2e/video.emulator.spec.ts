@@ -27,6 +27,8 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
   const bytes = await readFile(new URL('../fixtures/original-square-test-only.mp4', import.meta.url));
   const revised = await readFile(new URL('../fixtures/revised-square-test-only.mp4', import.meta.url));
   let dispatches = 0; let edits = 0; let rejectEdit = false;
+  let mediaReads = 0;
+  page.on('request', (request) => { if (/\/versions\/[^/]+\/content$/.test(request.url())) mediaReads++; });
   const worker = new VideoWorker(ledger, repository, storage, () => ({
     async generate(input, checkpoint) {
       dispatches++; expect(input.sourceImage.bytes.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
@@ -115,7 +117,13 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
     await expect(panel.getByLabel('I own or have permission to send this scene to Google for video generation.')).toBeChecked();
     expect(queue).toHaveLength(1);
     await page.screenshot({ path: testInfo.outputPath('test-fixture-video-player.png'), fullPage: true });
-    await page.reload(); await page.getByRole('button', { name: 'Show video panel', exact: true }).click(); await expect(clip).toBeVisible();
+    await page.reload();
+    const readsAfterReload = mediaReads;
+    await expect(page.getByTestId('scene-canvas')).toBeVisible();
+    // Hidden panels are excluded from accessibility queries; inspect mounted state directly.
+    await expect(page.locator('#scene-video-panel .video-version-workspace > label select')).toHaveValue(queue[0]!.jobId);
+    expect(mediaReads).toBe(readsAfterReload);
+    await page.getByRole('button', { name: 'Show video panel', exact: true }).click(); await expect(clip).toBeVisible();
     await expect.poll(() => clip.evaluate((element) => (element as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
     await page.getByRole('textbox', { name: 'Video edit instruction', exact: true }).fill('TEST FIXTURE: make the square purple and move upward.');
     await page.getByLabel(/I own or have permission to send this video/).check();
@@ -189,6 +197,12 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: testInfo.outputPath('video-review-1280.png') });
     await page.locator('.video-comparison').screenshot({ path: testInfo.outputPath('video-comparison.png') });
+    for (const width of [768, 720]) {
+      await page.setViewportSize({ width, height: width === 720 ? 450 : 900 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({ path: testInfo.outputPath(`video-review-${width}.png`), fullPage: true });
+    }
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.locator('.video-comparison').screenshot({ path: testInfo.outputPath('video-mobile-comparison.png') });

@@ -11,7 +11,7 @@ test('unconfigured foundation exposes an honest, functional local sketch preview
   await page.getByRole('button', { name: 'Try the unsaved playground' }).click();
   await expect(page.getByRole('heading', { name: 'Sketch playground' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate animation' })).toBeDisabled();
-  await expect(page.getByText('AI generation is unavailable in this foundation preview.', { exact: false })).toBeVisible();
+  await expect(page.getByText('AI generation is unavailable in this unsaved playground.', { exact: false })).toBeVisible();
   const canvas = page.getByTestId('sketch-canvas');
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
@@ -27,6 +27,7 @@ test('unconfigured foundation exposes an honest, functional local sketch preview
   await expect(page.getByText('1 stroke', { exact: true })).toBeVisible();
   await expect(page.getByText('Preview · not saved', { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('studio-desktop.png'), fullPage: true });
+  page.once('dialog', (dialog) => { void dialog.accept(); });
   await page.reload();
   await expect(page.getByText('0 strokes', { exact: true })).toBeVisible();
   expect(browserErrors).toEqual([]);

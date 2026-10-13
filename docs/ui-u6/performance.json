@@ -1,0 +1,206 @@
+{
+  "recordedAt": "2026-10-13T02:22:59.313Z",
+  "browser": "156.0.8078.4",
+  "method": "Three fresh Chromium contexts; built Vite preview on loopback; 1440x900; no CPU/network throttling. Transfer includes local HTTP overhead. Not Lighthouse, field data or deployed latency.",
+  "runs": [
+    {
+      "domContentLoadedMs": 41.600000001490116,
+      "loadMs": 50.30000000074506,
+      "firstContentfulPaintMs": 112,
+      "largestContentfulPaintMs": 112,
+      "transferBytes": 86032,
+      "resources": [
+        {
+          "path": "/assets/index-CHq58K7k.js",
+          "encodedBodyBytes": 70184,
+          "transferBytes": 70484
+        },
+        {
+          "path": "/assets/index-Cg6W0kyR.css",
+          "encodedBodyBytes": 39,
+          "transferBytes": 339
+        },
+        {
+          "path": "/assets/Homepage-zg3dpnOF.js",
+          "encodedBodyBytes": 5643,
+          "transferBytes": 5943
+        },
+        {
+          "path": "/assets/primitives-PjCUHI0b.css",
+          "encodedBodyBytes": 1784,
+          "transferBytes": 2084
+        },
+        {
+          "path": "/assets/primitives-DV7twNG2.js",
+          "encodedBodyBytes": 1177,
+          "transferBytes": 1477
+        },
+        {
+          "path": "/assets/eye-BozYEZEx.js",
+          "encodedBodyBytes": 819,
+          "transferBytes": 1119
+        },
+        {
+          "path": "/assets/Homepage-DoFzHl12.css",
+          "encodedBodyBytes": 3345,
+          "transferBytes": 3645
+        }
+      ]
+    },
+    {
+      "domContentLoadedMs": 31.199999999254942,
+      "loadMs": 37.899999998509884,
+      "firstContentfulPaintMs": 100,
+      "largestContentfulPaintMs": 100,
+      "transferBytes": 86032,
+      "resources": [
+        {
+          "path": "/assets/index-CHq58K7k.js",
+          "encodedBodyBytes": 70184,
+          "transferBytes": 70484
+        },
+        {
+          "path": "/assets/index-Cg6W0kyR.css",
+          "encodedBodyBytes": 39,
+          "transferBytes": 339
+        },
+        {
+          "path": "/assets/Homepage-zg3dpnOF.js",
+          "encodedBodyBytes": 5643,
+          "transferBytes": 5943
+        },
+        {
+          "path": "/assets/primitives-DV7twNG2.js",
+          "encodedBodyBytes": 1177,
+          "transferBytes": 1477
+        },
+        {
+          "path": "/assets/eye-BozYEZEx.js",
+          "encodedBodyBytes": 819,
+          "transferBytes": 1119
+        },
+        {
+          "path": "/assets/primitives-PjCUHI0b.css",
+          "encodedBodyBytes": 1784,
+          "transferBytes": 2084
+        },
+        {
+          "path": "/assets/Homepage-DoFzHl12.css",
+          "encodedBodyBytes": 3345,
+          "transferBytes": 3645
+        }
+      ]
+    },
+    {
+      "domContentLoadedMs": 31.399999998509884,
+      "loadMs": 39.30000000074506,
+      "firstContentfulPaintMs": 100,
+      "largestContentfulPaintMs": 100,
+      "transferBytes": 86032,
+      "resources": [
+        {
+          "path": "/assets/index-CHq58K7k.js",
+          "encodedBodyBytes": 70184,
+          "transferBytes": 70484
+        },
+        {
+          "path": "/assets/index-Cg6W0kyR.css",
+          "encodedBodyBytes": 39,
+          "transferBytes": 339
+        },
+        {
+          "path": "/assets/Homepage-zg3dpnOF.js",
+          "encodedBodyBytes": 5643,
+          "transferBytes": 5943
+        },
+        {
+          "path": "/assets/primitives-PjCUHI0b.css",
+          "encodedBodyBytes": 1784,
+          "transferBytes": 2084
+        },
+        {
+          "path": "/assets/primitives-DV7twNG2.js",
+          "encodedBodyBytes": 1177,
+          "transferBytes": 1477
+        },
+        {
+          "path": "/assets/eye-BozYEZEx.js",
+          "encodedBodyBytes": 819,
+          "transferBytes": 1119
+        },
+        {
+          "path": "/assets/Homepage-DoFzHl12.css",
+          "encodedBodyBytes": 3345,
+          "transferBytes": 3645
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "App-DhVru08X.css",
+      "bytes": 47580,
+      "gzipBytes": 10925
+    },
+    {
+      "name": "App-DU4WKqNl.js",
+      "bytes": 230015,
+      "gzipBytes": 67798
+    },
+    {
+      "name": "CanvasEditor-CW1XrJmA.css",
+      "bytes": 20471,
+      "gzipBytes": 4253
+    },
+    {
+      "name": "CanvasEditor-HZgqxjN-.js",
+      "bytes": 80908,
+      "gzipBytes": 24013
+    },
+    {
+      "name": "eye-BozYEZEx.js",
+      "bytes": 819,
+      "gzipBytes": 418
+    },
+    {
+      "name": "Homepage-DoFzHl12.css",
+      "bytes": 14392,
+      "gzipBytes": 3345
+    },
+    {
+      "name": "Homepage-zg3dpnOF.js",
+      "bytes": 18247,
+      "gzipBytes": 5643
+    },
+    {
+      "name": "index-Cg6W0kyR.css",
+      "bytes": 39,
+      "gzipBytes": 59
+    },
+    {
+      "name": "index-CHq58K7k.js",
+      "bytes": 224336,
+      "gzipBytes": 70184
+    },
+    {
+      "name": "primitives-DV7twNG2.js",
+      "bytes": 2505,
+      "gzipBytes": 1177
+    },
+    {
+      "name": "primitives-PjCUHI0b.css",
+      "bytes": 6000,
+      "gzipBytes": 1784
+    },
+    {
+      "name": "ReactKonvaCore-C6-LamQd.js",
+      "bytes": 335606,
+      "gzipBytes": 103116
+    },
+    {
+      "name": "SketchPreview-CMBAGgnj.js",
+      "bytes": 5437,
+      "gzipBytes": 2211
+    }
+  ]
+}

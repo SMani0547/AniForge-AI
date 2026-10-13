@@ -1,6 +1,6 @@
 # AniForge AI — UI upgrade roadmap
 
-Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation, U2 public homepage, U3 project dashboard, U4 source workspace and U5 video workspace implemented; external reference visual review pending. U6 remains planned.** See [actual UI results](docs/ui-upgrade-results.md), `/`, `/projects` and the development-only `/design` preview.
+Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation, U2 public homepage, U3 project dashboard, U4 source workspace and U5 video workspace implemented; external reference visual review pending. U6 local review passed; live cloud release remains deferred.** See [actual UI results](docs/ui-upgrade-results.md), `/`, `/projects` and the development-only `/design` preview.
 
 ## Brief
 
@@ -31,9 +31,9 @@ The drawing editor must open **before** AI analysis or video generation. A new p
 
 - U2 separated the public homepage from application loading; U3 replaced the mixed introduction/gallery with a dedicated project workspace.
 - U3 adds private source thumbnails and scoped search/sort. Blank/older/duplicated scenes show an explicit empty preview until a saved source thumbnail is available.
-- Canvas controls, shot planning, generation and video versions create a long page. Key editing actions need a consistent workspace layout.
+- U4/U5 provide separate Source/Video workspaces. Long video forms still require vertical scrolling on compact screens.
 - Most presentation lives in a large `styles.css`; reusable components and visual tokens need clear ownership.
-- The playground contains outdated foundation/later-milestone copy. Technical setup guidance occupies product-facing space.
+- U6 updated playground availability copy. Public/dashboard and saved editor/playground branding still use different treatments.
 - Existing persistence, private assets, job recovery and version behavior are valuable foundations. Presentation changes must preserve these working paths.
 
 ## Phase U1 — visual foundation and screen designs
@@ -119,17 +119,19 @@ The local design/interaction acceptance is met. The external reference review re
 
 ## Phase U6 — accessibility, performance and release review
 
-- [ ] Audit keyboard navigation, dialog focus/return, Escape behavior, labels, focus visibility and screen-reader announcements. Target WCAG AA contrast and respect reduced motion.
-- [ ] Review 390px, 768px, 1280px and 1440px viewports plus 200% zoom; fix clipped controls, unintended horizontal page scrolling and unreadable labels.
-- [ ] Verify route refresh, browser back/forward, direct project links, signed-out redirects and unsaved-change guards after the route split.
-- [ ] Capture/review homepage, dashboard, empty source editor, populated editor and revision screenshots. Document both strengths and remaining issues.
-- [ ] Measure production landing-page load and bundle changes. Lazy-load canvas/video UI, size images responsively and defer offscreen media; record measurements rather than claiming a performance score without a run.
-- [ ] Run appropriate interaction/browser tests for changed flows, preserving emulator ownership/persistence/recovery coverage. Avoid tests that merely assert CSS classes.
-- [ ] Run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` after each implementation milestone; run `npm run test:e2e` and `npm run test:emulators` when routes or app interactions change, and both for final review.
-- [ ] Record actual commands, counts, screenshots, bundle measurements and blockers in `docs/ui-upgrade-results.md`; make a focused commit per implementation milestone.
-- [ ] Run the existing release checklist when cloud setup is ready. Passing UI checks must not mark real Gemini, private-worker, container or deployed-user gates complete.
+- [x] Audit keyboard navigation, dialog focus/return, Escape behavior, labels, focus visibility and screen-reader announcements. Target WCAG AA contrast and respect reduced motion.
+- [x] Review 390px, 768px, 1280px and 1440px viewports plus 200% zoom-equivalent reflow (720 x 450 CSS viewport on a 1440 x 900 baseline); fix clipped controls, unintended horizontal page scrolling and unreadable labels.
+- [x] Verify route refresh, browser back/forward, direct project links, signed-out redirects and unsaved-change guards after the route split.
+- [x] Capture/review homepage, dashboard, empty source editor, populated editor and revision screenshots. Document both strengths and remaining issues.
+- [x] Measure production landing-page load and bundle changes. Lazy-load canvas/video UI, size images responsively and defer offscreen media; record measurements rather than claiming a performance score without a run.
+- [x] Run appropriate interaction/browser tests for changed flows, preserving emulator ownership/persistence/recovery coverage. Avoid tests that merely assert CSS classes.
+- [x] Run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` after each implementation milestone; run `npm run test:e2e` and `npm run test:emulators` when routes or app interactions change, and both for final review.
+- [x] Record actual commands, counts, screenshots, bundle measurements and blockers in `docs/ui-upgrade-results.md`; make a focused commit per implementation milestone.
+- [ ] Run the existing release checklist when cloud setup is ready. **Deferred by the owner; live gates remain open.** Passing UI checks must not mark real Gemini, private-worker, container or deployed-user gates complete.
 
 **Acceptance:** the redesign feels consistent across marketing and application screens, existing behavior passes regression checks and all advertised capabilities are accurately represented.
+
+**Local acceptance met:** navigation/draft guards, dialog/help focus, core theme contrast, responsive layouts and deferred media pass. Built-homepage timing and bundle measurements are recorded. Native browser zoom controls and manual screen-reader/cross-browser reviews are not claimed. See [review scope](docs/ui-release-review.md), [evidence](docs/ui-u6/README.md) and [actual results](docs/ui-upgrade-results.md). Cloud credentials, real Google output and deployment remain separate pending gates.
 
 ## Execution order and dependencies
 

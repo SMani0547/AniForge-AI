@@ -3,6 +3,7 @@ import { Layer, Line, Rect, Stage } from 'react-konva';
 import type Konva from 'konva';
 import { Brush, Eraser, Pencil, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { emptySketch, sketchReducer, type SketchTool, type Stroke } from './sketch';
+import { setNavigationGuard } from './navigationGuard';
 
 const tools = [{ id: 'pencil', name: 'Pencil', icon: Pencil }, { id: 'brush', name: 'Brush', icon: Brush }, { id: 'eraser', name: 'Eraser', icon: Eraser }] as const;
 const colors = ['#e8edf7', '#75a7ff', '#bc9bff', '#ffbfa1', '#8cddc5'];
@@ -17,6 +18,14 @@ export function SketchPreview() {
   const stage = useRef<Konva.Stage>(null);
   const drawing = useRef<Stroke | null>(null);
   const scale = width / 1920;
+
+  useEffect(() => {
+    const dirty = history.present.length > 0 || draft !== null;
+    setNavigationGuard(() => !dirty || window.confirm('This playground drawing is not saved. Leave and discard it?'));
+    function beforeUnload(event: BeforeUnloadEvent) { if (dirty) { event.preventDefault(); event.returnValue = ''; } }
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => { setNavigationGuard(null); window.removeEventListener('beforeunload', beforeUnload); };
+  }, [history.present, draft]);
 
   useEffect(() => {
     const element = frame.current;

@@ -37,7 +37,13 @@ test('workspace preserves drafts across views and canonical drawing through desk
     await page.goto('/projects');
     await page.getByRole('button', { name: 'Continue as a guest' }).click();
     await page.getByRole('button', { name: 'New project', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'New project', exact: true })).toBeFocused();
+    await page.keyboard.press('Enter');
     await page.getByLabel('Project name').fill('Original motion study');
+    await page.getByRole('button', { name: 'Create project', exact: true }).focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Close dialog', exact: true })).toBeFocused();
     const loaded = page.waitForResponse((response) => /\/projects\/[^/]+\/scenes$/.test(response.url()));
     await page.getByRole('button', { name: 'Create project', exact: true }).click();
     const scene = ((await (await loaded).json()) as ApiEnvelope<Scene[]>).data![0]!;
@@ -52,8 +58,25 @@ test('workspace preserves drafts across views and canonical drawing through desk
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({ path: testInfo.outputPath(name), fullPage: true });
     };
-    const noOverflow = async () => expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const noOverflow = async () => {
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      const nav = page.locator('.af-editor-app .app-header nav');
+      if (await nav.isVisible()) {
+        const header = (await page.locator('.af-editor-app .app-header').boundingBox())!;
+        const box = (await nav.boundingBox())!;
+        expect(box.y + box.height).toBeLessThanOrEqual(header.y + header.height + 1);
+      }
+    };
     await expect(canvas).toBeVisible();
+    const help = page.locator('summary').filter({ hasText: 'Shortcuts & help' });
+    await help.focus(); await page.keyboard.press('Enter');
+    await expect(page.getByText('V Select / P Pencil / B Brush / E Eraser / H Pan / F Fit / Esc Deselect')).toBeVisible();
+    await page.keyboard.press('Escape'); await expect(help).toBeFocused();
+    await expect(page.getByText('V Select / P Pencil / B Brush / E Eraser / H Pan / F Fit / Esc Deselect')).not.toBeVisible();
+    await button('Import image').click();
+    await expect(page.getByRole('dialog', { name: 'Import an original image' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(button('Import image')).toBeFocused();
     await capture('workspace-empty-1440.png');
     await button('Add rectangle').click();
     await page.getByLabel('Width', { exact: true }).fill('850');
@@ -117,6 +140,14 @@ test('workspace preserves drafts across views and canonical drawing through desk
     // Visually hidden fieldset legends must stay inside the scrollable inspector.
     expect(await page.evaluate(() => document.documentElement.scrollHeight - document.querySelector('main')!.getBoundingClientRect().bottom - scrollY)).toBeLessThanOrEqual(1);
     await capture('workspace-local-draft.png');
+    const currentUrl = page.url();
+    const historyLength = await page.evaluate(() => window.history.length);
+    page.once('dialog', (dialog) => { void dialog.dismiss(); });
+    await page.evaluate(() => window.history.back());
+    await expect(page).toHaveURL(currentUrl);
+    await expect.poll(() => page.evaluate(() => window.history.state.aniforgeIndex)).toBe(1);
+    expect(await page.evaluate(() => window.history.length)).toBe(historyLength);
+    await expect(page.getByRole('textbox', { name: 'Scene summary', exact: true })).toHaveValue('Unsaved original direction');
     page.once('dialog', (dialog) => { void dialog.accept(); });
     await button('Remove shot plan').click();
     await saved();
@@ -164,6 +195,29 @@ test('workspace preserves drafts across views and canonical drawing through desk
     await button('Video').click();
     await noOverflow();
     await capture('workspace-mobile-video.png');
+    for (const width of [768, 1280, 1440, 720]) {
+      await page.setViewportSize({ width, height: width === 720 ? 450 : 900 });
+      await noOverflow();
+      await capture(`review-video-${width}.png`);
+      await button('Source').click();
+      if (width <= 1000) await button('Canvas').click();
+      await noOverflow();
+      await capture(`review-source-${width}.png`);
+      if (width <= 1000) {
+        for (const panel of ['Tools & layers', 'Inspector']) { await button(panel).click(); await noOverflow(); }
+      }
+      await button('Video').click();
+    }
+    await button('Back to projects').click();
+    await expect(page.getByRole('heading', { name: /Your projects/ })).toBeVisible();
+    await page.goBack();
+    await expect(canvas).toHaveAttribute('aria-label', 'Editable scene canvas with 6 objects');
+    await page.goForward();
+    await expect(page.getByRole('heading', { name: /Your projects/ })).toBeVisible();
+    for (const width of [390, 768, 1280, 1440, 720]) {
+      await page.setViewportSize({ width, height: width === 720 ? 450 : 900 });
+      await noOverflow(); await capture(`review-dashboard-${width}.png`);
+    }
     expect(paidRequests).toBe(0);
     expect(errors).toEqual([]);
   } finally {

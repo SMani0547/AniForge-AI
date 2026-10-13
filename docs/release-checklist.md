@@ -2,6 +2,8 @@
 
 Phase 6 local preparation is separate from release approval. **No production deployment or real Google output is verified yet.** The owner chose to defer cloud/account setup. Do not check a live gate from an emulator, provider fixture, configuration status or health response.
 
+The subsequent UI U6 [local review](ui-release-review.md) adds navigation/accessibility/reflow evidence, deferred video loading and built-homepage measurements. It does not close any live gate below. Reproduce the loading report with `npm run build` followed by `npm run review:web`.
+
 ## Build and inspect locally
 
 Run from the repository root with Node 24 and installed dependencies:

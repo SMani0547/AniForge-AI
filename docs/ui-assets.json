@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "recordedOn": "2026-10-13",
   "assets": [
     {
@@ -124,6 +124,18 @@
         "docs/ui-u5/"
       ],
       "disclosure": "Local Firebase emulators and explicitly labeled TEST FIXTURE clips. These are not Google-generated results or production evidence.",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "u6-release-review-captures",
+      "source": "tests/e2e/homepage.spec.ts, ui-review.spec.ts, workspace.emulator.spec.ts and video.emulator.spec.ts",
+      "author": "Actual AniForge Chromium captures",
+      "rights": "Existing original repository vectors, saved geometric objects and explicitly labeled video fixtures; no third-party media",
+      "kind": "actual-application-captures",
+      "placements": [
+        "docs/ui-u6/"
+      ],
+      "disclosure": "Local UI review, Firebase emulators and TEST FIXTURE video; not real Google output or deployment evidence",
       "actualAniforgeGeneratedOutput": false
     }
   ],

@@ -1,5 +1,45 @@
 # UI upgrade results
 
+## U6 — local accessibility, performance and release review
+
+Recorded October 13, 2026 (Pacific/Fiji). **Local U6 review passed. Cloud release remains deferred.** [Review scope and remaining limits](ui-release-review.md), [14 captures and raw measurements](ui-u6/README.md) and the roadmap are updated.
+
+### Findings and changes
+
+- Cancelling browser Back previously pushed a replacement history entry. Indexed app history now restores the existing entry, preserving forward navigation. Saved drafts and unsaved playground drawings are guarded; the playground also warns on refresh/close.
+- App routes now have distinct titles and focusable main landmarks. Route changes focus main content, image-import dialogs restore trigger focus, and editor shortcut help supports Escape. Existing project-dialog focus trapping/return, labeled inputs, layer actions, status/error announcements and reduced motion remain covered.
+- Visual review found tablet navigation overlapping the next section at 720–768px. The editor header now grows to contain wrapped navigation; a bounds assertion prevents regression.
+- Hidden Video views now defer private MP4 downloads until a player is first shown. Loaded players retain media across view changes, and job polling/request recovery continue without automatic paid calls. The homepage still loads independently of Firebase, Konva and editor code.
+- Playground copy now describes its current unsaved scope instead of promising a later milestone. No dependency, credential, API schema or cloud service was added.
+
+### Actual validation
+
+| Command / check | Result |
+| --- | --- |
+| `npm.cmd run typecheck` | Passed shared/API/web and tooling, including new browser tests. |
+| `npm.cmd run lint` | Passed. |
+| `npm test` | 200 tests passed across 15 files. |
+| `npm run test:e2e` | 12 tests passed in 40.8 seconds, zero retries. |
+| `npm run test:emulators` | 40 tests passed in 1.9 minutes, zero retries. |
+| `npm run build` | Shared/API/web production build passed; artifact scan passed across 17 files. |
+| `npm run test:built-api` | Passed HTTP health, missing-token rejection, private-worker route separation and CORS. No live integration. |
+| `npm run review:web` | Three fresh production-build Chromium loads passed; no browser errors or editor/cloud requests. |
+| Visual / keyboard review | 390/768/1280/1440 widths and 720 x 450 zoom-equivalent reflow; no horizontal page overflow. Dialog/help/route focus and guarded navigation passed. |
+
+The new public scenarios verify core computed color pairs, focus indication, reduced motion, all four widths, zoom-equivalent reflow, cancelled/accepted browser Back, preserved forward history, playground loss warnings and route refresh. Expanded emulator scenarios verify project-dialog Tab/Escape/return, import focus, help dismissal, saved draft cancellation, back/forward to a saved project, tablet header containment, dashboard/source/video reflow, and no private MP4 request while Source is open. Existing ownership, immutable versions, independent playback, request replay, exact exports and failure recovery continue passing with real Firebase emulators and explicitly labeled provider fixtures.
+
+Two initial emulator runs passed 39/40. Both failures were the new test looking up a control while the Video panel was intentionally hidden (first via role, then exact label text). A direct mounted-state locator fixed that assertion without changing its expected selection or request-count checks. The final full suite passed. Existing Java deprecated-Unsafe, emulator listener-count, Playwright color and Zod/Rollup annotation warnings remain visible. Emulators and the measurement server/browser closed cleanly.
+
+### Measurements and limits
+
+The built homepage transferred **86,032 bytes** including local HTTP overhead in each fresh context (document plus seven resources). FCP/LCP were **112/112, 100/100 and 100/100 ms**. This is unthrottled loopback measurement on Chromium 156.0.8078.4, not deployed latency or a performance score. Raw timings, resource sizes and build artifacts are archived in [performance JSON](ui-u6/performance.json).
+
+Compared with U5, Homepage JS remains **18.25 kB / 5.64 kB gzip**. CanvasEditor JS is **80.91 / 24.01 kB** versus **80.55 / 23.79 kB**; its CSS is **20.47 / 4.25 kB** versus **20.38 / 4.24 kB**. App JS is **230.02 / 67.80 kB** versus **229.37 / 67.62 kB**. These increases contain navigation/accessibility/media guards; they are not loaded by the homepage. No before/after field-performance improvement is claimed.
+
+The [contrast report](ui-u6/theme-contrast.json) covers core text/surface pairs, primary-button text and focus colors, not every rendered pixel. 200% was exercised through the equivalent CSS viewport; native browser zoom controls were not manually tested. Manual screen-reader use, Safari/Firefox/mobile-device testing and a full accessibility conformance audit remain unverified. Long video forms require vertical scrolling, and brand treatment differs between the public/dashboard and saved editor/playground surfaces.
+
+Production authentication, billed Google analysis/video/edit, deployed IAM/privacy/worker checks, Docker and remote CI remain pending. No live output was simulated and no production deployment was attempted. The U1 external reference visual inspection remains open. All required cloud credentials and setup steps remain documented in [cloud setup](cloud-setup.md), [worker setup](video-worker-setup.md) and the [release checklist](release-checklist.md); U6 requires none beyond the existing local setup.
+
 ## U5 — generation, versions and timeline
 
 Recorded October 13, 2026 (Pacific/Fiji). **Local U5 implementation and acceptance passed.** The Video workspace now leads with playback and parent comparison, with a source/plan/consent checklist alongside it. U6 accessibility, performance and release review is next.

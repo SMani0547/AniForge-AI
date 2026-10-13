@@ -12,16 +12,19 @@ export function VideoPreview({ api, projectId, versionId, label, timeline, onDur
   const [time, setTime] = useState(0);
   const video = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [activated, setActivated] = useState(visible);
+  useEffect(() => { if (visible) setActivated(true); }, [visible]);
   useEffect(() => { onErrorChange?.(error); }, [error, onErrorChange]);
   useEffect(() => { if (!visible) video.current?.pause(); }, [visible]);
   useEffect(() => {
+    if (!activated) return;
     const controller = new AbortController(); let localUrl = ''; let active = true;
     setUrl(''); setError(''); setDuration(null); setTime(0); onDuration?.(null);
     void api.getVideoContent(projectId, versionId, controller.signal).then((blob) => {
       if (active) { localUrl = URL.createObjectURL(blob); setUrl(localUrl); }
     }).catch((reason: unknown) => { if (active) setError(errorMessage(reason)); });
     return () => { active = false; controller.abort(); if (localUrl) URL.revokeObjectURL(localUrl); };
-  }, [api, projectId, versionId, retry, onDuration]);
+  }, [api, projectId, versionId, retry, onDuration, activated]);
   const valid = !!timeline && duration !== null && !timelineIssue(timeline, duration);
   const captions = timeline && valid ? captionsAt(timeline, time) : [];
   function enforceRange(element: HTMLVideoElement, starting = false) {

@@ -15,7 +15,7 @@ export function ImportDialog({ onClose, onImport }: { onClose: () => void; onImp
   const [attested, setAttested] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { const element = dialog.current; element?.showModal(); return () => element?.close(); }, []);
+  useEffect(() => { const element = dialog.current; const trigger = document.activeElement; element?.showModal(); return () => { element?.close(); if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus(); }; }, []);
   useEffect(() => {
     if (!file) { setUrl(''); return; }
     const next = URL.createObjectURL(file); setUrl(next);

@@ -8,7 +8,7 @@ Source and Video are views of one scene. Show video panel also opens the existin
 
 ## State and recovery
 
-`CanvasEditor` owns one history, selection, tool, zoom/pan and `SceneSaver`. Source, `AnalysisPanel`, `GenerationPanel` and `VideoVersionsPanel` remain mounted when hidden. They retain local notes, consent, suggestions, request IDs and timeline drafts. Visibility switches are deliberately absent from fetch/poll effect dependencies. Existing polling continues while the video panel is closed; there is one poll owner, and no automatic paid retry.
+`CanvasEditor` owns one history, selection, tool, zoom/pan and `SceneSaver`. Source, `AnalysisPanel`, `GenerationPanel` and `VideoVersionsPanel` remain mounted when hidden. They retain local notes, consent, suggestions, request IDs and timeline drafts. Metadata polling continues while the video panel is closed; there is one poll owner, and no automatic paid retry. U6 defers each private MP4 fetch until its player is first shown, then retains that media across view toggles without refetching it.
 
 The global save status and download/reload/retry actions remain outside hidden panels. Analysis results and video activity/errors produce visible notices with an action to reopen their panel, including on compact screens. Server conflicts retain the local document. Incomplete shot plans remain in memory and prevent saving the combined scene; fill the required fields, remove the incomplete plan, or download the local document. Closing the page still loses unsaved local edits after confirmation. This phase does not add offline persistence.
 
@@ -33,4 +33,4 @@ Shortcuts pause in text inputs, textareas, selects, editable content, open dialo
 
 No new credential, cloud service, package or API schema is required by U4. Local saved projects use the existing Firebase emulator setup (`npm run dev:emulators`); run the web/API services according to the repository README. See [credential inventory and setup](cloud-setup.md) and the [release checklist](release-checklist.md) for production requirements. Production Firebase/Google access and paid Gemini evidence remain separate release gates.
 
-U5 now provides the [generation, comparison and timeline workspace](video-workspace.md) while preserving these request/state owners. It does not add multiclip editing, baked MP4 captions, generated layers or live AI evidence. U6 owns the broader accessibility and performance audit.
+U5 now provides the [generation, comparison and timeline workspace](video-workspace.md) while preserving these request/state owners. It does not add multiclip editing, baked MP4 captions, generated layers or live AI evidence. The [U6 local review](ui-release-review.md) records the broader accessibility and performance checks and their limits.
