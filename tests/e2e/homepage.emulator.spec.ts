@@ -39,7 +39,6 @@ test('public homepage reaches configured projects and a blank saved editor witho
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Project name').fill('Homepage entry test');
   await dialog.getByRole('button', { name: 'Create project', exact: true }).click();
-  await page.getByRole('button', { name: 'Open Homepage entry test', exact: true }).click();
   await expect(page.getByTestId('scene-canvas')).toHaveAttribute('aria-label', 'Editable scene canvas with 0 objects');
   await expect(page.getByRole('button', { name: 'Generate animation' })).toBeDisabled();
   await page.getByRole('button', { name: 'AniForge home' }).click();

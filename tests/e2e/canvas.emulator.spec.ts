@@ -14,11 +14,8 @@ test('guest imports, edits, saves and reloads an actual editable scene through F
   await page.getByRole('button', { name: 'New project', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Project name').fill('Original geometric scene');
-  await dialog.getByRole('button', { name: 'Create project', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Open Original geometric scene', exact: true })).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath('baseline-dashboard-populated.png'), fullPage: true });
   const firstScenes = page.waitForResponse((response) => /\/api\/v1\/projects\/[^/]+\/scenes$/.test(response.url()) && response.request().method() === 'GET');
-  await page.getByRole('button', { name: 'Open Original geometric scene', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Create project', exact: true }).click();
   const sceneResponse = await firstScenes;
   const first = ((await sceneResponse.json()) as ApiEnvelope<Scene[]>).data![0]!;
   const authorization = await sceneResponse.request().headerValue('authorization');

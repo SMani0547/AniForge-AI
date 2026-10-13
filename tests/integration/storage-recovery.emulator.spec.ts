@@ -3,6 +3,7 @@ import { deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { randomUUID } from 'node:crypto';
+import sharp from 'sharp';
 import type { CanvasObject } from '@aniforge/shared';
 import { FirestoreProjectRepository } from '../../apps/api/src/repository.js';
 import { CloudAssetStorage, projectStoragePrefix, type AssetStorage } from '../../apps/api/src/assets/storage.js';
@@ -56,6 +57,40 @@ test.afterEach(async () => {
   owners.clear();
 });
 test.afterAll(async () => { await deleteApp(admin); });
+
+test('private thumbnail is revision-bound, replaces old media and survives cleanup retry', async () => {
+  const { repository, owner, storage } = fixture();
+  const project = await repository.create(owner, 'Preview source', '');
+  const scene = (await repository.scenes(project.id))[0]!;
+  const image = { bytes: await sharp({ create: { width: 480, height: 270, channels: 3, background: '#75a7ff' } }).png().toBuffer(), width: 480, height: 270 };
+  expect(await repository.thumbnail(project.id, owner)).toBeNull();
+  await repository.saveThumbnail(project.id, scene.id, owner, 0, image);
+  expect(await repository.thumbnail(project.id, owner)).toEqual(image.bytes);
+  await expect(repository.thumbnail(project.id, 'another-owner')).rejects.toMatchObject({ statusCode: 404 });
+  const saved = await repository.updateScene(project.id, scene.id, owner, { expectedRevision: 0, title: 'Changed' });
+  expect(await repository.thumbnail(project.id, owner)).toBeNull();
+  await expect(repository.saveThumbnail(project.id, scene.id, owner, 0, image)).rejects.toMatchObject({ code: 'SCENE_CONFLICT' });
+  storage.failRemove = true;
+  await repository.saveThumbnail(project.id, scene.id, owner, saved.revision, image);
+  expect(await repository.thumbnail(project.id, owner)).toEqual(image.bytes);
+  expect((await db.collection(`projects/${project.id}/assets`).where('state', '==', 'cleanup').get()).size).toBe(1);
+  await repository.retryPendingCleanup();
+  const [files] = await bucket.getFiles({ prefix: projectStoragePrefix(owner, project.id) });
+  expect(files).toHaveLength(1);
+  await repository.remove(project.id, owner);
+  expect((await bucket.getFiles({ prefix: projectStoragePrefix(owner, project.id) }))[0]).toHaveLength(0);
+});
+
+test('deletion during thumbnail upload never publishes a late preview', async () => {
+  const { repository, owner, storage } = fixture();
+  const project = await repository.create(owner, 'Deleted preview', '');
+  const scene = (await repository.scenes(project.id))[0]!;
+  storage.afterPut = async () => { await repository.remove(project.id, owner); };
+  const bytes = await sharp({ create: { width: 480, height: 270, channels: 3, background: '#000000' } }).png().toBuffer();
+  await expect(repository.saveThumbnail(project.id, scene.id, owner, 0, { bytes, width: 480, height: 270 })).rejects.toMatchObject({ statusCode: 404 });
+  expect((await db.collection(`projects/${project.id}/thumbnails`).get()).empty).toBe(true);
+  expect((await bucket.getFiles({ prefix: projectStoragePrefix(owner, project.id) }))[0]).toHaveLength(0);
+});
 
 test('upload write failure retains a cleanup reservation until real storage deletion succeeds', async () => {
   const { repository, owner, storage } = fixture();

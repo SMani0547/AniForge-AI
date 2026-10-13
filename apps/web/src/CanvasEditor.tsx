@@ -12,6 +12,7 @@ import { ImageCropInspector } from './ImageCropInspector';
 import { setNavigationGuard } from './navigationGuard';
 import { AnalysisPanel } from './AnalysisPanel';
 import { GenerationPanel } from './GenerationPanel';
+import { renderCanonicalSnapshot } from './snapshot';
 
 const drawingTools = [{ id: 'select', name: 'Select', icon: MousePointer2 }, { id: 'pencil', name: 'Pencil', icon: Pencil }, { id: 'brush', name: 'Brush', icon: Brush }, { id: 'eraser', name: 'Eraser', icon: Eraser }, { id: 'pan', name: 'Pan canvas', icon: Hand }] as const;
 const shapeTools = [{ id: 'rect', name: 'Add rectangle', icon: Square }, { id: 'ellipse', name: 'Add ellipse', icon: Circle }, { id: 'line', name: 'Add line', icon: Minus }, { id: 'text', name: 'Add text', icon: Type }] as const;
@@ -52,6 +53,17 @@ export function CanvasEditor({ scene, api, onReload }: { scene: Scene; api: Proj
   const scale = width / 1920 * zoom;
 
   useEffect(() => saver.subscribe(setSaveState), [saver]);
+  useEffect(() => {
+    if (saveState.status !== 'saved' || saveState.dirty || !saver.document.canvas.objects.length) return;
+    let active = true;
+    const savedCanvas = saver.document.canvas;
+    const timer = setTimeout(() => {
+      void renderCanonicalSnapshot(savedCanvas, (id) => api.getAssetContent(scene.projectId, id), 0.25)
+        .then(async (image) => { if (active) await api.saveThumbnail(scene.projectId, scene.id, saveState.revision, image); })
+        .catch(() => { /* Optional preview failure never changes saved source or blocks editing. Gallery shows an explicit unavailable preview. */ });
+    }, 700);
+    return () => { active = false; clearTimeout(timer); };
+  }, [api, saver, scene.id, scene.projectId, saveState.status, saveState.dirty, saveState.revision]);
   useEffect(() => {
     if (saveState.status !== 'unsaved') return;
     const timeout = setTimeout(() => { void saver.save(); }, 900);

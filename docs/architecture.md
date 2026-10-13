@@ -31,6 +31,8 @@ Production API startup requires a Cloud project ID. Local health can boot withou
 
 ## Data and trust boundaries
 
+UI U3 adds an owner-authenticated thumbnail cache for the project dashboard. The saved editor renders 480×270 PNGs; the API validates dimensions and revision before atomically publishing a private asset and thumbnail reference. Cards fetch only nearby small previews, without loading source JSON or Konva into the library. Existing asset cleanup handles replacement and interrupted publication. No source schema, Firebase rules or provider contract changes are required. See [dashboard design and lifecycle](dashboard.md).
+
 Project documents live at `projects/{projectId}` and contain `ownerId`; scenes are children at `projects/{projectId}/scenes/{sceneId}`. Every user route authenticates before accessing a project and checks ownership before reading or mutating its scenes. Cross-owner access is concealed with 404. Client-provided ownership and timestamps never authorize an operation. Zod schemas define accepted input and output.
 
 Analysis records live at `projects/{projectId}/analyses/{analysisId}` and contain input fingerprints, source revision, private snapshot reference, state, safe error/result and a server-only provider interaction ID. `analysisUsage/{hashedUid}` stores the owner, UTC-day attempt count and bounded active reservation across API instances. These are accessed only through Firebase Admin. Usage survives project deletion so deleting a project cannot reset the allowance. Completed/failed request IDs are not automatically re-dispatched; a crash may leave a pending ID requiring provider inspection.

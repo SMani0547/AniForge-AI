@@ -22,6 +22,7 @@ function fixture() {
   scene.shotPlan = structuredClone(plan);
   const asset: Asset = { id: 'snapshot_1', projectId: project.id, ownerId: 'alice', sceneId: scene.id, mimeType: 'image/png', width: 1920, height: 1080, sizeBytes: 8, copyrightAttested: true, createdAt: project.createdAt };
   const repository: ProjectRepository = {
+    thumbnail: async () => null, saveThumbnail: async () => {},
     get: vi.fn(async () => project), list: vi.fn(async () => ({ items: [project], nextCursor: null })),
     create: vi.fn(async () => project), update: vi.fn(async () => project), remove: vi.fn(async () => undefined), duplicate: vi.fn(async () => project),
     scene: vi.fn(async () => scene), scenes: vi.fn(async () => [scene]), updateScene: vi.fn(async () => scene),

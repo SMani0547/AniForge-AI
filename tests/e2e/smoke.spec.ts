@@ -4,11 +4,11 @@ test('unconfigured foundation exposes an honest, functional local sketch preview
   const browserErrors: string[] = [];
   page.on('pageerror', (error) => browserErrors.push(error.message));
   await page.goto('/projects');
-  await expect(page.getByRole('heading', { name: 'Your story. Next frame.' })).toBeVisible();
-  await expect(page.getByText('Connect Firebase to save your projects')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your workspace', exact: true })).toBeVisible();
+  await expect(page.getByText('Saved projects are not configured yet')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
   await page.screenshot({ path: testInfo.outputPath('gallery-desktop.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Try the sketch playground' }).click();
+  await page.getByRole('button', { name: 'Try the unsaved playground' }).click();
   await expect(page.getByRole('heading', { name: 'Sketch playground' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate animation' })).toBeDisabled();
   await expect(page.getByText('AI generation is unavailable in this foundation preview.', { exact: false })).toBeVisible();
@@ -38,4 +38,20 @@ test('project gallery and sketch controls fit a mobile viewport', async ({ page 
   await expect(page.getByRole('heading', { name: 'Sketch playground' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pencil', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('signed-out dashboard is responsive and a saved-project URL retains its sign-in destination', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/projects');
+  await expect(page.getByRole('heading', { name: 'Your workspace', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('dashboard-signed-out-mobile.png'), fullPage: true });
+  await page.getByRole('button', { name: 'Dismiss getting started' }).click();
+  await expect(page.getByRole('complementary', { name: 'Getting started' })).not.toBeVisible();
+  await page.goto('/studio/original_project');
+  await expect(page.getByRole('heading', { name: 'Sign in to return to your project' })).toBeVisible();
+  await expect(page).toHaveURL(/\/studio\/original_project$/);
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Back to projects' }).click();
+  await expect(page).toHaveURL(/\/projects$/);
 });

@@ -1,6 +1,6 @@
 # U2 public homepage
 
-The public `/` route now uses the U1 visual foundation as a real homepage. `/projects` retains the existing authenticated gallery, `/studio/:projectId` the saved editor and `/studio/preview` the unsaved drawing playground. `/design` remains a development-only study. Dashboard/editor visual migrations are still U3/U4 work.
+The public `/` route uses the U1 visual foundation as a real homepage. `/projects` is now the [U3 authenticated dashboard](dashboard.md), `/studio/:projectId` the saved editor and `/studio/preview` the unsaved drawing playground. `/design` remains a development-only study. The editor's visual migration is U4 work.
 
 ## Content and behavior
 

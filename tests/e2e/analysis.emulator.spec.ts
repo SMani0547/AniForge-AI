@@ -26,9 +26,8 @@ async function openNewProject(page: Page, title: string) {
   await page.getByRole('button', { name: 'New project', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Project name').fill(title);
-  await dialog.getByRole('button', { name: 'Create project', exact: true }).click();
   const loading = page.waitForResponse((response) => /\/api\/v1\/projects\/[^/]+\/scenes$/.test(response.url()));
-  await page.getByRole('button', { name: `Open ${title}`, exact: true }).click();
+  await dialog.getByRole('button', { name: 'Create project', exact: true }).click();
   const response = await loading;
   const scene = ((await response.json()) as ApiEnvelope<Scene[]>).data![0]!;
   const authorization = (await response.request().headerValue('authorization'))!;

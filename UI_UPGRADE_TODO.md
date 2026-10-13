@@ -1,6 +1,6 @@
 # AniForge AI — UI upgrade roadmap
 
-Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation and U2 public homepage implemented; external reference visual review pending. U3–U6 remain planned.** See [actual UI results](docs/ui-upgrade-results.md), the public `/` homepage and the development-only `/design` preview.
+Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation, U2 public homepage and U3 project dashboard implemented; external reference visual review pending. U4–U6 remain planned.** See [actual UI results](docs/ui-upgrade-results.md), `/`, `/projects` and the development-only `/design` preview.
 
 ## Brief
 
@@ -29,8 +29,8 @@ The drawing editor must open **before** AI analysis or video generation. A new p
 
 ## Current gaps to address
 
-- U2 separated the public homepage from application loading. The project gallery still includes its previous introduction; U3 will simplify the dashboard.
-- The gallery uses generic “No scene preview” thumbnails and lacks a strong resume-work hierarchy.
+- U2 separated the public homepage from application loading; U3 replaced the mixed introduction/gallery with a dedicated project workspace.
+- U3 adds private source thumbnails and scoped search/sort. Blank/older/duplicated scenes show an explicit empty preview until a saved source thumbnail is available.
 - Canvas controls, shot planning, generation and video versions create a long page. Key editing actions need a consistent workspace layout.
 - Most presentation lives in a large `styles.css`; reusable components and visual tokens need clear ownership.
 - The playground contains outdated foundation/later-milestone copy. Technical setup guidance occupies product-facing space.
@@ -71,16 +71,18 @@ The local design/interaction acceptance is met. The external reference review re
 
 ## Phase U3 — project dashboard and onboarding
 
-- [ ] Separate the dashboard from marketing content; provide a compact application header, account menu, project navigation and a clear New project action.
-- [ ] Design coherent signed-out, restoring-session, empty-library, populated, loading, partial-pagination and failure states.
-- [ ] Simplify new-project creation and take the user into the saved source editor after success. Keep import/draw as immediately discoverable next actions.
-- [ ] Make cards useful: readable title, last edited time, scene count and consistent rename/duplicate/delete menus. Preserve delete confirmation and ownership checks.
-- [ ] Show actual scene thumbnails when available through authorized assets. Add a bounded thumbnail path if necessary, with private access tests; do not publish user media or fetch every full canvas for the gallery. Keep a deliberate empty preview until this works.
-- [ ] Offer grid/list presentation. Add search/sort only with honest scope: either explicitly search loaded projects or implement repository-wide query support and pagination; never silently hide unloaded matches.
-- [ ] Explain guest persistence and the unsaved playground clearly. Preserve return-to-project behavior after sign-in, sign-out and expired sessions.
-- [ ] Add brief first-project guidance and contextual help that can be dismissed. Avoid fictional Recent/Templates/Team destinations with no functionality.
+- [x] Separate the dashboard from marketing content; provide a compact application header, account menu, project navigation and a clear New project action.
+- [x] Design coherent signed-out, restoring-session, empty-library, populated, loading, partial-pagination and failure states.
+- [x] Simplify new-project creation and take the user into the saved source editor after success. Keep import/draw as immediately discoverable next actions.
+- [x] Make cards useful: readable title, last edited time, scene count and consistent rename/duplicate/delete menus. Preserve delete confirmation and ownership checks.
+- [x] Show actual scene thumbnails when available through authorized assets. Add a bounded thumbnail path if necessary, with private access tests; do not publish user media or fetch every full canvas for the gallery. Keep a deliberate empty preview until this works.
+- [x] Offer grid/list presentation. Add search/sort only with honest scope: either explicitly search loaded projects or implement repository-wide query support and pagination; never silently hide unloaded matches.
+- [x] Explain guest persistence and the unsaved playground clearly. Preserve return-to-project behavior after sign-in, sign-out and expired sessions.
+- [x] Add brief first-project guidance and contextual help that can be dismissed. Avoid fictional Recent/Templates/Team destinations with no functionality.
 
 **Acceptance:** a fresh local-emulator user can create, edit, reopen, rename, duplicate and delete a project without ambiguity. A returning user can find and resume work. No generation is required to enter the editor.
+
+**Local acceptance met:** actual emulator CRUD, immediate editor entry, saved/reloaded source, private revision-bound thumbnails, grid/list, partial pagination and guarded guest sign-out are verified. See [dashboard details](docs/dashboard.md) and [results](docs/ui-upgrade-results.md). Production Google authentication and live release remain deferred.
 
 ## Phase U4 — professional source editor workspace
 

@@ -50,9 +50,8 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
     await page.goto('/projects'); await page.getByRole('button', { name: 'Continue as a guest' }).click();
     await page.getByRole('button', { name: 'New project', exact: true }).click();
     await page.getByRole('dialog').getByLabel('Project name').fill('TEST FIXTURE video playback');
-    await page.getByRole('dialog').getByRole('button', { name: 'Create project', exact: true }).click();
     const loaded = page.waitForResponse((response) => /\/api\/v1\/projects\/[^/]+\/scenes$/.test(response.url()));
-    await page.getByRole('button', { name: 'Open TEST FIXTURE video playback', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Create project', exact: true }).click();
     const scene = ((await (await loaded).json()) as ApiEnvelope<Scene[]>).data![0]!;
     const owner = [...owners][0]!;
     // Seed a reviewed manual plan through the real repository; the generation flow itself is all browser UI.

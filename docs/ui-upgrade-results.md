@@ -1,5 +1,42 @@
 # UI upgrade results
 
+## U3 — project dashboard and onboarding
+
+Recorded October 13, 2026 (Pacific/Fiji). **Local U3 implementation and acceptance passed.** `/projects` is now a dedicated workspace with account/project navigation, grid/list presentation, search/sort explicitly limited to loaded projects, contextual guidance and project action disclosures. New project creation opens the blank saved source editor immediately. U4's editor workspace is next.
+
+### Changes and evidence
+
+- `apps/web/src/dashboard/`: production dashboard, signed-out/restoring/loading/empty/populated/partial/error states, private card previews, shared U1 components and responsive styles. The old marketing/gallery block was removed from `App.tsx`.
+- `App.tsx` and `ProjectDialog.tsx`: preserve a saved-project destination while signed out; protect guest sign-out with a warning; retain deletion confirmation; trap dialog focus and return it when possible. UI unavailable states remain truthful when Firebase is unconfigured.
+- `CanvasEditor.tsx`, `snapshot.ts`, `api.ts`, API routes and repository: generate a small preview of settled saved source, publish a revision-bound private PNG through the authenticated API, lazily fetch previews near the viewport and clean up replaced/interrupted assets. Source JSON and generation contracts are unchanged. No new dependency or credential.
+- [Dashboard behavior/setup](dashboard.md), [API contract](api.md), [architecture](architecture.md) and roadmap updated. [Ten actual browser captures](ui-u3/README.md) document signed-out desktop/phone, empty/create/grid/list/mobile, partial-page search, loading and network recovery. Thumbnails show an original rectangle actually drawn and saved in the editor, not AI output. Firebase's local emulator warning remains visible in captures.
+
+### Actual validation
+
+| Command / check | Result |
+| --- | --- |
+| `npm.cmd run typecheck` | Passed shared/API/web workspaces and tooling, including browser tests. |
+| `npm.cmd run lint` | Passed. |
+| `npm test` | 200 tests passed across 15 files. |
+| `npm run test:e2e` | Nine tests passed in 31.7 seconds, including the new signed-out mobile/dashboard destination check. |
+| `npm run test:emulators` | Final full rerun: 39 tests passed in 1.6 minutes, zero retries. |
+| `npm run build` | Shared/API/web production builds passed; browser artifact scan passed across 16 files. |
+| `npm run test:built-api` | Passed compiled HTTP health, missing-token rejection, private-worker separation and CORS. No live cloud/model request. |
+| Visual review | Signed-out desktop/phone, saved grid/list/phone, creation dialog and error/recovery captures reviewed. Right-edge tooltip overflow corrected and checked in the final emulator run. |
+| `git diff --check` | Passed. |
+
+The dashboard browser scenario uses a dedicated real Fastify instance and actual Auth/Firestore/Storage emulators. It verifies creation into an empty editor, drawing/save/reload, a stored 480×270 preview, private/no-store delivery, anonymous and foreign-owner rejection, invalid image rejection, stale-revision rejection, rename, independent duplication, cancel/confirm deletion, grid/list, search across a real 25-item page boundary, sort, no gallery scene-JSON requests, guest sign-out cancellation/confirmation and removal of rendered projects after sign-out. Recovery tests additionally verify stale previews are hidden, old thumbnail cleanup retries and deletion during upload cannot publish a late preview. Existing analysis/video fixtures remain explicitly test-only; no successful Google output is fabricated.
+
+The first typecheck found unused imports after extracting the gallery; these were removed. The first emulator run had 38 passes and one timeout: the new test waited for a sign-out click to finish before dismissing its native confirmation dialog. The handler now dismisses/accepts the dialog as it arrives. The corrected full run passed. Visual review then found a right-edge Refresh tooltip extending the document width; anchoring that tooltip inward and adding an overflow assertion produced another full 39-test pass. Thumbnail publication was also tightened during review so reference publication and ready state share one transaction, retaining interrupted-upload cleanup.
+
+The final emitted App JS is 229.19 kB (67.54 kB gzip), App CSS 47.56 kB (10.92 kB gzip), shared entry JS 224.34 kB (70.19 kB gzip), with separate shared primitive and lazy editor/Konva chunks. These are build sizes, not measured navigation transfer totals or a performance score. No new package was installed. Existing Rollup/Zod, Java deprecated-Unsafe, emulator listener-count and Playwright color warnings remain visible; no warning was suppressed. Test-profile emulators shut down cleanly.
+
+### Remaining gates and limits
+
+No U3 cloud credential is needed locally. Preview storage reuses the existing private bucket, API identity and cleanup schedule; deploy the API routes before the frontend when cloud setup is ready. Blank/older/duplicated projects have no preview until a nonempty saved source is opened and its thumbnail finishes. Preview failures are optional and never turn a saved scene into a failed save. Search/sort/view state and dismissed guidance are local to the dashboard visit; searching the entire unloaded repository is not claimed.
+
+Production Google sign-in/revoked-session verification, cloud IAM, paid Gemini analysis/video/edit output, Docker, remote CI and deployment remain deferred and unverified. The U1 external Artcraft inspection remains open. U4/U5 will redesign the editor and generation surfaces; U6 still owns the broad accessibility/performance audit. See the [release checklist](release-checklist.md) for live gates.
+
 ## U2 — public homepage
 
 Recorded October 13, 2026 (Pacific/Fiji). **Local implementation and U2 acceptance passed.** The public `/` route now has its own responsive page and loading boundary. U3's project dashboard is next; application screens retain their existing workflows.

@@ -16,6 +16,7 @@ test('baseline records actual project loading and a recoverable network error', 
   await page.route('**/api/v1/projects', (route) => route.abort('failed'));
   await page.getByRole('button', { name: 'Refresh projects' }).click();
   await expect(page.getByRole('alert')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('baseline-dashboard-network-error.png'), fullPage: true });
   await page.unroute('**/api/v1/projects');
   await page.getByRole('button', { name: 'Refresh projects' }).click();

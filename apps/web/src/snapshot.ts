@@ -21,7 +21,7 @@ export async function loadSnapshotImages(canvas: Canvas, fetchAsset: (assetId: s
 }
 
 /** Uses fresh nodes at canonical resolution; editor pan, zoom, selection and loading UI are never copied. */
-export async function renderCanonicalSnapshot(canvasInput: Canvas, fetchAsset: (assetId: string) => Promise<Blob>): Promise<Blob> {
+export async function renderCanonicalSnapshot(canvasInput: Canvas, fetchAsset: (assetId: string) => Promise<Blob>, pixelRatio = 1): Promise<Blob> {
   const canvas = canvasSchema.parse(canvasInput);
   const images = await loadSnapshotImages(canvas, fetchAsset);
   const stage = new Konva.Stage({ container: document.createElement('div'), width: 1920, height: 1080 });
@@ -46,7 +46,7 @@ export async function renderCanonicalSnapshot(canvasInput: Canvas, fetchAsset: (
       artwork.add(group);
     }
     stage.draw();
-    const image = stage.toCanvas({ x: 0, y: 0, width: 1920, height: 1080, pixelRatio: 1 });
+    const image = stage.toCanvas({ x: 0, y: 0, width: 1920, height: 1080, pixelRatio });
     return await new Promise<Blob>((resolve, reject) => image.toBlob((blob) => blob ? resolve(blob) : reject(new Error('The scene snapshot could not be created. Analysis was not sent.')), 'image/png'));
   } finally { stage.destroy(); }
 }

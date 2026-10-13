@@ -1,6 +1,7 @@
 import Fastify, { type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import sharp from 'sharp';
 import { z, ZodError } from 'zod';
 import { analyzeSceneSchema, editVideoSchema, exportVideoSchema, generateSceneSchema, createProjectSchema, resourceIdSchema, selectVersionSchema, updateProjectSchema, updateSceneSchema } from '@aniforge/shared';
 import { ApiError } from './errors.js';
@@ -107,6 +108,25 @@ export function buildApp({ config, repository, verifyToken, analysis = null, vid
       return reply.code(201).send(data(request, project));
     });
     api.get('/projects/:projectId', async (request) => data(request, await owned(request, projectParams.parse(request.params).projectId)));
+    api.get('/projects/:projectId/thumbnail', async (request, reply) => {
+      const { projectId } = projectParams.parse(request.params); await owned(request, projectId);
+      const bytes = await store().thumbnail(projectId, uid(request));
+      return bytes ? reply.type('image/png').header('X-Content-Type-Options', 'nosniff').send(bytes) : reply.code(204).send();
+    });
+    api.post('/projects/:projectId/scenes/:sceneId/thumbnail', { bodyLimit: 600_000 }, async (request) => {
+      const { projectId, sceneId } = sceneParams.parse(request.params); await owned(request, projectId);
+      const { revision } = z.strictObject({ revision: z.coerce.number().int().nonnegative() }).parse(request.query);
+      if (!Buffer.isBuffer(request.body) || request.body.length > 600_000 || request.headers['content-type'] !== 'image/png') throw new ApiError(400, 'INVALID_IMAGE', 'Preview must be a PNG smaller than 600 kB.');
+      let image;
+      try {
+        const input = sharp(request.body, { limitInputPixels: 480 * 270 });
+        const metadata = await input.metadata();
+        if (metadata.format !== 'png' || metadata.width !== 480 || metadata.height !== 270 || (metadata.pages ?? 1) !== 1) throw new Error('Invalid size');
+        image = { bytes: await input.png().toBuffer(), width: 480, height: 270 };
+      } catch { throw new ApiError(400, 'INVALID_IMAGE', 'Preview must be a valid 480 by 270 PNG.'); }
+      await store().saveThumbnail(projectId, sceneId, uid(request), revision, image);
+      return data(request, null);
+    });
     api.patch('/projects/:projectId', async (request) => {
       const { projectId } = projectParams.parse(request.params); await owned(request, projectId);
       return data(request, await store().update(projectId, uid(request), updateProjectSchema.parse(request.body)));

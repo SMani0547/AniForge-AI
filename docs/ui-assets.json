@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "recordedOn": "2026-10-13",
   "assets": [
     {
@@ -58,7 +58,7 @@
     },
     {
       "id": "local-ui-evidence",
-      "source": "docs/ui-u1/, docs/ui-u2/ and generated test-results/ screenshots",
+      "source": "docs/ui-u1/, docs/ui-u2/, docs/ui-u3/ and generated test-results/ screenshots",
       "author": "Captured by local Playwright tests of AniForge",
       "rights": "Repository UI and original sample art; no real user media or provider output",
       "kind": "product-and-prototype-screenshots",
@@ -89,6 +89,18 @@
       "placements": [
         "browser favicon"
       ]
+    },
+    {
+      "id": "u3-private-preview-fixture",
+      "source": "tests/e2e/dashboard.emulator.spec.ts",
+      "author": "Created with actual AniForge drawing controls in local browser tests",
+      "rights": "Original geometric rectangle; no third-party media",
+      "kind": "saved-source-preview",
+      "placements": [
+        "U3 dashboard screenshots"
+      ],
+      "disclosure": "Actual private scene thumbnail from an original test drawing, not AI output",
+      "actualAniforgeGeneratedOutput": false
     }
   ],
   "externalReference": {
