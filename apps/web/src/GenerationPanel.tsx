@@ -5,13 +5,14 @@ import type { SceneSaver } from './sceneSaver';
 import { renderCanonicalSnapshot } from './snapshot';
 import { VideoVersionsPanel } from './VideoVersionsPanel';
 
-export function GenerationPanel({ scene, api, saver, plan, blocked, onBusyChange }: { scene: Scene; api: ProjectApi; saver: SceneSaver; plan: ShotPlan | null; blocked: boolean; onBusyChange: (busy: boolean) => void }) {
+export function GenerationPanel({ scene, api, saver, plan, blocked, onBusyChange, onNotice }: { scene: Scene; api: ProjectApi; saver: SceneSaver; plan: ShotPlan | null; blocked: boolean; onBusyChange: (busy: boolean) => void; onNotice: (message: string) => void }) {
   const [availability, setAvailability] = useState<AnalysisAvailability | null>(null);
   const [jobs, setJobs] = useState<VideoJob[]>([]);
   const [versions, setVersions] = useState<VideoVersion[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
   const [pollError, setPollError] = useState('');
+  const [versionError, setVersionError] = useState('');
   const [busy, setBusy] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
   const [editPending, setEditPending] = useState(false);
@@ -53,6 +54,10 @@ export function GenerationPanel({ scene, api, saver, plan, blocked, onBusyChange
   const prompt = plan && valid ? videoPrompt(plan) : '';
   const activeJob = jobs.some((job) => ['queued', 'running'].includes(job.status));
 
+  useEffect(() => {
+    onNotice(error || pollError || versionError || jobs.some((job) => job.status === 'failed') ? 'Video needs attention. Open the panel for status and recovery.' : activeJob ? 'Video job in progress. You can keep drawing.' : attempt || editPending ? 'A video request is pending. Review it before sending another.' : '');
+  }, [error, pollError, versionError, jobs, activeJob, attempt, editPending, onNotice]);
+
   async function generate(retry: boolean) {
     if (running.current || blocked || !paid || !copyright || !availability?.available) return;
     running.current = true; setBusy(true); onBusyChange(true); setError('');
@@ -92,6 +97,6 @@ export function GenerationPanel({ scene, api, saver, plan, blocked, onBusyChange
     {pollError && <p className="error-banner" role="alert">{pollError}</p>}
     <button type="button" className="text-button" onClick={() => setRefresh((value) => value + 1)}>Refresh video status</button>
     <ul className="video-jobs" aria-label="Video jobs">{jobs.map((job) => <li key={job.id}><strong>{job.status === 'running' ? 'Generating / storing' : job.status === 'succeeded' ? 'Completed' : job.status === 'failed' ? 'Failed' : 'Queued'}</strong><span> · source revision {job.sourceRevision} · {new Date(job.createdAt).toLocaleString()}</span>{job.errorMessage && <p role="alert">{job.errorMessage}</p>}{job.status === 'queued' && <p className="muted small">Waiting for the worker. Queue recovery runs every five minutes; jobs expire after 30 minutes.</p>}</li>)}</ul>
-    <VideoVersionsPanel scene={scene} api={api} saver={saver} versions={versions} availability={availability} activeJob={activeJob || !!attempt} blocked={blocked || busy} onPendingChange={setEditPending} onBusyChange={(value) => { setEditBusy(value); onBusyChange(value); }} onQueued={(job) => { setJobs((current) => [job, ...current.filter((item) => item.id !== job.id)]); setRefresh((value) => value + 1); }} />
+    <VideoVersionsPanel onErrorChange={setVersionError} scene={scene} api={api} saver={saver} versions={versions} availability={availability} activeJob={activeJob || !!attempt} blocked={blocked || busy} onPendingChange={setEditPending} onBusyChange={(value) => { setEditBusy(value); onBusyChange(value); }} onQueued={(job) => { setJobs((current) => [job, ...current.filter((item) => item.id !== job.id)]); setRefresh((value) => value + 1); }} />
   </section>;
 }

@@ -1,5 +1,42 @@
 # UI upgrade results
 
+## U4 — saved source editor workspace
+
+Recorded October 13, 2026 (Pacific/Fiji). **Local U4 implementation and acceptance passed.** Saved projects now open a canvas-centered Source workspace with tools/import/layers on the left and Properties or Shot plan on the right. Source/Video switching and the collapsible video panel preserve a single scene session. Compact screens use Canvas, Tools & layers and Inspector controls. U5 generation/version/timeline polish is next.
+
+### Changes and evidence
+
+- The unified project header keeps Back to projects, title, save state and manual save together. Global save recovery, analysis review and video activity/error notices stay reachable when panels are hidden.
+- Contextual drawing, object, text and crop controls reuse the saved scene model. Layer selection, hide/lock and Raise/Lower remain explicit. Tool shortcuts and help are available; typing in fields does not trigger canvas shortcuts. Phone canvas controls have enlarged touch targets.
+- The scene saver, history, Konva stage, assistant and video panels stay mounted across view changes. Zero-width resize observations are ignored. Closing video pauses playback; it does not reset consent, request IDs, versions or timeline edits. Existing paid confirmation, immutable clips and request replay logic are retained.
+- Manual authoring precedes the optional Gemini request. Suggestions still require explicit Apply and a matching source revision. An incomplete plan remains local and visibly blocks saving the combined document.
+- [Workspace behavior, state ownership and setup](editor-workspace.md), [ten actual captures](ui-u4/README.md), roadmap and asset provenance updated. No new dependency, credential, cloud service or API schema.
+
+### Actual validation
+
+| Command / check | Result |
+| --- | --- |
+| `npm.cmd run typecheck` | Passed shared/API/web and tooling, including browser tests. |
+| `npm.cmd run lint` | Passed. |
+| `npm test` | 200 tests passed across 15 files. |
+| `npm run test:e2e` | Nine tests passed in 27.8 seconds. |
+| `npm run test:emulators` | Full suite: 40 tests passed in 2.0 minutes, zero retries. |
+| Final workspace/capture check | The workspace scenario additionally passed in isolation after the final scroll-containment fix: one test, 17.6 seconds including setup. Same test-profile Firebase emulators and Playwright configuration; no API success fabrication. |
+| `npm run build` | Shared/API/web builds passed; browser artifact scan passed across 17 files. |
+| Visual review | Desktop 1440/1280 and phone 390px source, tools, properties, incomplete draft and unavailable video reviewed. Captures retain the local Firebase warning. |
+
+The workspace test uses a dedicated real Fastify instance plus actual Auth/Firestore/Storage emulators. It verifies immediate source entry, accessible layer reorder, canonical pointer coordinates at both desktop sizes and on the phone, keyboard undo/redo, text-field shortcut isolation, unsaved manual direction and notes across Source/Video, consent retention, no paid requests or repeated availability fetches, and exact saved/reloaded source. Existing scenarios continue checking image crop/import, private snapshots, review/Apply, failure and conflict recovery, video replay, separate versions, timeline settings and exact original MP4 bytes. The labeled provider fixtures are test evidence, not live Gemini evidence.
+
+Validation caught errors in the new test setup: a scene variable shadowed the browser document type; canonical stroke assertions initially omitted the object's relative origin; a consent assertion ran after a reload; the isolated server used a different legitimate unavailable-AI message; and a populated textarea required an accessible textbox locator. These were corrected without weakening the persistence assertions. Initial emulator runs reported 38/40, then 39/40, then 39/40 before the full 40/40 pass. Visual review then found absolutely positioned hidden fieldset legends extending page scrolling beyond the inspector; a local positioning context and a vertical-overflow assertion fixed it. Captures now start at the page top so offscreen fixed skip links do not appear inside full-page screenshots.
+
+Production output includes the lazy CanvasEditor JS at 69.32 kB (20.87 kB gzip), its scoped CSS at 10.40 kB (2.44 kB gzip), App JS at 229.35 kB (67.60 kB gzip) and App CSS at 47.58 kB (10.93 kB gzip). These are emitted build sizes, not measured navigation transfer totals or a performance score. Existing Zod/Rollup annotation, Java deprecated-Unsafe, emulator listener-count and Playwright color warnings remain visible. Test emulators shut down cleanly.
+
+### Remaining gates and limits
+
+U4 is a saved-editor migration; the separate unsaved playground remains available and regression-tested. Video generation/revisions retain their existing form layout until U5. Invalid local drafts still require completion/removal or export before they can be persisted; switching views is safe, but closing the page is not offline draft storage. The broader accessibility/performance/release review remains U6.
+
+Production Firebase/Google sign-in, cloud IAM, paid Gemini analysis/video/edit, Docker, remote CI and deployment remain deferred and unverified. No credential is needed for the local UI work. The U1 external reference inspection remains open. Follow the existing [cloud setup](cloud-setup.md) and [release checklist](release-checklist.md) when ready; UI checks do not close those gates.
+
 ## U3 — project dashboard and onboarding
 
 Recorded October 13, 2026 (Pacific/Fiji). **Local U3 implementation and acceptance passed.** `/projects` is now a dedicated workspace with account/project navigation, grid/list presentation, search/sort explicitly limited to loaded projects, contextual guidance and project action disclosures. New project creation opens the blank saved source editor immediately. U4's editor workspace is next.

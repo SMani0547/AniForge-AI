@@ -56,7 +56,7 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
     const owner = [...owners][0]!;
     // Seed a reviewed manual plan through the real repository; the generation flow itself is all browser UI.
     await repository.updateScene(scene.projectId, scene.id, owner, { expectedRevision: scene.revision, shotPlan: analysisFixturePlan });
-    await page.reload();
+    await page.reload(); await page.getByRole('button', { name: 'Show video panel', exact: true }).click();
     await page.getByRole('button', { name: 'Add rectangle', exact: true }).click();
     const panel = page.getByRole('region', { name: 'Video generation', exact: true });
     await panel.getByLabel('I own or have permission to send this scene to Google for video generation.').check();
@@ -65,7 +65,7 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
     await expect(panel.getByText('Queued', { exact: true })).toBeVisible();
     expect(queue).toHaveLength(1); expect(dispatches).toBe(0);
     await expect(page.getByRole('button', { name: 'Add rectangle', exact: true })).toBeEnabled();
-    await page.reload(); await expect(panel.getByText('Queued', { exact: true })).toBeVisible();
+    await page.reload(); await page.getByRole('button', { name: 'Show video panel', exact: true }).click(); await expect(panel.getByText('Queued', { exact: true })).toBeVisible();
     await worker.execute(queue[0]!);
     await panel.getByRole('button', { name: 'Refresh video status' }).click();
     await expect(panel.getByText('Completed', { exact: true })).toBeVisible();
@@ -74,8 +74,14 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
     await expect.poll(() => clip.evaluate((element) => (element as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
     await clip.evaluate(async (element) => { const video = element as HTMLVideoElement; video.muted = true; await video.play(); });
     await expect.poll(() => clip.evaluate((element) => (element as HTMLVideoElement).currentTime)).toBeGreaterThan(0.1);
+    await panel.getByLabel('I own or have permission to send this scene to Google for video generation.').check();
+    await page.getByRole('button', { name: 'Hide video panel', exact: true }).click();
+    await expect.poll(() => clip.evaluate((element) => (element as HTMLVideoElement).paused)).toBe(true);
+    await page.getByRole('button', { name: 'Video', exact: true }).click();
+    await expect(panel.getByLabel('I own or have permission to send this scene to Google for video generation.')).toBeChecked();
+    expect(queue).toHaveLength(1);
     await page.screenshot({ path: testInfo.outputPath('test-fixture-video-player.png'), fullPage: true });
-    await page.reload(); await expect(clip).toBeVisible();
+    await page.reload(); await page.getByRole('button', { name: 'Show video panel', exact: true }).click(); await expect(clip).toBeVisible();
     await expect.poll(() => clip.evaluate((element) => (element as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);
     await page.getByRole('textbox', { name: 'Video edit instruction', exact: true }).fill('TEST FIXTURE: make the square purple and move upward.');
     await page.getByLabel(/I own or have permission to send this video/).check();
@@ -105,7 +111,7 @@ test('explicit fixtures preserve original and edited clips, selection, timeline 
     await expect.poll(async () => (await repository.scene(scene.projectId, scene.id))?.timeline.captions[0]?.text).toBe('Test fixture caption');
     await expect.poll(async () => (await repository.scene(scene.projectId, scene.id))?.timeline.captions[0]?.end).toBe(1.2);
     await expect(page.locator('.save-status.saved')).toBeVisible();
-    await page.reload(); await expect(chooser).toHaveValue(editId);
+    await page.reload(); await page.getByRole('button', { name: 'Show video panel', exact: true }).click(); await expect(chooser).toHaveValue(editId);
     await expect(page.getByRole('spinbutton', { name: 'Trim start (seconds)', exact: true })).toHaveValue('0.2');
     await expect(page.getByRole('textbox', { name: 'Caption 1 text', exact: true })).toHaveValue('Test fixture caption');
     await expect.poll(() => clip.evaluate((element) => (element as HTMLVideoElement).readyState)).toBeGreaterThanOrEqual(2);

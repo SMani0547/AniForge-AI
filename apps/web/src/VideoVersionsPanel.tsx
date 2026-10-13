@@ -16,11 +16,12 @@ function versionLabel(version: VideoVersion) {
   return `${version.generationKind === 'edit' ? 'Edited' : 'Original'} · ${new Date(version.createdAt).toLocaleString()} · ${version.id.slice(0, 8)}`;
 }
 
-export function VideoVersionsPanel({ scene, api, saver, versions, availability, activeJob, blocked, onBusyChange, onQueued, onPendingChange }: { scene: Scene; api: ProjectApi; saver: SceneSaver; versions: VideoVersion[]; availability: AnalysisAvailability | null; activeJob: boolean; blocked: boolean; onBusyChange: (busy: boolean) => void; onQueued: (job: VideoJob) => void; onPendingChange: (pending: boolean) => void }) {
+export function VideoVersionsPanel({ scene, api, saver, versions, availability, activeJob, blocked, onBusyChange, onQueued, onPendingChange, onErrorChange }: { scene: Scene; api: ProjectApi; saver: SceneSaver; versions: VideoVersion[]; availability: AnalysisAvailability | null; activeJob: boolean; blocked: boolean; onBusyChange: (busy: boolean) => void; onQueued: (job: VideoJob) => void; onPendingChange: (pending: boolean) => void; onErrorChange: (error: string) => void }) {
   const [document, setDocument] = useState(saver.document);
   const [selected, setSelected] = useState(scene.selectedVideoVersionId ?? '');
   const [extraVersions, setExtraVersions] = useState<VideoVersion[]>([]);
   const [error, setError] = useState('');
+  useEffect(() => { onErrorChange(error); }, [error, onErrorChange]);
   const [metadataRetry, setMetadataRetry] = useState(0);
   const [duration, setDuration] = useState<number | null>(null);
   const [prompt, setPrompt] = useState('');

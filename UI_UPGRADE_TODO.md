@@ -1,6 +1,6 @@
 # AniForge AI — UI upgrade roadmap
 
-Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation, U2 public homepage and U3 project dashboard implemented; external reference visual review pending. U4–U6 remain planned.** See [actual UI results](docs/ui-upgrade-results.md), `/`, `/projects` and the development-only `/design` preview.
+Created October 13, 2026 (Pacific/Fiji). Status: **U1 local visual foundation, U2 public homepage, U3 project dashboard and U4 source workspace implemented; external reference visual review pending. U5–U6 remain planned.** See [actual UI results](docs/ui-upgrade-results.md), `/`, `/projects` and the development-only `/design` preview.
 
 ## Brief
 
@@ -86,18 +86,20 @@ The local design/interaction acceptance is met. The external reference review re
 
 ## Phase U4 — professional source editor workspace
 
-- [ ] Introduce an editor shell: project/back navigation, title and save status across the top; import/drawing/layers on the left; large central canvas; contextual properties or AI assistant on the right; a collapsible video/timeline area below.
-- [ ] Use clearly named **Source** and **Video** views while preserving one scene/session. Opening Source never depends on clip availability.
-- [ ] Move tools into consistent groups with labels/tooltips, selected states and keyboard shortcuts. Keep shortcuts inactive in text inputs and expose them in help.
-- [ ] Improve fit-to-view, zoom, pan, selection and transform affordances. Preserve the canonical 1920×1080 document and pointer coordinate accuracy when panels resize.
-- [ ] Make layers easier to scan with selection, visibility, lock and ordering feedback; retain accessible reorder buttons alongside any optional drag interaction.
-- [ ] Replace always-visible property clutter with context-sensitive controls for drawing, text, shapes and image crop. Preserve all saved object properties.
-- [ ] Keep autosave/manual save, unsaved changes, failure and conflict recovery visible. Never discard drawing/plan/timeline edits when switching panels or views.
-- [ ] Reorganize shot planning as a useful assistant: manual authoring, Analyze, review suggestion and explicit Apply. Keep paid/request state and source-revision checks intact.
-- [ ] Support compact screens with switchable panels/drawers and touch-friendly controls. Avoid shrinking the full desktop workspace onto a phone.
-- [ ] Audit panel mounting/state ownership so tab changes do not reset unsaved data, start duplicate requests or hide recovery actions.
+- [x] Introduce an editor shell: project/back navigation, title and save status across the top; import/drawing/layers on the left; large central canvas; contextual properties or AI assistant on the right; a collapsible video/timeline area below.
+- [x] Use clearly named **Source** and **Video** views while preserving one scene/session. Opening Source never depends on clip availability.
+- [x] Move tools into consistent groups with labels/tooltips, selected states and keyboard shortcuts. Keep shortcuts inactive in text inputs and expose them in help.
+- [x] Improve fit-to-view, zoom, pan, selection and transform affordances. Preserve the canonical 1920×1080 document and pointer coordinate accuracy when panels resize.
+- [x] Make layers easier to scan with selection, visibility, lock and ordering feedback; retain accessible reorder buttons alongside any optional drag interaction.
+- [x] Replace always-visible property clutter with context-sensitive controls for drawing, text, shapes and image crop. Preserve all saved object properties.
+- [x] Keep autosave/manual save, unsaved changes, failure and conflict recovery visible. Never discard drawing/plan/timeline edits when switching panels or views.
+- [x] Reorganize shot planning as a useful assistant: manual authoring, Analyze, review suggestion and explicit Apply. Keep paid/request state and source-revision checks intact.
+- [x] Support compact screens with switchable panels/drawers and touch-friendly controls. Avoid shrinking the full desktop workspace onto a phone.
+- [x] Audit panel mounting/state ownership so tab changes do not reset unsaved data, start duplicate requests or hide recovery actions.
 
 **Acceptance:** import/crop/draw/layers/undo/save/refresh still work. The canvas is the primary workspace at 1440×900 and 1280×800; critical controls remain reachable on a 390px-wide screen. Keyboard and pointer workflows both work.
+
+**Local acceptance met:** real emulator source import/crop, drawing, layers, undo/redo, saved reload, conflict recovery, canonical coordinates at two desktop sizes and 390px controls pass. View switches preserve manual drafts, request state and video playback/recovery without automatic paid calls. See [workspace behavior](docs/editor-workspace.md), [captures](docs/ui-u4/README.md) and [results](docs/ui-upgrade-results.md). Live Google verification remains deferred.
 
 ## Phase U5 — generation, video revisions and timeline polish
 

@@ -47,10 +47,12 @@ test('manual shot plans save and reload with real AI explicitly disabled', async
   let analyses = 0;
   page.on('request', (request) => { if (request.url().endsWith('/analyze')) analyses++; });
   const opened = await openNewProject(page, 'Manual direction without Gemini');
+  await page.getByRole('button', { name: 'Shot plan', exact: true }).click();
   await expect(page.getByText('Real AI is disabled.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Analyze scene', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Add rectangle', exact: true }).click();
   await save(page);
+  await page.getByRole('button', { name: 'Shot plan', exact: true }).click();
   await page.getByRole('button', { name: 'Create manual shot plan' }).click();
   await expect(page.getByText('Draft not yet valid:', { exact: false })).toBeVisible();
   await fillPlan(page);
@@ -60,6 +62,7 @@ test('manual shot plans save and reload with real AI explicitly disabled', async
   expect(saved.shotPlan?.sceneSummary).toBe('My original geometric scene');
   expect(saved.canvas.objects).toHaveLength(1);
   await page.reload();
+  await page.getByRole('button', { name: 'Shot plan', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Animation prompt', exact: true })).toHaveValue('Move my original blue rectangle gently upward.');
   await expect(page.getByTestId('scene-canvas')).toHaveAttribute('aria-label', 'Editable scene canvas with 1 objects');
   expect(analyses).toBe(0);
@@ -111,6 +114,7 @@ test('explicit provider fixture exercises canonical private snapshot, review, pe
     await page.getByRole('combobox', { name: 'Zoom', exact: true }).selectOption('0.5');
     await save(page);
     const original = await repository.scene(opened.scene.projectId, opened.scene.id);
+    await page.getByRole('button', { name: 'Shot plan', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Analyze scene', exact: true })).toBeDisabled();
     await page.getByLabel('Notes for Gemini', { exact: true }).fill('TEST FIXTURE: retain the original colors');
     await page.getByLabel('I own this scene or have permission to send all its content to Google AI.').check();
@@ -128,7 +132,9 @@ test('explicit provider fixture exercises canonical private snapshot, review, pe
     expect(pixel(1200, 700)).toEqual([69, 129, 244]);
     expect(pixel(1200, 550)).toEqual([17, 24, 39]);
     await writeFile(testInfo.outputPath('canonical-private-snapshot.png'), png);
+    await page.getByRole('button', { name: 'Video', exact: true }).click();
     release();
+    await page.getByRole('button', { name: 'Source', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Gemini suggestion' })).toBeVisible();
     expect((await repository.scene(opened.scene.projectId, opened.scene.id))?.shotPlan).toBeNull();
     await page.getByRole('button', { name: 'Apply suggestion to shot plan' }).click();
@@ -141,6 +147,7 @@ test('explicit provider fixture exercises canonical private snapshot, review, pe
     expect(records.docs).toHaveLength(1);
     expect(records.docs[0]!.data()).toMatchObject({ state: 'succeeded', interactionId: 'server-only-test-interaction' });
     await page.reload();
+  await page.getByRole('button', { name: 'Shot plan', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Animation prompt', exact: true })).toHaveValue(saved.shotPlan!.animationPrompt);
     await page.getByRole('heading', { name: 'Shot plan', exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath('reviewed-test-fixture-plan.png'), fullPage: true });

@@ -40,6 +40,7 @@ test('public homepage reaches configured projects and a blank saved editor witho
   await dialog.getByLabel('Project name').fill('Homepage entry test');
   await dialog.getByRole('button', { name: 'Create project', exact: true }).click();
   await expect(page.getByTestId('scene-canvas')).toHaveAttribute('aria-label', 'Editable scene canvas with 0 objects');
+  await page.getByRole('button', { name: 'Show video panel', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Generate animation' })).toBeDisabled();
   await page.getByRole('button', { name: 'AniForge home' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your sketch.Your story.In motion.');

@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "recordedOn": "2026-10-13",
   "assets": [
     {
@@ -100,6 +100,18 @@
         "U3 dashboard screenshots"
       ],
       "disclosure": "Actual private scene thumbnail from an original test drawing, not AI output",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "u4-saved-workspace-captures",
+      "source": "tests/e2e/workspace.emulator.spec.ts and tests/e2e/canvas.emulator.spec.ts",
+      "author": "Created with actual AniForge controls in local Chromium tests",
+      "rights": "Original geometric source drawing and repository-authored image fixture; no third-party media",
+      "kind": "actual-application-captures",
+      "placements": [
+        "docs/ui-u4/"
+      ],
+      "disclosure": "Local Firebase emulators; actual saved source, unavailable AI and recoverable local drafts. Not Google output.",
       "actualAniforgeGeneratedOutput": false
     }
   ],
