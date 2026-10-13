@@ -1,0 +1,261 @@
+{
+  "recordedAt": "2026-10-13T22:23:42.138Z",
+  "browser": "156.0.8078.4",
+  "method": "Three fresh Chromium contexts; built Vite preview on loopback; 1440x900; no CPU/network throttling. Transfer includes local HTTP overhead. Not Lighthouse, field data or deployed latency.",
+  "runs": [
+    {
+      "domContentLoadedMs": 43.6000000089407,
+      "loadMs": 53.20000000298023,
+      "firstContentfulPaintMs": 124,
+      "largestContentfulPaintMs": 184,
+      "transferBytes": 483516,
+      "resources": [
+        {
+          "path": "/assets/index-BlYoxXA7.js",
+          "encodedBodyBytes": 70206,
+          "transferBytes": 70506
+        },
+        {
+          "path": "/assets/index-Cg6W0kyR.css",
+          "encodedBodyBytes": 39,
+          "transferBytes": 339
+        },
+        {
+          "path": "/assets/primitives-DjMFFGqj.js",
+          "encodedBodyBytes": 888,
+          "transferBytes": 1188
+        },
+        {
+          "path": "/assets/Homepage-DXCNMIK7.js",
+          "encodedBodyBytes": 6839,
+          "transferBytes": 7139
+        },
+        {
+          "path": "/assets/primitives-PjCUHI0b.css",
+          "encodedBodyBytes": 1784,
+          "transferBytes": 2084
+        },
+        {
+          "path": "/assets/sparkles-CefjkMg2.js",
+          "encodedBodyBytes": 510,
+          "transferBytes": 810
+        },
+        {
+          "path": "/assets/pause-BBKkFjlR.js",
+          "encodedBodyBytes": 590,
+          "transferBytes": 890
+        },
+        {
+          "path": "/assets/Homepage-mX2fJabJ.css",
+          "encodedBodyBytes": 5818,
+          "transferBytes": 6118
+        },
+        {
+          "path": "/artwork/last-tram.webp",
+          "encodedBodyBytes": 228978,
+          "transferBytes": 229278
+        },
+        {
+          "path": "/artwork/sky-artist.webp",
+          "encodedBodyBytes": 163880,
+          "transferBytes": 164180
+        }
+      ]
+    },
+    {
+      "domContentLoadedMs": 32.29999999701977,
+      "loadMs": 40.6000000089407,
+      "firstContentfulPaintMs": 168,
+      "largestContentfulPaintMs": 168,
+      "transferBytes": 483516,
+      "resources": [
+        {
+          "path": "/assets/index-BlYoxXA7.js",
+          "encodedBodyBytes": 70206,
+          "transferBytes": 70506
+        },
+        {
+          "path": "/assets/index-Cg6W0kyR.css",
+          "encodedBodyBytes": 39,
+          "transferBytes": 339
+        },
+        {
+          "path": "/assets/Homepage-DXCNMIK7.js",
+          "encodedBodyBytes": 6839,
+          "transferBytes": 7139
+        },
+        {
+          "path": "/assets/primitives-DjMFFGqj.js",
+          "encodedBodyBytes": 888,
+          "transferBytes": 1188
+        },
+        {
+          "path": "/assets/primitives-PjCUHI0b.css",
+          "encodedBodyBytes": 1784,
+          "transferBytes": 2084
+        },
+        {
+          "path": "/assets/sparkles-CefjkMg2.js",
+          "encodedBodyBytes": 510,
+          "transferBytes": 810
+        },
+        {
+          "path": "/assets/pause-BBKkFjlR.js",
+          "encodedBodyBytes": 590,
+          "transferBytes": 890
+        },
+        {
+          "path": "/assets/Homepage-mX2fJabJ.css",
+          "encodedBodyBytes": 5818,
+          "transferBytes": 6118
+        },
+        {
+          "path": "/artwork/sky-artist.webp",
+          "encodedBodyBytes": 163880,
+          "transferBytes": 164180
+        },
+        {
+          "path": "/artwork/last-tram.webp",
+          "encodedBodyBytes": 228978,
+          "transferBytes": 229278
+        }
+      ]
+    },
+    {
+      "domContentLoadedMs": 35.20000000298023,
+      "loadMs": 45.30000001192093,
+      "firstContentfulPaintMs": 120,
+      "largestContentfulPaintMs": 172,
+      "transferBytes": 483516,
+      "resources": [
+        {
+          "path": "/assets/index-BlYoxXA7.js",
+          "encodedBodyBytes": 70206,
+          "transferBytes": 70506
+        },
+        {
+          "path": "/assets/index-Cg6W0kyR.css",
+          "encodedBodyBytes": 39,
+          "transferBytes": 339
+        },
+        {
+          "path": "/assets/Homepage-DXCNMIK7.js",
+          "encodedBodyBytes": 6839,
+          "transferBytes": 7139
+        },
+        {
+          "path": "/assets/primitives-DjMFFGqj.js",
+          "encodedBodyBytes": 888,
+          "transferBytes": 1188
+        },
+        {
+          "path": "/assets/primitives-PjCUHI0b.css",
+          "encodedBodyBytes": 1784,
+          "transferBytes": 2084
+        },
+        {
+          "path": "/assets/pause-BBKkFjlR.js",
+          "encodedBodyBytes": 590,
+          "transferBytes": 890
+        },
+        {
+          "path": "/assets/sparkles-CefjkMg2.js",
+          "encodedBodyBytes": 510,
+          "transferBytes": 810
+        },
+        {
+          "path": "/assets/Homepage-mX2fJabJ.css",
+          "encodedBodyBytes": 5818,
+          "transferBytes": 6118
+        },
+        {
+          "path": "/artwork/sky-artist.webp",
+          "encodedBodyBytes": 163880,
+          "transferBytes": 164180
+        },
+        {
+          "path": "/artwork/last-tram.webp",
+          "encodedBodyBytes": 228978,
+          "transferBytes": 229278
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "App-B6f1s5t2.css",
+      "bytes": 48440,
+      "gzipBytes": 11068
+    },
+    {
+      "name": "App-BPb-HA3W.js",
+      "bytes": 224998,
+      "gzipBytes": 66678
+    },
+    {
+      "name": "CanvasEditor-CJYJsBiY.js",
+      "bytes": 81081,
+      "gzipBytes": 24117
+    },
+    {
+      "name": "CanvasEditor-Cq58pPCy.css",
+      "bytes": 20063,
+      "gzipBytes": 4162
+    },
+    {
+      "name": "Homepage-DXCNMIK7.js",
+      "bytes": 21211,
+      "gzipBytes": 6839
+    },
+    {
+      "name": "Homepage-mX2fJabJ.css",
+      "bytes": 25447,
+      "gzipBytes": 5818
+    },
+    {
+      "name": "index-BlYoxXA7.js",
+      "bytes": 224370,
+      "gzipBytes": 70206
+    },
+    {
+      "name": "index-Cg6W0kyR.css",
+      "bytes": 39,
+      "gzipBytes": 59
+    },
+    {
+      "name": "pause-BBKkFjlR.js",
+      "bytes": 1333,
+      "gzipBytes": 590
+    },
+    {
+      "name": "primitives-DjMFFGqj.js",
+      "bytes": 1694,
+      "gzipBytes": 888
+    },
+    {
+      "name": "primitives-PjCUHI0b.css",
+      "bytes": 6000,
+      "gzipBytes": 1784
+    },
+    {
+      "name": "ReactKonvaCore-DvBTXZxo.js",
+      "bytes": 335606,
+      "gzipBytes": 103116
+    },
+    {
+      "name": "SketchPreview-B1GsxXz7.css",
+      "bytes": 6012,
+      "gzipBytes": 1642
+    },
+    {
+      "name": "SketchPreview-DJi2y-LD.js",
+      "bytes": 8609,
+      "gzipBytes": 3116
+    },
+    {
+      "name": "sparkles-CefjkMg2.js",
+      "bytes": 510,
+      "gzipBytes": 300
+    }
+  ]
+}

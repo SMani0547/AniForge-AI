@@ -1,6 +1,6 @@
 {
-  "version": 7,
-  "recordedOn": "2026-10-13",
+  "version": 9,
+  "recordedOn": "2026-10-14",
   "assets": [
     {
       "id": "quiet-observatory",
@@ -12,13 +12,46 @@
         "homepage study",
         "sample dashboard cards",
         "editor composition study",
-        "public homepage hero, feature demonstrations and artwork showcase"
+        "public homepage interactive feature demonstrations; replaced in the public hero and artwork showcase on 2026-10-14"
       ],
       "disclosure": "Original vector artwork / design study, not AI output",
       "variants": [
         "base lavender palette",
         "CSS hue rotation for the second sample card"
       ],
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "sky-artist-promotional-art",
+      "source": "apps/web/public/artwork/sky-artist.webp",
+      "author": "Generated with the built-in image_gen tool for AniForge; optimized with Sharp",
+      "rights": "New AI-assisted promotional artwork created for this repository; no third-party character or site asset copied.",
+      "kind": "ai-assisted-original-raster-illustration",
+      "placements": [
+        "public homepage hero character",
+        "floating character-study card",
+        "public homepage artwork gallery"
+      ],
+      "promptSummary": "Original adult anime artist, short navy hair with an ivory streak, vermilion bomber jacket, headphones and stylus; transparent cutout.",
+      "format": "WebP",
+      "bytes": 163880,
+      "disclosure": "Original AI-assisted promotional artwork, not an AniForge-generated image or video. Motion is CSS applied to a still image.",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "last-tram-promotional-art",
+      "source": "apps/web/public/artwork/last-tram.webp",
+      "author": "Generated with the built-in image_gen tool for AniForge; optimized with Sharp",
+      "rights": "New AI-assisted promotional artwork created for this repository; no third-party site asset copied.",
+      "kind": "ai-assisted-original-raster-illustration",
+      "placements": [
+        "public homepage floating environment-study card",
+        "public homepage artwork gallery"
+      ],
+      "promptSummary": "Original blue-hour coastal tram town, terracotta tram, rain and lantern light; navy, teal, ivory and vermilion palette.",
+      "format": "WebP",
+      "bytes": 228978,
+      "disclosure": "Original AI-assisted promotional artwork, not an AniForge-generated image or video. Motion is CSS applied to a still image.",
       "actualAniforgeGeneratedOutput": false
     },
     {
@@ -72,7 +105,7 @@
       "id": "public-homepage-social-card",
       "source": "apps/web/public/social-preview.svg and social-preview.png",
       "author": "Codex, authored for AniForge",
-      "rights": "Original repository-authored vector composition and system-font text; PNG exported with the existing Sharp dependency.",
+      "rights": "Original repository vector composition with owner-supplied raster wordmark; PNG rendered with Sharp.",
       "kind": "original-vector-social-card",
       "placements": [
         "HTML social-preview metadata"
@@ -87,7 +120,7 @@
       "rights": "Original af monogram paths; no external logo file.",
       "kind": "vector-brand-mark",
       "placements": [
-        "browser favicon"
+        "historical prototype asset; production favicon now uses owner-supplied logo"
       ]
     },
     {
@@ -149,10 +182,32 @@
       ],
       "disclosure": "Unsaved local playground with AI disabled. Not Google output or deployment evidence.",
       "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "owner-supplied-aniforge-logo",
+      "source": "apps/web/public/brand/",
+      "author": "Project owner supplied Aniforge AI Monogram Logo.png; native crops and lossless web exports prepared with Sharp",
+      "rights": "Used at the project owner's request. Source design and lettering preserved; no independent licensing claim.",
+      "kind": "owner-supplied-transparent-raster-logo",
+      "placements": [
+        "public homepage header/hero/footer",
+        "project dashboard",
+        "saved editor",
+        "sketch playground",
+        "favicon and touch icon",
+        "social preview",
+        "README"
+      ],
+      "disclosure": "User-supplied brand artwork, not an AniForge-generated output",
+      "actualAniforgeGeneratedOutput": false,
+      "documentation": "docs/brand/README.md"
     }
   ],
   "externalReference": {
     "url": "https://getartcraft.com/",
-    "usage": "Reference only; no site artwork, fonts, copy or logos downloaded for reuse. Visual browser review pending."
+    "usage": "Reference only. The user's 17.37-second, 1908 x 1018 ArtCraft recording was inspected locally on 2026-10-14 for layout, typography and motion. No site artwork, fonts, copy or logos were copied for reuse, and the recording and extracted frames are not redistributed as public assets.",
+    "suppliedRecording": "Recording 2026-10-14 101047.mp4",
+    "reviewMethod": "Local video frame inspection",
+    "copiedSiteAssets": false
   }
 }

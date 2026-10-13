@@ -201,6 +201,8 @@ Server secrets stay in ignored API environment files or Secret Manager. Generate
 
 <div align="center">
 
+<img src="apps/web/public/brand/full-logo.png" width="240" alt="AniForge AI logo" />
+
 **Draw it. Animate it. Make it yours.**
 
 <sub>Built for creators with a world in their head and a sketch to start it.</sub>

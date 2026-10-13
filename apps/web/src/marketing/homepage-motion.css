@@ -1,0 +1,115 @@
+/* Original anime art, quiet grid and simple, pausable movement. */
+.af-home { --af-bg:#101214; --af-surface:#191c20; --af-raised:#262b30; --af-accent:#f0c9a4; --af-accent-hover:#ffe0c1; --af-ink:#201b17; --af-text:#f3f2ef; --af-muted:#b7b9bd; --af-editorial:Georgia,'Times New Roman',serif; isolation:isolate; }
+.af-home-header { max-width:none; padding:18px 4%; border-bottom:1px solid var(--af-line); gap:24px; background:var(--af-bg); }
+.af-home-brand>span { border-radius:2px; background:var(--af-text); }
+.af-home-nav a { font:11px var(--af-mono); text-transform:uppercase; letter-spacing:.12em; }
+.af-home .af-button { border-radius:0; min-height:48px; padding:12px 22px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; transition:background 180ms,transform 180ms; }
+.af-home .af-button--primary { background:var(--af-text); color:var(--af-ink); }
+.af-home .af-button:hover { transform:translateY(-2px); }
+.af-home .af-eyebrow { font-size:10px; letter-spacing:.17em; }
+.af-anime-hero { position:relative; max-width:1600px; min-height:860px; margin:auto; overflow:hidden; padding:35px 4% 70px; border-inline:1px solid #30343d66; }
+.af-hero-wordmark { position:relative; z-index:1; text-align:center; font:800 clamp(80px,14.5vw,220px)/1 Arial,sans-serif; letter-spacing:-.085em; color:#efefed; white-space:nowrap; padding-right:.08em; }
+.af-hero-wordmark>span { display:inline-block; vertical-align:top; font:12px var(--af-mono); letter-spacing:0; margin:14px 0 0 16px; }
+.af-hero-wordmark { display:flex; justify-content:center; align-items:center; min-height:clamp(100px,14.5vw,220px); }
+.af-hero-wordmark>img { display:block; width:94%; height:auto; max-height:190px; object-fit:contain; }
+.af-anime-copy { position:relative; z-index:4; width:48%; max-width:620px; padding-top:56px; margin-left:17%; }
+.af-anime-copy h1 { font:650 clamp(50px,4.8vw,74px)/1.02 Arial,sans-serif; letter-spacing:-.055em; margin:22px 0 24px; }
+.af-anime-copy h1>span { font-family:var(--af-editorial); font-style:italic; font-weight:400; letter-spacing:-.065em; }
+.af-anime-copy .af-home-intro { font-size:15px; line-height:1.75; max-width:355px; margin-bottom:27px!important; }
+.af-anime-copy .af-row { gap:24px; }
+.af-anime-copy .af-home-small { font-size:11px; }
+.af-anime-stage { position:absolute; inset:0; pointer-events:none; }
+.af-hero-character { position:absolute; right:0; top:175px; width:43%; height:650px; object-fit:contain; object-position:top; z-index:3; filter:drop-shadow(0 20px 25px #0005); }
+.af-orbit { position:absolute; border:1px solid #5b656744; border-radius:50%; width:91%; height:72%; top:140px; left:5%; transform:rotate(-23deg); }
+.af-orbit-two { width:65%; height:105%; top:-90px; left:25%; transform:rotate(35deg); border-color:#b177482c; }
+.af-floating-frame { position:absolute; width:185px; border:1px solid #ffffff30; border-radius:6px; overflow:hidden; background:#1b2027; box-shadow:0 16px 40px #0006; z-index:2; }
+.af-floating-frame img { display:block; width:100%; height:118px; object-fit:cover; }
+.af-floating-frame span { display:block; padding:9px 10px; font:8px var(--af-mono); letter-spacing:.09em; color:#d5d7d9; }
+.af-frame-city { top:290px; left:1.5%; transform:rotate(-8deg); }
+.af-frame-sketch { left:3.5%; top:580px; width:145px; transform:rotate(6deg); }
+.af-frame-sketch img { height:145px; object-position:center 24%; object-fit:cover; background:#ddd7cc; filter:grayscale(1); }
+.af-hero-coordinate { position:absolute; right:30px; top:273px; z-index:4; font:9px/1.8 var(--af-mono); letter-spacing:.12em; color:#a9adb3; writing-mode:vertical-rl; }
+.af-hero-bottom { position:absolute; bottom:0; left:4%; right:4%; z-index:5; min-height:56px; border-top:1px solid var(--af-line); display:flex; align-items:center; justify-content:space-between; gap:18px; font:9px var(--af-mono); color:var(--af-muted); }
+.af-hero-bottom>a,.af-hero-bottom>button { display:inline-flex; align-items:center; gap:9px; color:var(--af-text); text-decoration:none; }
+.af-hero-bottom>button { border:1px solid var(--af-border); background:var(--af-bg); min-height:34px; padding:7px 10px; font-size:10px; }
+.af-hero-bottom>button[aria-pressed=true] { border-color:var(--af-accent); color:var(--af-accent); }
+.af-craft-strip { display:flex; justify-content:space-around; flex-wrap:wrap; border-block:1px solid var(--af-line); padding:22px 4%; gap:18px; font:10px var(--af-mono); letter-spacing:.14em; color:var(--af-muted); }
+.af-craft-strip span::before { content:'+'; color:var(--af-accent); margin-right:18px; }
+.af-home-availability { max-width:1440px; padding:18px 4%; font-size:11px; border-bottom:1px solid var(--af-line); border-top:0; margin:auto; }
+.af-release-label { font-size:9px; border-radius:0; }
+.af-home-section { max-width:1440px; padding:76px 4%; border-inline:1px solid #30343d66; }
+.af-section-heading h2,.af-examples-heading h2 { font:600 clamp(36px,4.7vw,64px)/1.08 Arial,sans-serif; letter-spacing:-.055em; }
+.af-home-workflow { grid-template-columns:1fr; gap:42px; }
+.af-home-workflow ol { grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; border:1px solid var(--af-line); }
+.af-home-workflow li { border:0; padding:24px; border-right:1px solid var(--af-line); }
+.af-home-workflow li:last-child { border-right:0; }
+.af-step-number { font:italic 27px var(--af-editorial); color:var(--af-muted); }
+.af-home-workflow h3 { font-size:15px; }.af-home-workflow li p { font-size:12px; }
+.af-home-product { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; padding-top:20px; }
+.af-home-product>.af-section-heading { grid-column:1/-1; text-align:left; margin-bottom:42px; }
+.af-feature-row,.af-feature-row.af-feature-reverse { display:flex; flex-direction:column; align-items:stretch; gap:0; margin:0; border:1px solid var(--af-line); }
+.af-feature-row:nth-of-type(2) { border-left:0; }
+.af-feature-row:last-child { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; border-top:0; }
+.af-feature-reverse>.af-product-visual { order:0; }
+.af-product-visual { border-radius:0; border:0; border-bottom:1px solid var(--af-line); box-shadow:none; flex:1; }
+.af-feature-copy { padding:34px; }.af-feature-copy h3 { font:600 clamp(29px,2.5vw,36px)/1.1 Arial,sans-serif; letter-spacing:-.04em; }
+.af-feature-copy p { font-size:14px; }.af-feature-copy ul { font-size:12px; }.af-feature-index { font-size:10px; color:var(--af-muted); }
+@media(min-width:801px) {
+  .af-feature-row:not(:last-child)>.af-product-visual { flex:none; min-height:560px; }
+  .af-layer-composition { padding:22px 22px 110px; }
+  .af-plan-art>.af-scene-art { width:160px; }
+}
+.af-home-examples { background:var(--af-bg); max-width:1440px; border-block:1px solid var(--af-line); }
+.af-art-gallery { grid-template-columns:1.25fr 1fr; gap:32px; }.af-art-gallery>figure:nth-child(2) { margin-top:60px; }
+.af-art-gallery figure>div { border-radius:2px; overflow:hidden; background:#171c23; }
+.af-art-gallery img { display:block; width:100%; height:auto; aspect-ratio:16/11; object-fit:cover; }
+.af-art-gallery .af-character-study { background:radial-gradient(ellipse at 50% 70%,#3d3029,#171c23 75%); }
+.af-art-gallery .af-character-study img { object-fit:contain; object-position:50% 15%; }
+.af-home-control { border-bottom:1px solid var(--af-line); }.af-control-grid article { border-top:1px solid var(--af-line); padding-top:22px; }
+.af-home-faq { padding-top:70px; }.af-home-final { border-top:1px solid var(--af-line); padding-block:100px; }
+.af-home-final h2 { font:600 clamp(54px,6.7vw,92px)/1.03 Arial,sans-serif; letter-spacing:-.06em; }
+.af-home-final h2 span { font-family:var(--af-editorial); font-style:italic; font-weight:400; color:var(--af-text); }
+.af-home-footer { max-width:1440px; margin:auto; border-inline:1px solid var(--af-line); font-family:var(--af-mono); }
+.af-reading-progress { position:fixed; inset:0 0 auto; height:2px; z-index:30; background:var(--af-accent); transform:scaleX(var(--reading-progress,0)); transform-origin:left; pointer-events:none; }
+@media(prefers-reduced-motion:no-preference) {
+  .af-home[data-motion=true] [data-reveal] { transition:opacity 550ms ease,transform 650ms cubic-bezier(.2,.65,.25,1); }
+  .af-home[data-motion=true] [data-reveal=pending] { opacity:0; transform:translateY(20px); }
+  .af-home[data-motion=true] [data-reveal=visible],.af-home[data-motion=true] [data-reveal]:focus-within { opacity:1; transform:translateY(0); }
+  .af-hero-character { animation:af-character-float 7s ease-in-out infinite; }
+  .af-floating-frame { animation:af-frame-float 9s ease-in-out infinite; }.af-frame-sketch { animation-delay:-4s; }
+  .af-anime-copy { animation:af-hero-enter 700ms ease both; }
+  .af-art-gallery img { transition:transform 700ms ease; }.af-art-gallery figure:hover img { transform:scale(1.025); }
+  @keyframes af-character-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-9px); } }
+  @keyframes af-frame-float { 0%,100% { translate:0 0; } 50% { translate:0 10px; } }
+  @keyframes af-hero-enter { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+}
+.af-home[data-animation-paused=true] :is(.af-hero-character,.af-floating-frame) { animation-play-state:paused; }
+@media(max-width:1100px) {
+  .af-anime-hero { min-height:800px; }.af-anime-copy { margin-left:12%; width:50%; }
+  .af-frame-city { width:125px; top:530px; left:1%; opacity:.65; }.af-frame-sketch { display:none; }
+  .af-hero-character { top:170px; height:580px; right:-3%; width:48%; }.af-hero-coordinate { display:none; }
+  .af-home-workflow li { padding:18px; }.af-feature-copy { padding:25px; }
+}
+@media(max-width:800px) {
+  .af-home-header { padding:18px 4%; }.af-anime-hero { min-height:760px; }
+  .af-anime-copy { margin-left:1%; width:56%; padding-top:55px; }.af-anime-copy h1 { font-size:clamp(42px,7.2vw,55px); }
+  .af-hero-character { top:195px; width:48%; height:500px; right:-2%; }.af-frame-city { display:none; }
+  .af-home-availability { margin:0; }.af-hero-bottom>span { max-width:185px; line-height:1.5; text-align:center; }
+  .af-home-workflow ol { grid-template-columns:repeat(2,minmax(0,1fr)); }.af-home-workflow li:nth-child(-n+2) { border-bottom:1px solid var(--af-line); }
+  .af-home-product { grid-template-columns:1fr; }.af-feature-row:nth-of-type(2) { border-left:1px solid var(--af-line); border-top:0; }.af-feature-row:last-child { display:flex; }
+  .af-feature-copy { max-width:none; }.af-home-section { padding-block:55px; }
+}
+@media(max-width:550px) {
+  .af-anime-hero { padding:30px 20px 0; min-height:0; }.af-hero-wordmark { font-size:16vw; padding-right:0; }.af-hero-wordmark>span { font-size:8px; margin:5px 0 0 4px; }
+  .af-anime-copy { width:100%; margin:0; padding-top:40px; text-align:center; }.af-anime-copy h1 { font-size:56px; }
+  .af-anime-copy .af-home-intro { font-size:14px; margin-inline:auto; }.af-anime-copy .af-row { justify-content:center; gap:22px; }.af-anime-copy .af-eyebrow { font-size:8px; }
+  .af-anime-stage { position:relative; height:440px; margin-top:12px; }.af-hero-character { top:0; right:2%; width:92%; height:455px; }
+  .af-orbit { width:100%; height:66%; left:0; top:80px; }.af-orbit-two { width:76%; height:90%; top:0; left:10%; }
+  .af-frame-city { display:block; width:112px; top:260px; left:-7px; opacity:1; z-index:4; }.af-frame-city img { height:74px; }.af-floating-frame span { font-size:6px; padding:7px; }
+  .af-hero-bottom { position:relative; inset:auto; flex-wrap:wrap; padding:16px 0; gap:14px; }.af-hero-bottom>span { order:3; width:100%; max-width:none; text-align:left; font-size:8px; }
+  .af-craft-strip { justify-content:flex-start; padding:18px 20px; gap:16px; font-size:8px; }.af-craft-strip span { width:calc(50% - 8px); }.af-craft-strip span::before { margin-right:8px; }
+  .af-home-section { padding:48px 20px; }.af-home-availability { padding:20px; }
+  .af-home-workflow ol { grid-template-columns:1fr; }.af-home-workflow li { border-right:0; border-bottom:1px solid var(--af-line); }.af-home-workflow li:last-child { border-bottom:0; }
+  .af-feature-copy { padding:23px; }.af-art-gallery { grid-template-columns:1fr; gap:32px; }.af-art-gallery>figure:nth-child(2) { margin-top:0; }.af-home-final { padding-block:65px; }
+}
+@media(prefers-reduced-motion:reduce) { .af-home [data-reveal] { opacity:1!important; transform:none!important; }.af-home .af-button:hover { transform:none; } }

@@ -1,5 +1,27 @@
 # UI upgrade results
 
+## Follow-up — owner-supplied logo integration
+
+October 14, 2026. Cropped the supplied transparent logo into native PNG masters and optimized wordmark, monogram and full-logo WebP variants without regenerating the design. Shared production navigation uses the wordmark on desktop and the monogram on phones; the hero uses the wordmark, while the footer and README use the complete logo. Added browser/touch icons and updated the social preview. Original source remains unchanged.
+
+Actual checks: typecheck, lint, 200 unit tests, 13 browser checks (35.6 seconds), production release build and the bounded 29-file browser-artifact scan passed. Desktop and phone placements were visually reviewed. No production deployment or paid AI call was made; Firebase emulators were not rerun for this image/component change. See [crops, provenance and placement screenshots](brand/README.md).
+
+## Follow-up — reference-led anime homepage
+
+October 14, 2026. Inspected the supplied 17.37-second ArtCraft recording and adapted its dark grid, large wordmark, floating media and restrained typography into an AniForge homepage with an original anime artist and coastal scene. Two illustrations were generated with the built-in image tool and saved as local WebP assets. Their motion is CSS animation with pause/reduced-motion support, not animated GIFs or AniForge-generated video. Removed the cursor follower and simplified transitions. Existing app entry links and interactive source examples remain functional.
+
+Actual checks: typecheck, lint, 200 unit tests, all 13 browser checks, final production release build and the bounded 21-file artifact scan passed. Four focused homepage tests passed again after refinements, including 1440/768/600/390px layouts, pause/resume and live reduced-motion changes. The local production loading review passed with no external or app-service requests; transfer was 483,516 bytes per fresh context, with 168–184 ms LCP on unthrottled loopback. These are local measurements, not production performance claims. Firebase emulators and paid Google model tests were not rerun. No deployment was performed.
+
+See [reference review, screenshots, asset provenance, prompts and measurements](ui-anime-homepage/README.md). The generated artwork is promotional; real Google output remains a separate verification gate.
+
+## Follow-up — homepage typography and motion
+
+October 14, 2026. Added warm editorial typography, an arched artwork frame, entrance transitions, one-time scroll reveals, subtle parallax, artwork hover depth, reading progress and a pointer accent limited to artwork. Native scrolling, keyboard navigation and the system cursor remain intact. Motion stops under reduced-motion settings, including preference changes while the page is open. No dependency or external font request was added.
+
+Validation: typecheck and lint passed; 200 unit tests passed; 13 browser checks passed (27.3 seconds). After clamping the cursor accent at viewport edges, all four homepage checks passed again (26.3 seconds), including focused-content reveal and reduced motion. Final typecheck, lint, production release rebuild and bounded 19-file browser-artifact scan passed. The homepage chunk is 20.66 kB JS (6.58 kB gzip) and 19.14 kB CSS (4.53 kB gzip). Existing Zod annotation and Playwright color-environment warnings remain. No Firebase emulator rerun was needed for this homepage-only update; no paid AI request was made.
+
+See [reviewed desktop/phone captures and motion behavior](ui-home-motion/README.md). Publication to Firebase Hosting remains a separate step.
+
 ## Follow-up — saved-project header parity
 
 Recorded October 14, 2026 (Pacific/Fiji). Saved projects now use the shared AniForge brand, studio navigation, Account menu and theme instead of the legacy application header. Phone navigation wraps below the brand/account row. Loading, sign-in and error states use the shared presentation. Drawing, saving and navigation guards retain their existing behavior.

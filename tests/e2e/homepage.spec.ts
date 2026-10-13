@@ -1,14 +1,18 @@
 import { expect, test } from '@playwright/test';
 
-test('public homepage fits three viewports without loading the application or private services', async ({ page }, testInfo) => {
+test('public homepage fits desktop, tablet and phone viewports without loading the application or private services', async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   const unexpected: string[] = []; const errors: string[] = [];
   page.on('request', (request) => { if (/firebase|konva|CanvasEditor|\/src\/App.tsx|\/api\/v1|googleapis\.com/.test(request.url())) unexpected.push(request.url()); });
   page.on('pageerror', (error) => errors.push(error.message));
-  for (const width of [1440, 768, 390]) {
+  for (const width of [1440, 768, 600, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your sketch.Your story.In motion.');
     await expect(page.getByRole('complementary', { name: 'Current availability' })).toContainText('awaiting verification');
+    const character = page.locator('.af-anime-hero').getByRole('img', { name: /original anime artist in.*vermilion jacket/i });
+    await expect(character).toBeVisible();
+    await expect.poll(() => character.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`homepage-${width}.png`), fullPage: true });
     await page.screenshot({ path: testInfo.outputPath(`hero-${width}.png`) });
@@ -17,14 +21,47 @@ test('public homepage fits three viewports without loading the application or pr
   expect(unexpected).toEqual([]); expect(errors).toEqual([]);
   await expect(page).toHaveTitle('AniForge AI — Your sketch. Your story. In motion.');
   expect(await page.locator('meta[property="og:image"]').getAttribute('content')).toBe('https://aniforge-511502.web.app/social-preview.png');
-  for (const asset of ['/favicon.svg', '/social-preview.png']) { const response = await page.request.get(asset); expect(response.ok()).toBe(true); expect(response.headers()['content-type']).toContain('image/'); }
+  for (const asset of ['/brand/favicon-32.png', '/brand/apple-touch-icon.png', '/social-preview.png']) { const response = await page.request.get(asset); expect(response.ok()).toBe(true); expect(response.headers()['content-type']).toContain('image/'); }
+});
+
+test('homepage motion reveals content, can be paused and switches off live for reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const home = page.locator('.af-home');
+  await expect(home).toHaveAttribute('data-motion', 'true');
+  const character = page.locator('.af-hero-character');
+  await expect.poll(() => character.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+  const pause = page.getByRole('button', { name: 'Pause motion', exact: true });
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
+  await expect(character).not.toHaveCSS('animation-name', 'none');
+  await expect(character).toHaveCSS('animation-play-state', 'running');
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+  await expect(home).toHaveAttribute('data-animation-paused', 'true');
+  await expect(character).toHaveCSS('animation-play-state', 'paused');
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
+  await expect(home).toHaveAttribute('data-animation-paused', 'false');
+  await expect(character).toHaveCSS('animation-play-state', 'running');
+  const gallery = page.locator('.af-art-gallery figure').first();
+  await expect(gallery).toHaveCSS('opacity', '0');
+  await gallery.scrollIntoViewIfNeeded();
+  await expect(gallery).toHaveCSS('opacity', '1');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('.af-home-final a').first().focus();
+  await expect(page.locator('.af-home-final')).toHaveCSS('opacity', '1');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(home).toHaveAttribute('data-motion', 'false');
+  await expect(character).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
+  await expect(page.locator('.af-home-final')).toHaveCSS('opacity', '1');
 });
 
 test('homepage examples are honest local interactions and its links reach the real app', async ({ page }) => {
   await page.goto('/');
   const layer = page.getByRole('button', { name: 'Show observatory layer' });
   await layer.click(); await expect(layer).toHaveAttribute('aria-pressed', 'false');
-  await expect(page.locator('[data-art-layer="observatory"]').nth(1)).toHaveAttribute('visibility', 'hidden');
+  await expect(page.locator('.af-layer-example [data-art-layer="observatory"]')).toHaveAttribute('visibility', 'hidden');
   await layer.click(); await expect(layer).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Try changing the camera direction').fill('Keep the camera still.');
   await page.getByRole('button', { name: /Violet dusk/ }).click();

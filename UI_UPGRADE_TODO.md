@@ -145,6 +145,14 @@ The local design/interaction acceptance is met. The external reference review re
 
 ## Execution order and dependencies
 
+### Anime homepage reference follow-up (October 14, 2026)
+
+- [x] Inspect the supplied ArtCraft recording and adapt its typography, dark grid and floating-media direction.
+- [x] Add original anime hero/scene illustrations, locally hosted with recorded provenance.
+- [x] Simplify motion, add a pause control and respect reduced motion; preserve keyboard and real app entry flows.
+- [x] Review desktop/tablet/phone rendering and pass typecheck, lint, unit/browser checks, production build and local loading review. See [actual evidence](docs/ui-anime-homepage/README.md).
+- [ ] Publish the current frontend build to Firebase Hosting; no deployment is claimed for this update.
+
 ### Saved-project screen follow-up (October 14, 2026)
 
 - [x] Replace the saved editor's legacy header with the shared brand, studio navigation and account menu.

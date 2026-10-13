@@ -7,10 +7,11 @@ import { ApiError, errorMessage, newestFirst, type ProjectApi } from '../api';
 import { ProjectDialog } from '../ProjectDialog';
 import { ActionMenu, Badge, Button, Field, IconButton, Notice, Skeleton, Tabs } from '../ui/Primitives';
 import './dashboard.css';
+import { BrandLogo } from '../ui/BrandLogo';
 
 export function DashboardHeader({ user, busy, loading, onNavigate, onSignIn, onSignOut, studio = false }: { studio?: boolean; user: User | null; busy: boolean; loading: boolean; onNavigate: (path: string) => void; onSignIn: () => void; onSignOut: () => void }) {
   return <header className="af-library-header">
-    <button className="af-library-brand" aria-label="AniForge home" onClick={() => onNavigate('/')}><span>af</span>aniforge<small>AI</small></button>
+    <button className="af-library-brand" aria-label="AniForge home" onClick={() => onNavigate('/')}><BrandLogo /></button>
     <span className="af-library-divider" aria-hidden="true" />
     {studio ? <nav className="af-studio-navigation" aria-label="Studio navigation"><Button variant="quiet" onClick={() => onNavigate('/projects')}><FolderOpen size={16} />Projects</Button><Button variant="quiet" onClick={() => onNavigate('/studio/preview')}><Pencil size={16} />Sketch playground</Button></nav> : <span className="af-library-location">Your workspace</span>}
     <div className="af-library-account">{user ? <><Badge>{user.isAnonymous ? 'Guest workspace' : 'Personal workspace'}</Badge><ActionMenu label="Account" actions={[{ label: busy ? 'Signing out…' : 'Sign out', onSelect: () => { if (!busy) onSignOut(); } }]} /><span className="af-account-name">{user.isAnonymous ? 'Guest' : user.displayName ?? user.email ?? 'Your account'}</span></> : <Button variant="secondary" disabled={busy || loading || !firebaseConfigured} onClick={onSignIn}><LogIn size={16} />Sign in</Button>}</div>
