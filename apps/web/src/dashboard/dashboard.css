@@ -1,4 +1,19 @@
 .af-library { min-height: 100dvh; }
+.af-editor-app .skip-link { color: var(--af-ink); }
+.af-editor-app .af-library-header { flex-wrap: wrap; }
+.af-studio-navigation { display: flex; flex-wrap: wrap; gap: 4px; }
+.af-editor-app .studio-heading { padding-top: 24px; }
+.af-editor-app .studio-heading h1 { color: var(--af-text); }
+.af-editor-app .studio-heading p, .af-editor-app .loading-state { color: var(--af-muted); }
+.af-editor-app .status-chip { color: var(--af-muted); background: var(--af-surface); border-color: var(--af-border); }
+.af-editor-app .error-banner { color: var(--af-danger); background: var(--af-surface); border-color: var(--af-border); }
+@media (max-width: 1100px) {
+  .af-editor-app .af-library-account > .af-badge, .af-editor-app .af-account-name { display: none; }
+}
+@media (max-width: 700px) {
+  .af-studio-navigation { order: 3; flex-basis: 100%; border-top: 1px solid var(--af-line); padding-top: 10px; }
+  .af-studio-navigation .af-button { flex: 1; padding-inline: 8px; }
+}
 .af-library .skip-link { color: var(--af-ink); }
 .af-library-toolbar .af-tooltip,.af-library-guide>.af-tooltip-wrap .af-tooltip { left: auto; right: 0; }
 .af-library-header { display: flex; align-items: center; gap: 24px; min-height: 84px; padding: 18px 32px; border-bottom: 1px solid var(--af-line); }

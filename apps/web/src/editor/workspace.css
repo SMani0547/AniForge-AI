@@ -1,8 +1,5 @@
 /* Saved editor only. Panels retain their React state when hidden. */
 .af-editor-app { background: #101114; }
-.af-editor-app .app-header { height: 64px; padding: 0 24px; background: #15171c; gap: 28px; }
-.af-editor-app .brand { font-size: 20px; }
-.af-editor-app .brand-symbol { width: 32px; height: 32px; border-radius: 8px; }
 .studio-page.af-editor-route { max-width: none; padding: 0 20px 24px; }
 .af-editor { border: 0; border-radius: 0; overflow: visible; min-height: 0; --muted: var(--af-muted); --border: var(--af-line); }
 .af-editor [hidden] { display: none !important; }
@@ -107,12 +104,7 @@
   .af-editor .editor-layers li { display: grid; grid-template-columns: 1fr auto; }
   .af-editor .layer-actions { grid-column: 1/-1; justify-content: flex-start; gap: 8px; }
 }
-@media (max-width: 800px) {
-  .af-editor-app .app-header { height: auto; padding: 12px 20px 0; gap: 12px; }
-}
 @media (max-width: 600px) {
-  .af-editor-app .app-header { height: auto; min-height: 60px; padding: 12px 16px; gap: 12px; }
-  .af-editor-app .app-header nav { display: none; }
   .studio-page.af-editor-route { padding: 0 12px 24px; }
   .af-editor .editor-savebar { flex-wrap: wrap; gap: 10px; padding: 16px 0; }
   .af-editor .editor-savebar .workspace-project { flex-basis: 100%; flex-direction: row; align-items: center; }

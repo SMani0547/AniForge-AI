@@ -10,6 +10,8 @@
 **/test-results
 **/.env
 **/.env.*
+**/.env_*
+**/.history
 !**/.env.example
 **/*credentials*.json
 **/*service-account*.json

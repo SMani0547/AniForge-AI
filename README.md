@@ -1,24 +1,95 @@
-# AniForge AI
+<div align="center">
 
-An original-art anime studio built with React, Konva, Fastify, Firebase and server-side Google AI. The foundation, saved canvas, scene analysis, queued video generation and revision/timeline implementation are present; this repository is **not yet an end-to-end deployed animation studio**. Real Google model access remains unverified.
+<img src="docs/readme/hero.svg" width="100%" alt="AniForge AI — Draw it. Animate it. Make it yours. An original copper-sailed ship beneath a violet moon." />
 
-## Current functionality
+**Your next adventure starts with a sketch.**
 
-- Standalone public homepage with original artwork, interactive local examples, FAQ and direct links to saved projects or the unsaved drawing playground. It loads without Firebase or the editor.
-- Dedicated project dashboard with grid/list views, search/sort of loaded projects, private saved-source thumbnails, project action menus and dismissible onboarding. Creation opens the saved editor immediately. Firebase Google sign-in, optional anonymous sign-in and owner-only project CRUD/duplication use Firestore when configured.
-- Saved canonical scene JSON with autosave/manual save, revision conflicts, pencil/brush/eraser, shapes/text, selection/transforms, layers, inspector and undo/redo. Cloud projects use the saved editor; the separate no-sign-in playground remains explicitly **unsaved** and now uses the shared visual system with responsive tools, canvas and assistant panels. [Playground captures](docs/ui-playground/README.md).
-- Private PNG/JPEG/WEBP imports through the authenticated API, original-content affirmation and manual panel cropping. Images are validated and normalized to PNG; media bytes stay outside Firestore. Project copies receive independent images.
-- Editable shot plans and prompt preview saved with the canvas. Configured real Gemini analysis receives a private canonical snapshot and returns a separate suggestion for explicit review/apply. Revision checks, durable request IDs, attempt limits and safe error states protect existing work. Manual plans work without AI credentials.
-- Real server-only Gemini scene analysis, Omni image-to-video and conversational-edit smoke commands. They require explicit paid opt-in, a server key and original-content affirmation. No fake/live fallback exists.
-- Queue-backed video jobs, per-user attempt limits, trusted OIDC worker, immutable private MP4 versions, status polling and a player. Durable checkpoints retry existing media downloads without regenerating. See [worker setup](docs/video-worker-setup.md).
-- Conversational edits create new immutable clips with parent links and prompt history. Compare parent/revised playback, save or restore the selected version, and preserve existing media when an edit fails. Expired interaction history offers an explicit stored-video upload mode with separate paid consent; there is no automatic paid fallback.
-- Saved trim/caption metadata affects the browser preview. Download the selected version's original MP4 and separate timeline JSON; trim and captions are **not rendered into the MP4**.
-- Cloud deployment configuration, private database/storage rules, CI and scoped credential documentation.
-- Release-only Firebase/API configuration validation, Hosting predeploy build, bounded browser-secret scan, compiled API smoke and CI container checks. Local preparation does not mean deployment has succeeded.
+An anime creation studio for original art, editable scenes and versioned AI video workflows.
 
-No real Google AI call, production cloud persistence verification, Docker build or deployment has been completed in this environment. No Google-generated MP4 has been produced. Generation and editing require a configured private worker, Cloud Tasks queue and explicit paid consent. Two labeled original geometric MP4s are used only in tests. Local Firebase emulators allow the saved editor to run without cloud credentials.
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-studio-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Firebase](https://img.shields.io/badge/Firebase-hosted-18181B?style=for-the-badge&logo=firebase&logoColor=FFCA28)
+![Google AI](https://img.shields.io/badge/Google_AI-server_only-7657CF?style=for-the-badge&logo=google&logoColor=white)
 
-## Local start
+[**Open AniForge ↗**](https://aniforge-511502.web.app) · [**Local setup**](#local-setup) · [**Build roadmap**](UI_UPGRADE_TODO.md) · [**Documentation**](#documentation)
+
+<sub>Built for the AI Builder Cup 2026 · Original stories. Editable sources. Your creative direction.</sub>
+
+</div>
+
+---
+
+## ✦ From first line to next scene
+
+Draw an original character. Build a scene. Refine its direction. Keep your source editable while each generated clip gets its own version.
+
+| ✎ Create | ◈ Direct | ▶ Animate | ⟳ Refine |
+| :--- | :--- | :--- | :--- |
+| Sketch, import, crop and arrange layers. | Write a shot plan or review a Gemini suggestion. | Request a clip through the server-side job workflow. | Compare revisions while preserving the original. |
+
+> **Captain's log · October 14, 2026**
+>
+> Firebase Hosting and the Cloud Run API have been deployed. The owner reports working authentication and database access. Local editor and regression checks pass. **Real Google analysis, generated video and follow-up edits remain unverified**; paid access and private video-worker setup remain release gates. The latest local UI changes require Hosting publication.
+
+## 🎨 Inside the studio
+
+<img src="docs/ui-u2/hero-1440.png" width="100%" alt="AniForge landing page with original anime-inspired artwork and studio entry points" />
+
+<details>
+<summary><strong>Open the saved editor preview</strong></summary>
+
+![Saved source editor with tools, layers and properties](docs/ui-saved-shell/workspace-source-1440.png)
+
+Actual local Firebase-emulator capture. The geometric artwork is test content, not Google-generated output. The emulator warning is intentionally visible.
+
+</details>
+
+<details>
+<summary><strong>Explore the project library and phone layout</strong></summary>
+
+![Project library](docs/ui-u3/dashboard-populated.png)
+
+<img src="docs/ui-saved-shell/workspace-mobile-canvas.png" width="320" alt="Saved source editor on a phone with compact navigation and canvas controls" />
+
+Local emulator screenshots. [More UI evidence →](docs/ui-upgrade-results.md)
+
+</details>
+
+### Your creative toolkit
+
+- **Draw freely:** pencil, brush, eraser, shapes, text, image layers, transforms and undo/redo.
+- **Keep your source:** editable scene JSON, autosave and revision-conflict recovery.
+- **Direct the scene:** manual shot plans, prompt previews and review-before-apply analysis.
+- **Preserve every take:** immutable video versions, parent links and comparison controls; real model verification remains pending.
+- **Export honestly:** original MP4 plus timeline JSON. Preview trims and captions are not baked into the MP4.
+
+`SOURCE JSON` → `SHOT PLAN` → `VIDEO JOB` → `IMMUTABLE MP4` → `NEW REVISION`
+
+## 🏴‍☠️ A little Grand Line energy
+
+For the One Piece fans: bring the big dreams, unlikely crews and sense of adventure. AniForge's own voyage starts with **your original world**.
+
+**Original scene prompt · The Cloudwake Crew**
+
+> An adult cartographer aboard a floating wooden skiff unfolds a glowing star map. Copper sails catch a gentle wind as cloud islands drift past. Slow camera push, warm sunrise, hand-drawn 2D atmosphere. Preserve the character and framing.
+
+<sub>An original creative prompt, not a generated result. This project is unofficial and is not affiliated with One Piece; the banner uses original nautical artwork.</sub>
+
+## Local setup
+
+Node.js **24**, npm **11**, and Java **21+** for Firebase emulators.
+
+```powershell
+npm ci
+npm run dev:emulators
+```
+
+Open **http://127.0.0.1:5173** → **Open studio** → **Continue as a guest** → create a project.
+
+This mode uses isolated local Firebase services with AI disabled. Draw, save, reload and write manual shot plans without a paid model call. The separate sketch playground is explicitly unsaved.
+
+<details>
+<summary><strong>Local setup details & cloud configuration</strong></summary>
 
 Install Node.js 24 LTS, npm 11 and Java 21+ (for emulators). From this repository root:
 
@@ -42,7 +113,29 @@ Fill in public Firebase web configuration on the frontend, and `GOOGLE_CLOUD_PRO
 
 Server secrets belong in ignored API environment files or Secret Manager. Never put a Gemini key or service-account credential in `VITE_*`, browser code or Git. There is no need to send secrets in chat.
 
-## Real model smoke tests
+</details>
+
+## 🔧 Under the hood
+
+<details>
+<summary><strong>Full feature inventory</strong></summary>
+
+- Standalone public homepage with original artwork, interactive local examples, FAQ and direct links to saved projects or the unsaved drawing playground. It loads without Firebase or the editor.
+- Dedicated project dashboard with grid/list views, search/sort of loaded projects, private saved-source thumbnails, project action menus and dismissible onboarding. Creation opens the saved editor immediately. Firebase Google sign-in, optional anonymous sign-in and owner-only project CRUD/duplication use Firestore when configured.
+- Saved canonical scene JSON with autosave/manual save, revision conflicts, pencil/brush/eraser, shapes/text, selection/transforms, layers, inspector and undo/redo. Cloud projects use the saved editor; the separate no-sign-in playground remains explicitly **unsaved** and now uses the shared visual system with responsive tools, canvas and assistant panels. [Playground captures](docs/ui-playground/README.md).
+- Private PNG/JPEG/WEBP imports through the authenticated API, original-content affirmation and manual panel cropping. Images are validated and normalized to PNG; media bytes stay outside Firestore. Project copies receive independent images.
+- Editable shot plans and prompt preview saved with the canvas. Configured real Gemini analysis receives a private canonical snapshot and returns a separate suggestion for explicit review/apply. Revision checks, durable request IDs, attempt limits and safe error states protect existing work. Manual plans work without AI credentials.
+- Real server-only Gemini scene analysis, Omni image-to-video and conversational-edit smoke commands. They require explicit paid opt-in, a server key and original-content affirmation. No fake/live fallback exists.
+- Queue-backed video jobs, per-user attempt limits, trusted OIDC worker, immutable private MP4 versions, status polling and a player. Durable checkpoints retry existing media downloads without regenerating. See [worker setup](docs/video-worker-setup.md).
+- Conversational edits create new immutable clips with parent links and prompt history. Compare parent/revised playback, save or restore the selected version, and preserve existing media when an edit fails. Expired interaction history offers an explicit stored-video upload mode with separate paid consent; there is no automatic paid fallback.
+- Saved trim/caption metadata affects the browser preview. Download the selected version's original MP4 and separate timeline JSON; trim and captions are **not rendered into the MP4**.
+- Cloud deployment configuration, private database/storage rules, CI and scoped credential documentation.
+- Release-only Firebase/API configuration validation, Hosting predeploy build, bounded browser-secret scan, compiled API smoke and CI container checks. Local preparation does not mean deployment has succeeded.
+
+</details>
+
+<details>
+<summary><strong>Real model smoke tests — paid setup required</strong></summary>
 
 Set server `GEMINI_API_KEY` and `ENABLE_REAL_AI=true` only after confirming billing and entitlement. Defaults are `gemini-3.8-flash` for analysis and `gemini-omni-1.1-flash` for video. Model interface verification and exact follow-up edit commands are in [the smoke-test guide](docs/model-verification.md).
 
@@ -54,7 +147,10 @@ npm run smoke:video -- --image 'C:\Art\original.png' --attest-original --prompt 
 
 Use absolute image paths. Each successful run saves its validated output and metadata into a new ignored `apps/api/artifacts/ai-smoke/` directory. Edits create separate files and retain the parent interaction ID. Manually play any resulting MP4: container validation alone does not prove correct playback or requested motion. All failed/disabled commands exit nonzero and do not claim success.
 
-## Checks
+</details>
+
+<details>
+<summary><strong>Quality checks & test boundaries</strong></summary>
 
 ```powershell
 npm run typecheck
@@ -74,17 +170,41 @@ Browser tests inject explicitly labeled providers into test-only API instances w
 
 The pinned Firebase CLI is a development dependency and currently brings transitive npm advisories; the production dependency audit is separate. Do not run `npm audit fix --force` to downgrade the CLI or silently break its dependencies. The local emulators bind only to loopback.
 
-## Repository and milestones
+</details>
 
-- `apps/web`: React/Vite/Tailwind/Konva studio and Firebase Auth.
-- `apps/api`: Fastify API/private worker, Firebase Admin repositories, queue recovery and Google AI adapters/CLI.
-- `packages/shared`: strict Zod API, project, scene, canvas, shot-plan, job and version schemas.
-- `tests/e2e`: Chromium foundation smoke tests.
+## Documentation
 
-[TODO.md](TODO.md) tracks each acceptance gate and blocker. Read [BUILD_PLAN.md](BUILD_PLAN.md), [architecture](docs/architecture.md), [API reference](docs/api.md), and [cloud setup](docs/cloud-setup.md) before adding the next milestone.
+```text
+aniforge-ai/
+├── apps/web/          React · Vite · Konva · Firebase Auth
+├── apps/api/          Fastify · Google AI · private worker
+├── packages/shared/   Zod schemas · shared TypeScript
+├── tests/             Unit, browser and emulator checks
+└── docs/              Setup, architecture and evidence
+```
 
-[UI_UPGRADE_TODO.md](UI_UPGRADE_TODO.md) tracks the homepage, dashboard and editor redesign. U1 provides a development-only [design lab](http://127.0.0.1:5173/design), U2 the public homepage and U3 the [project dashboard](http://127.0.0.1:5173/projects); run the local server first. U4 provides the saved Source/Video workspace with switchable phone panels; U5 adds reviewed generation, prominent playback, version comparison and a seekable preview timeline. U6 local accessibility/navigation/reflow checks and production loading measurements are documented in the [UI release review](docs/ui-release-review.md). See [actual results](docs/ui-upgrade-results.md), [dashboard behavior and setup](docs/dashboard.md), [visual system](docs/ui-design-system.md), [workspace behavior](docs/editor-workspace.md), [video workspace](docs/video-workspace.md) and [U5 screenshots](docs/ui-u5/README.md). The external Artcraft visual review and live cloud release gates remain pending.
+| Find your heading | Read next |
+| :--- | :--- |
+| Architecture & scope | [Build plan](BUILD_PLAN.md) · [Architecture](docs/architecture.md) · [API](docs/api.md) |
+| UI & editor | [UI roadmap](UI_UPGRADE_TODO.md) · [Source workspace](docs/editor-workspace.md) · [Video workspace](docs/video-workspace.md) |
+| Cloud & credentials | [Cloud setup](docs/cloud-setup.md) · [Private worker](docs/video-worker-setup.md) · [Models](docs/model-verification.md) |
+| Release & demo | [Release checklist](docs/release-checklist.md) · [Demo script](docs/demo-script.md) · [Acceptance gates](TODO.md) |
+| Actual results | [UI validation](docs/ui-upgrade-results.md) · [Phase 5](docs/phase-5-results.md) · [Release preparation](docs/phase-6-results.md) |
 
-Phase 6 local release preparation is recorded in [the results](docs/phase-6-results.md). Cloud setup and live verification remain deferred by the owner; the full release is not complete. Follow the [release checklist](docs/release-checklist.md), [three-minute demo script](docs/demo-script.md) and [eight-slide outline](docs/pitch-outline.md). A [labeled local screenshot](docs/demo/README.md) documents test-fixture behavior, not Google output. The final demo video and PDF deck still need genuine evidence.
+## ⚓ Build with us
 
-Hosting uses `npm run build:release` through its predeploy hook. Configure ignored `.env.local` or `.env.release.local` with actual public Firebase settings and an HTTPS API URL before running it; an ordinary unconfigured build is for local checks. Docker build/smoke and the optional `cloudbuild.yaml` remote build still require the corresponding tools/account. Required credentials and cloud steps are in [cloud setup](docs/cloud-setup.md), [worker setup](docs/video-worker-setup.md) and [model verification](docs/model-verification.md). Generated MP4s are flat clips. Editable source, shot plans, captions and version history are separate data.
+Read [AGENTS.md](AGENTS.md) and the [build plan](BUILD_PLAN.md) before contributing. Keep changes small, TypeScript strict and failure states visible. Record actual checks and distinguish test fixtures from live model evidence.
+
+Server secrets stay in ignored API environment files or Secret Manager. Generated clips are flat MP4s; editable sources, captions, shot plans and version history remain separate data.
+
+---
+
+<div align="center">
+
+**Draw it. Animate it. Make it yours.**
+
+<sub>Built for creators with a world in their head and a sketch to start it.</sub>
+
+[Open the studio](https://aniforge-511502.web.app) · [Read the roadmap](TODO.md)
+
+</div>

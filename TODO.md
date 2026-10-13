@@ -6,6 +6,8 @@ The separately requested visual redesign is tracked in [UI_UPGRADE_TODO.md](UI_U
 
 ## Phase 1 — foundation and model proof of concept
 
+**Cloud setup checkpoint (October 13):** project `aniforge-511502`, ADC access and enabled Google provider verified; Firestore rules/index definitions deployed. Billing is active, all required indexes are ready, and private bucket creation plus real SDK write/read and anonymous-access denial checks passed. Browser persistence remains unverified. See [live setup progress](docs/cloud-setup-progress.md); live AI and deployment gates remain open.
+
 - [x] Inspect BUILD_PLAN.md, CODEX_MASTER_PROMPT.md and AGENTS.md. Initial repository contained only these three files.
 - [x] Strict TypeScript npm workspaces: React/Vite/Tailwind/Konva web, Fastify API, shared Zod schemas.
 - [x] Firebase Google sign-in and explicitly enabled anonymous sign-in; clear missing-configuration state.

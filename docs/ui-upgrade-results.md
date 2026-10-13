@@ -1,5 +1,15 @@
 # UI upgrade results
 
+## Follow-up — saved-project header parity
+
+Recorded October 14, 2026 (Pacific/Fiji). Saved projects now use the shared AniForge brand, studio navigation, Account menu and theme instead of the legacy application header. Phone navigation wraps below the brand/account row. Loading, sign-in and error states use the shared presentation. Drawing, saving and navigation guards retain their existing behavior.
+
+Actual validation: typecheck and lint passed; 200 unit tests passed across 15 files; 12 browser checks passed (18.0 seconds); 40 emulator checks passed (1.8 minutes); `npm.cmd run build:release` and the bounded browser-artifact scan passed (19 files). The initial browser run exposed a stale social-image assertion after the earlier production metadata update; the assertion now matches the configured absolute URL and the complete suite passed on rerun. Existing Rollup annotation, Java Unsafe and emulator listener warnings remain visible.
+
+Reviewed [desktop](ui-saved-shell/workspace-source-1440.png) and [phone](ui-saved-shell/workspace-mobile-canvas.png) captures from the real local emulator run. The red Firebase emulator banner is test-only. Responsive regression checks also covered 1280px, 768px and 720 x 450 reflow, account-menu Escape/focus return, saved reload and unsaved navigation protection. Provider output in these tests uses explicit fixtures; no paid Google request was made.
+
+The production release build is ready locally. This change has not been deployed to Firebase Hosting; publishing the frontend is still required to update the live site. No backend change is needed for this header update.
+
 ## Follow-up — sketch playground UI parity
 
 Recorded October 13, 2026 (Pacific/Fiji). **Local playground redesign passed.** The unsaved `/studio/preview` now uses the shared dashboard header, theme and controls, with a labeled drawing rail, color palette, larger canvas area and refreshed scene assistant. Tablet layouts move the assistant below the canvas; phones use compact tools above it. [Six actual captures](ui-playground/README.md) document desktop, tablet, phone and zoom-equivalent reflow.

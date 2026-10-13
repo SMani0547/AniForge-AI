@@ -145,6 +145,14 @@ The local design/interaction acceptance is met. The external reference review re
 
 ## Execution order and dependencies
 
+### Saved-project screen follow-up (October 14, 2026)
+
+- [x] Replace the saved editor's legacy header with the shared brand, studio navigation and account menu.
+- [x] Match loading/error presentation and responsive navigation to the current theme.
+- [x] Verify keyboard account controls, draft guards, saved reload and desktop/phone layouts.
+- [x] Pass typecheck, lint, 200 unit tests, 12 browser checks, 40 emulator checks and production release build. See [actual results](docs/ui-upgrade-results.md).
+- [ ] Publish this frontend update to Firebase Hosting; the local build alone does not update the live site.
+
 1. **Start with U1, then U2:** establish the visual system and replace the public homepage first, as requested.
 2. **Continue U3 → U4 → U5:** upgrade the dashboard and editor in reviewable steps, keeping the app usable throughout.
 3. **Finish U6:** consolidate visual evidence and regression results. Accessibility and responsive checks also apply during every earlier phase.

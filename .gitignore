@@ -3,6 +3,8 @@ dist/
 coverage/
 .env
 .env.*
+.env_*
+.history/
 !.env.example
 *.tsbuildinfo
 .firebase/

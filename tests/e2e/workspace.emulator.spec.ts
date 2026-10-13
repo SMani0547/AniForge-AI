@@ -60,14 +60,21 @@ test('workspace preserves drafts across views and canonical drawing through desk
     };
     const noOverflow = async () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      const nav = page.locator('.af-editor-app .app-header nav');
+      const nav = page.getByRole('navigation', { name: 'Studio navigation' });
       if (await nav.isVisible()) {
-        const header = (await page.locator('.af-editor-app .app-header').boundingBox())!;
+        const header = (await page.locator('.af-editor-app .af-library-header').boundingBox())!;
         const box = (await nav.boundingBox())!;
         expect(box.y + box.height).toBeLessThanOrEqual(header.y + header.height + 1);
       }
     };
     await expect(canvas).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Studio navigation' })).toBeVisible();
+    const account = page.locator('summary').filter({ hasText: /^Account$/ });
+    await account.click();
+    await expect(button('Sign out')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(account).toBeFocused();
+    await expect(button('Sign out')).not.toBeVisible();
     const help = page.locator('summary').filter({ hasText: 'Shortcuts & help' });
     await help.focus(); await page.keyboard.press('Enter');
     await expect(page.getByText('V Select / P Pencil / B Brush / E Eraser / H Pan / F Fit / Esc Deselect')).toBeVisible();

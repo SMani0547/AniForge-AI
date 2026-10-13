@@ -16,7 +16,7 @@ test('public homepage fits three viewports without loading the application or pr
   }
   expect(unexpected).toEqual([]); expect(errors).toEqual([]);
   await expect(page).toHaveTitle('AniForge AI — Your sketch. Your story. In motion.');
-  expect(await page.locator('meta[property="og:image"]').getAttribute('content')).toBe('/social-preview.png');
+  expect(await page.locator('meta[property="og:image"]').getAttribute('content')).toBe('https://aniforge-511502.web.app/social-preview.png');
   for (const asset of ['/favicon.svg', '/social-preview.png']) { const response = await page.request.get(asset); expect(response.ok()).toBe(true); expect(response.headers()['content-type']).toContain('image/'); }
 });
 
