@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "recordedOn": "2026-10-13",
   "assets": [
     {
@@ -136,6 +136,18 @@
         "docs/ui-u6/"
       ],
       "disclosure": "Local UI review, Firebase emulators and TEST FIXTURE video; not real Google output or deployment evidence",
+      "actualAniforgeGeneratedOutput": false
+    },
+    {
+      "id": "playground-ui-parity-captures",
+      "source": "tests/e2e/smoke.spec.ts and tests/e2e/ui-review.spec.ts",
+      "author": "Actual AniForge Chromium captures",
+      "rights": "Original pointer-drawn stroke and application UI; no third-party media",
+      "kind": "actual-application-captures",
+      "placements": [
+        "docs/ui-playground/"
+      ],
+      "disclosure": "Unsaved local playground with AI disabled. Not Google output or deployment evidence.",
       "actualAniforgeGeneratedOutput": false
     }
   ],

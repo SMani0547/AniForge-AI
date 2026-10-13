@@ -133,6 +133,16 @@ The local design/interaction acceptance is met. The external reference review re
 
 **Local acceptance met:** navigation/draft guards, dialog/help focus, core theme contrast, responsive layouts and deferred media pass. Built-homepage timing and bundle measurements are recorded. Native browser zoom controls and manual screen-reader/cross-browser reviews are not claimed. See [review scope](docs/ui-release-review.md), [evidence](docs/ui-u6/README.md) and [actual results](docs/ui-upgrade-results.md). Cloud credentials, real Google output and deployment remain separate pending gates.
 
+## Follow-up — sketch playground UI parity
+
+- [x] Replace the legacy unsaved playground shell with the shared brand, theme and accessible controls.
+- [x] Refresh the drawing tools, palette, canvas workspace and scene assistant for desktop, tablet and phone.
+- [x] Preserve local drawing, undo/redo, clear recovery and guarded navigation. Keep unsaved status and unavailable AI explicit; do not imply a drawing transfers into projects.
+- [x] Review 390/768/1280/1440 layouts and 720 x 450 reflow; archive [actual captures](docs/ui-playground/README.md).
+- [x] Complete final typecheck, lint, unit/browser/emulator tests and production build; record actual results and commit.
+
+**Local acceptance met:** typecheck, lint, 200 unit tests, 12 browser checks, 40 emulator checks and production build/artifact scan pass. The initial resize overflow was repaired and the full browser suite rerun. See [actual results](docs/ui-upgrade-results.md). Cloud release remains deferred.
+
 ## Execution order and dependencies
 
 1. **Start with U1, then U2:** establish the visual system and replace the public homepage first, as requested.

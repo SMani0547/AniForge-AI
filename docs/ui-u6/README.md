@@ -16,4 +16,6 @@ Review found and fixed overlapping tablet navigation. The final header expands c
 
 [Performance JSON](performance.json) records three fresh built-homepage loads, resources, browser version and emitted artifact/gzip sizes. [Contrast JSON](theme-contrast.json) records the actual computed theme pairs checked by the browser test. These are bounded local measurements, not accessibility certification, Lighthouse scores or deployed performance evidence.
 
+Follow-up: the playground now uses the shared dashboard brand and visual system; [new captures](../ui-playground/README.md) supersede its older U6 capture. The saved editor header still has the earlier brand treatment.
+
 Regenerate with `npm run test:e2e`, `npm run test:emulators`, `npm run build` and `npm run review:web`. Screenshots come from the homepage, UI-review, workspace and video browser scenarios; archived PNGs are unmodified copies. See [scope and limitations](../ui-release-review.md) and [actual validation results](../ui-upgrade-results.md).

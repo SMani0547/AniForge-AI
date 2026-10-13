@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test('unconfigured foundation exposes an honest, functional local sketch preview', async ({ page }, testInfo) => {
   const browserErrors: string[] = [];
+  const aiRequests: string[] = [];
+  page.on('request', (request) => { if (/\/api\/v1\/.*(?:analy|generat|video|jobs)/.test(request.url())) aiRequests.push(request.url()); });
   page.on('pageerror', (error) => browserErrors.push(error.message));
   await page.goto('/projects');
   await expect(page.getByRole('heading', { name: 'Your workspace', exact: true })).toBeVisible();
@@ -21,6 +23,17 @@ test('unconfigured foundation exposes an honest, functional local sketch preview
   await page.mouse.move(box.x + box.width * 0.65, box.y + box.height * 0.6, { steps: 12 });
   await page.mouse.up();
   await expect(page.getByText('1 stroke', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Brush', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Brush', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Use mint stroke' }).click();
+  await expect(page.getByRole('button', { name: 'Use mint stroke' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Clear sketch', exact: true }).click();
+  await expect(page.getByText('0 strokes', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(page.getByText('1 stroke', { exact: true })).toBeVisible();
+  page.once('dialog', (dialog) => { void dialog.dismiss(); });
+  await page.getByRole('button', { name: 'Open projects', exact: true }).click();
+  await expect(page).toHaveURL(/\/studio\/preview$/);
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(page.getByText('0 strokes', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Redo', exact: true }).click();
@@ -31,6 +44,7 @@ test('unconfigured foundation exposes an honest, functional local sketch preview
   await page.reload();
   await expect(page.getByText('0 strokes', { exact: true })).toBeVisible();
   expect(browserErrors).toEqual([]);
+  expect(aiRequests).toEqual([]);
 });
 
 test('project gallery and sketch controls fit a mobile viewport', async ({ page }) => {

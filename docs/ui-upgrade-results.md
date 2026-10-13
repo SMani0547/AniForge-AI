@@ -1,5 +1,25 @@
 # UI upgrade results
 
+## Follow-up — sketch playground UI parity
+
+Recorded October 13, 2026 (Pacific/Fiji). **Local playground redesign passed.** The unsaved `/studio/preview` now uses the shared dashboard header, theme and controls, with a labeled drawing rail, color palette, larger canvas area and refreshed scene assistant. Tablet layouts move the assistant below the canvas; phones use compact tools above it. [Six actual captures](ui-playground/README.md) document desktop, tablet, phone and zoom-equivalent reflow.
+
+Drawing retains canonical 1920 x 1080 coordinates, pencil/brush/eraser, undo/redo and undoable clearing. Pointer cancellation finishes the current stroke. Navigation and reload warnings remain in place; sign-in no longer changes the playground component key. The drawing is explicitly temporary and does not transfer into a saved project. Disabled AI controls explain that no AI requests are sent.
+
+| Command / check | Actual result |
+| --- | --- |
+| `npm.cmd run typecheck` | Passed shared/API/web and tooling; repeated after final app-shell change. |
+| `npm.cmd run lint` | Passed; repeated after final app-shell change. |
+| `npm test` | 200 tests passed across 15 files. |
+| `npm run test:e2e` | Final run: 12 passed in 34.9 seconds, zero retries. |
+| `npm run test:emulators` | 40 passed in 2.3 minutes, zero retries; actual local Auth/Firestore/Storage and explicitly labeled provider fixtures. |
+| `npm run build` | Shared/API/web build passed; artifact scan passed across 19 files. Playground CSS stays in its lazy route chunk (6.01 kB / 1.64 kB gzip). |
+| Visual / interaction review | 390/768/1280/1440 widths and 720 x 450 reflow passed. Pointer drawing, tool/color selection, clear/undo recovery, history, cancelled project navigation and refresh behavior pass. No AI requests observed in the playground smoke scenario. |
+
+The first browser run found temporary horizontal overflow when the Konva stage retained its previous width during a viewport change (11 passed, 1 failed). The canvas now clips its own drawing surface during ResizeObserver updates; the complete rerun passed. History tooltips also anchor inward at the canvas edge. No page-wide overflow hiding was added.
+
+Non-blocking output included the existing Zod/Rollup annotation, color-environment, Java Unsafe and emulator test listener warnings. No new dependencies, credentials or cloud services were added. Real Firebase production sign-in, Google analysis/video/edit, worker IAM and deployment remain deferred under the existing [release checklist](release-checklist.md); these local results do not validate them. Manual screen-reader, native zoom and additional browser/device reviews are not claimed.
+
 ## U6 — local accessibility, performance and release review
 
 Recorded October 13, 2026 (Pacific/Fiji). **Local U6 review passed. Cloud release remains deferred.** [Review scope and remaining limits](ui-release-review.md), [14 captures and raw measurements](ui-u6/README.md) and the roadmap are updated.
