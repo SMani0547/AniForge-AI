@@ -1,5 +1,31 @@
 # UI upgrade results
 
+## Follow-up — continuous red meteor bodies
+
+October 14, 2026. Removed the separate flame polygons, pale core and head glow so the leading edge is part of the same red stroke as the body. Retained three tapered trails and matched their shedding embers to the same red. Browser motion checks now measure the visible trail itself.
+
+Actual results: typecheck, lint, 200 unit tests, all 14 browser checks (26.7 seconds), production release build and the bounded 32-file artifact scan passed. Reviewed the updated hero screenshot for the removal of the separate tip. Existing Zod annotation and Playwright color warnings remain non-blocking. No deployment, emulator rerun or paid API request was performed; no credentials are needed for this change.
+
+## Follow-up — flame tips and shedding embers
+
+October 14, 2026. Replaced the rounded white dash and hard halo with a pointed, asymmetric flame, warm core and radial heat glow. Each of the three meteors sheds seven small embers that drift backward/outward and fade. Flame groups follow the same SVG curves and timing as their red wakes; pause freezes heads, tails and embers, and reduced motion disables their animations. No new dependency or credential is required.
+
+Actual results: typecheck, lint, 200 unit tests, a focused browser motion check, all 14 browser tests (43.9 seconds), production release build and the bounded 32-file artifact scan passed. The focused hero capture was visually reviewed; [final full-suite capture](ui-motion-rhythm/hero-meteor-flames.png) is retained. Existing Zod annotation and Playwright color warnings remain. No deployment, emulator rerun or paid Google request was performed.
+
+## Follow-up — three thicker meteor trails
+
+October 14, 2026. Added a third curved flight path and replaced the sparse trail layers with twelve overlapping strokes that grow wider and brighter toward the glowing head. Increased the head and halo thickness for a meteor-like silhouette; the three loops use independent 12/17/15-second timings. Pause and reduced-motion behavior remain supported.
+
+Actual results: typecheck, lint, 200 unit tests, all 14 browser checks (25.4 seconds), production release build and the bounded 32-file artifact scan passed. Reviewed the [three-meteor hero capture](ui-motion-rhythm/hero-three-meteors.png). Existing Zod/Rollup annotation and Playwright color warnings remain non-blocking. No deployment, emulator rerun or paid API request was performed; no additional credentials are required.
+
+## Follow-up — smooth hero lettering and red orbit lights
+
+October 14, 2026. Replaced abrupt one-millisecond letter steps with overlapping 280 ms fades, 65 ms apart, following a shorter hero entrance. Removed the blinking caret. Two red lights now follow closed SVG curves with layered fading tails and independent 12/17-second loops. The animation uses CSS, with no added dependency, blur filter or per-frame JavaScript. Pause freezes the lights in place; resume continues their travel, while reduced motion leaves static artwork and fully visible text.
+
+Actual validation: typecheck and lint passed; 200 unit tests passed across 15 files; all 14 browser tests passed (41.0 seconds), followed by a focused motion/screenshot check (one pass). The production release build and bounded 32-file artifact scan passed. The first browser run exposed discrete SVG dash interpolation; explicit length units fixed it, and the final checks verify movement, pause, resume and live reduced-motion changes. Initial restricted-shell unit/focused-browser starts hit esbuild filesystem access errors; reruns outside the sandbox passed. Existing Zod annotation and Playwright color warnings remain non-blocking.
+
+Reviewed the [final hero capture](ui-motion-rhythm/hero-red-trails.png); the full suite also checks 1440/768/600/390px layout and overflow. This is local validation, not a claim of measured performance on every device. No deployment, Firebase emulator rerun or paid Google request was made. No new credentials are required.
+
 ## Follow-up — staggered reveals, typing and angular headings
 
 October 14, 2026. Replaced whole-section reveals with individual content reveals lasting 1.0–1.2 seconds and 170 ms sibling offsets (capped at 510 ms). Added a one-time hero typing effect, short-lived caret and heading accent-line reveals. Homepage headings now use locally hosted Oxanium with its SIL OFL license; body text retains the system font. Pause/reduced motion reveal all content and complete typing; focus and fast scrolling cannot strand hidden controls. Interactive regions fade without translation after the first test run exposed a click/focus layout shift.

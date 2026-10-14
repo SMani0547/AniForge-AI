@@ -24,7 +24,7 @@ test('public homepage fits desktop, tablet and phone viewports without loading t
   for (const asset of ['/brand/favicon-32.png', '/brand/apple-touch-icon.png', '/social-preview.png']) { const response = await page.request.get(asset); expect(response.ok()).toBe(true); expect(response.headers()['content-type']).toContain('image/'); }
 });
 
-test('homepage motion reveals content, can be paused and switches off live for reduced motion', async ({ page }) => {
+test('homepage motion reveals content, can be paused and switches off live for reduced motion', async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
   const home = page.locator('.af-home');
@@ -35,6 +35,13 @@ test('homepage motion reveals content, can be paused and switches off live for r
   await expect(pause).toHaveAttribute('aria-pressed', 'false');
   await expect(character).not.toHaveCSS('animation-name', 'none');
   await expect(character).toHaveCSS('animation-play-state', 'running');
+  const light = page.locator('.af-orbit-tail').first();
+  await expect(page.locator('.af-orbit')).toHaveCount(3);
+  const lightPosition = () => light.evaluate((element) => getComputedStyle(element).strokeDashoffset);
+  const initialPosition = await lightPosition();
+  await expect.poll(lightPosition).not.toBe(initialPosition);
+  await expect(page.locator('.af-type-letter').last()).toHaveCSS('opacity', '1');
+  await page.screenshot({ path: testInfo.outputPath('hero-red-trails.png') });
   const gallery = page.locator('.af-art-gallery figure').first();
   await expect(gallery).toHaveCSS('opacity', '0');
   await gallery.scrollIntoViewIfNeeded();
@@ -43,18 +50,27 @@ test('homepage motion reveals content, can be paused and switches off live for r
   await expect(pause).toHaveAttribute('aria-pressed', 'true');
   await expect(home).toHaveAttribute('data-animation-paused', 'true');
   await expect(character).toHaveCSS('animation-play-state', 'paused');
+  await expect(light).toHaveCSS('animation-play-state', 'paused');
+  const pausedPosition = await lightPosition();
+  // Compare across rendered frames to prove the light really stops in place.
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  expect(await lightPosition()).toBe(pausedPosition);
+  await page.locator('.af-anime-hero').screenshot({ path: testInfo.outputPath('hero-red-trails-paused.png') });
   await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
   await expect(page.locator('.af-type-letter').last()).toHaveCSS('opacity', '1');
   await pause.click();
   await expect(pause).toHaveAttribute('aria-pressed', 'false');
   await expect(home).toHaveAttribute('data-animation-paused', 'false');
   await expect(character).toHaveCSS('animation-play-state', 'running');
+  await expect.poll(lightPosition).not.toBe(pausedPosition);
+  await expect(home).toHaveAttribute('data-typing-complete', 'true');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.af-home-final a').first().focus();
   await expect(page.locator('.af-home-final')).toHaveCSS('opacity', '1');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(home).toHaveAttribute('data-motion', 'false');
   await expect(character).toHaveCSS('animation-name', 'none');
+  await expect(light).toHaveCSS('animation-name', 'none');
   await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
   await expect(page.locator('.af-home-final')).toHaveCSS('opacity', '1');
 });
