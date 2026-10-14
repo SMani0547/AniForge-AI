@@ -1,5 +1,11 @@
 # UI upgrade results
 
+## Follow-up — staggered reveals, typing and angular headings
+
+October 14, 2026. Replaced whole-section reveals with individual content reveals lasting 1.0–1.2 seconds and 170 ms sibling offsets (capped at 510 ms). Added a one-time hero typing effect, short-lived caret and heading accent-line reveals. Homepage headings now use locally hosted Oxanium with its SIL OFL license; body text retains the system font. Pause/reduced motion reveal all content and complete typing; focus and fast scrolling cannot strand hidden controls. Interactive regions fade without translation after the first test run exposed a click/focus layout shift.
+
+Actual results: final typecheck and lint passed; 200 unit tests passed; all 14 browser checks passed on rerun (20.6 seconds); production release build and bounded 31-file artifact scan passed. Existing Zod annotation warnings remain non-blocking. Desktop, 600px and phone captures were visually reviewed. No Firebase emulator rerun or deployment was performed. See [behavior, font provenance and screenshots](ui-motion-rhythm/README.md).
+
 ## Follow-up — owner-supplied logo integration
 
 October 14, 2026. Cropped the supplied transparent logo into native PNG masters and optimized wordmark, monogram and full-logo WebP variants without regenerating the design. Shared production navigation uses the wordmark on desktop and the monogram on phones; the hero uses the wordmark, while the footer and README use the complete logo. Added browser/touch icons and updated the social preview. Original source remains unchanged.

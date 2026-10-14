@@ -35,18 +35,20 @@ test('homepage motion reveals content, can be paused and switches off live for r
   await expect(pause).toHaveAttribute('aria-pressed', 'false');
   await expect(character).not.toHaveCSS('animation-name', 'none');
   await expect(character).toHaveCSS('animation-play-state', 'running');
-  await pause.click();
-  await expect(pause).toHaveAttribute('aria-pressed', 'true');
-  await expect(home).toHaveAttribute('data-animation-paused', 'true');
-  await expect(character).toHaveCSS('animation-play-state', 'paused');
-  await pause.click();
-  await expect(pause).toHaveAttribute('aria-pressed', 'false');
-  await expect(home).toHaveAttribute('data-animation-paused', 'false');
-  await expect(character).toHaveCSS('animation-play-state', 'running');
   const gallery = page.locator('.af-art-gallery figure').first();
   await expect(gallery).toHaveCSS('opacity', '0');
   await gallery.scrollIntoViewIfNeeded();
   await expect(gallery).toHaveCSS('opacity', '1');
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
+  await expect(home).toHaveAttribute('data-animation-paused', 'true');
+  await expect(character).toHaveCSS('animation-play-state', 'paused');
+  await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
+  await expect(page.locator('.af-type-letter').last()).toHaveCSS('opacity', '1');
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
+  await expect(home).toHaveAttribute('data-animation-paused', 'false');
+  await expect(character).toHaveCSS('animation-play-state', 'running');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.af-home-final a').first().focus();
   await expect(page.locator('.af-home-final')).toHaveCSS('opacity', '1');
@@ -55,6 +57,29 @@ test('homepage motion reveals content, can be paused and switches off live for r
   await expect(character).toHaveCSS('animation-name', 'none');
   await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
   await expect(page.locator('.af-home-final')).toHaveCSS('opacity', '1');
+});
+
+test('homepage reveals sibling content gradually and types the hero without changing its accessible heading', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const title = page.getByRole('heading', { level: 1 });
+  await expect(title).toHaveText('Your sketch.Your story.In motion.');
+  await expect(page.locator('.af-type-letter').last()).toHaveCSS('opacity', '1');
+  expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain('Oxanium');
+  expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('750 48px Oxanium'); })).toBe(true);
+  const steps = page.locator('.af-home-workflow li');
+  await expect(steps.first()).toHaveCSS('opacity', '0');
+  await steps.first().scrollIntoViewIfNeeded();
+  await expect(steps.first()).toHaveCSS('opacity', '1');
+  await expect(steps.nth(1)).toHaveCSS('opacity', '1');
+  const timings = await steps.evaluateAll((elements) => elements.map((element) => ({ delay: getComputedStyle(element).transitionDelay, duration: getComputedStyle(element).transitionDuration })));
+  expect(timings[0]?.delay).not.toBe(timings[1]?.delay);
+  expect(timings[0]?.duration).toContain('1.2s');
+  await page.locator('.af-home-final a').first().focus();
+  await expect(page.locator('.af-home-final .af-row')).toHaveCSS('opacity', '1');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.af-type-letter').last()).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
 });
 
 test('homepage examples are honest local interactions and its links reach the real app', async ({ page }) => {

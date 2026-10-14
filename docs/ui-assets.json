@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 10,
   "recordedOn": "2026-10-14",
   "assets": [
     {
@@ -201,6 +201,17 @@
       "disclosure": "User-supplied brand artwork, not an AniForge-generated output",
       "actualAniforgeGeneratedOutput": false,
       "documentation": "docs/brand/README.md"
+    },
+    {
+      "id": "oxanium-heading-font",
+      "source": "https://github.com/google/fonts/tree/main/ofl/oxanium",
+      "author": "The Oxanium Project Authors",
+      "rights": "SIL Open Font License 1.1; unmodified variable font and OFL.txt bundled in apps/web/public/fonts/oxanium",
+      "kind": "locally-hosted-variable-font",
+      "placements": [
+        "public homepage headings, navigation and buttons"
+      ],
+      "bytes": 43536
     }
   ],
   "externalReference": {
