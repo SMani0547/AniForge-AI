@@ -44,7 +44,7 @@ export class FirestoreAnalysisLedger implements AnalysisLedger {
       return null;
     });
   }
-  async complete(request: AnalysisRequest, result: AnalysisResult, interactionId: string) {
+  async complete(request: AnalysisRequest, result: AnalysisResult, interactionId: string | null) {
     const { project, record, usage } = this.refs(request);
     await this.db.runTransaction(async (transaction) => {
       const [projectDoc, analysisDoc, usageDoc] = await transaction.getAll(project, record, usage);

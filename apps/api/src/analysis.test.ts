@@ -75,16 +75,19 @@ describe('analysis API with explicitly injected test-only provider and repositor
     expect(response.statusCode).toBe(problem === 'stale' ? 409 : problem === 'wrong-scene' ? 404 : 400);
     expect(provider.analyze).not.toHaveBeenCalled();
   });
-  it('returns a validated suggestion without overwriting the source or prior plan, hiding interaction IDs', async () => {
+  it.each(['server-private-interaction', null])('returns a validated suggestion with interaction ID %s without changing source or prior plan', async (interactionId) => {
     const { app, input, provider, repository, ledger, scene } = fixture();
+    vi.mocked(provider.analyze).mockResolvedValue({ shotPlan: structuredClone(plan), model: 'TEST-FIXTURE-model', interactionId });
     const previous = structuredClone(scene);
     const response = await app.inject({ method: 'POST', url, headers, payload: input });
     expect(response.statusCode).toBe(200);
     expect(response.json().data).toMatchObject({ analysisId: input.analysisId, sourceRevision: 3, snapshotAssetId: 'snapshot_1', shotPlan: plan });
     expect(response.body).not.toContain('server-private-interaction');
+    expect(response.json().data).not.toHaveProperty('interactionId');
     expect(provider.analyze).toHaveBeenCalledWith({ sourceImage: { bytes: expect.any(Buffer), mimeType: 'image/png', copyrightAttested: true }, notes: input.notes });
     expect(repository.updateScene).not.toHaveBeenCalled(); expect(scene).toEqual(previous);
-    expect(ledger.complete).toHaveBeenCalledWith(expect.objectContaining({ ownerId: 'alice' }), response.json().data, 'server-private-interaction');
+    expect(ledger.complete).toHaveBeenCalledWith(expect.objectContaining({ ownerId: 'alice' }), response.json().data, interactionId);
+    expect(ledger.fail).not.toHaveBeenCalled();
   });
   it('returns completed idempotent replay without a second provider or media request', async () => {
     const { app, input, provider, repository, ledger } = fixture();
@@ -99,7 +102,7 @@ describe('analysis API with explicitly injected test-only provider and repositor
     const response = await app.inject({ method: 'POST', url, headers, payload: input });
     expect(response.json().error.code).toBe(code); expect(provider.analyze).not.toHaveBeenCalled(); expect(ledger.fail).not.toHaveBeenCalled();
   });
-  it.each([['AI_TIMEOUT', 504, true], ['AI_RATE_LIMITED', 429, false], ['AI_ACCESS_DENIED', 503, false], ['AI_REQUEST_FAILED', 502, true]] as const)('records %s safely without changing source or saved plan', async (code, status, uncertain) => {
+  it.each([['AI_TIMEOUT', 504, true], ['AI_RATE_LIMITED', 429, false], ['AI_ACCESS_DENIED', 503, false], ['AI_BILLING_REQUIRED', 503, false], ['AI_REQUEST_FAILED', 502, true]] as const)('records %s safely without changing source or saved plan', async (code, status, uncertain) => {
     const { app, input, provider, ledger, repository } = fixture();
     vi.mocked(provider.analyze).mockRejectedValue(new AiProviderError(code, 'secret-key-in-sdk-error'));
     const response = await app.inject({ method: 'POST', url, headers, payload: input });
@@ -112,6 +115,13 @@ describe('analysis API with explicitly injected test-only provider and repositor
     vi.mocked(provider.analyze).mockResolvedValue({ shotPlan: { privileged: true }, model: 'TEST FIXTURE', interactionId: 'private-id' });
     const response = await app.inject({ method: 'POST', url, headers, payload: input });
     expect(response.statusCode).toBe(502); expect(response.json().error.code).toBe('AI_BAD_ANALYSIS'); expect(ledger.complete).not.toHaveBeenCalled();
+  });
+  it.each([{ length: 0, interactionId: '' }, { length: 2049, interactionId: 'x'.repeat(2049) }])('rejects an invalid non-null interaction ID of length $length', async ({ interactionId }) => {
+    const { app, input, provider, ledger } = fixture();
+    vi.mocked(provider.analyze).mockResolvedValue({ shotPlan: structuredClone(plan), model: 'TEST-FIXTURE-model', interactionId });
+    const response = await app.inject({ method: 'POST', url, headers, payload: input });
+    expect(response.statusCode).toBe(502); expect(response.json().error.code).toBe('AI_BAD_ANALYSIS');
+    expect(ledger.complete).not.toHaveBeenCalled();
   });
   it('reports uncertain result persistence failures without returning an unrecorded success', async () => {
     const { app, input, ledger } = fixture();

@@ -1,5 +1,37 @@
 # Live cloud setup progress
 
+## October 15, 2026 video activation
+
+**Analysis and video generation are enabled.** The owner confirmed live analysis worked and applied its suggestion. One real Gemini Omni request produced a 4.01-second, 720p MP4; browser playback passed. The deployed worker recovered that existing provider file into private GCS with exact-byte verification and published one immutable version. Anonymous media access was denied, and duplicate completed-job delivery did not regenerate. This was a real provider smoke plus real cloud recovery/storage verification; the owner's fresh browser video-generation flow and conversational edit still need observation.
+
+Current ready revisions: API `aniforge-api-00008-kxk`, private worker `aniforge-worker-00003-h7g`, each receiving 100% of its traffic. Cloud Tasks/OIDC and the five-minute video recovery schedule are configured and verified. The separate 30-minute media-cleanup schedule was blocked by automatic approval review because it can delete media; the owner explicitly chose to keep it deferred. No such deletion schedule was created.
+
+All credential requirements, service-account grants, worker/queue settings, real output locations, tests and remaining checks are recorded in [video activation results](video-activation-results.md). Typecheck, lint, 208 unit tests, release build and the 32-file artifact scan passed for this setup. The following analysis/setup records are historical checkpoints.
+
+## October 15 analysis checkpoint (before video activation)
+
+**Real scene analysis is enabled on the deployed API.** Replacement-key smoke testing with `gemini-3.8-flash` passed, validated Google's shot plan and saved the real output; see [model verification](model-verification.md). Fixed stateless analysis responses without an interaction ID and added actionable HTTP 402 handling. Video generation remains disabled and unverified.
+
+The owner's later request `req-1h` exposed a missed application-service check that still rejected null IDs despite the provider fix. An API regression reproduced HTTP 502 before correction. The follow-up deployment below fixes that second check; no new paid request was made. The browser emulator test now verifies stateless analysis through Firestore persistence, review/apply, save and reload.
+
+### Credentials and cloud steps completed
+
+- The owner refreshed `gcloud auth login`. The deployment uses that interactive account; no downloaded service-account key is needed.
+- The replacement Gemini key remains in ignored `apps/api/.env`. The owner reports the separate AI billing account has prepaid funds. The infrastructure project stays `aniforge-511502`; Firebase configuration and media storage were preserved.
+- Enabled `secretmanager.googleapis.com` in `aniforge-511502`, created `aniforge-gemini-api-key`, and uploaded version `1` via stdin without displaying its contents. Read-back verified an exact match to the local key. The upload process reported failure after the version was created; independent read-back verified success before proceeding.
+- Granted `roles/secretmanager.secretAccessor` on that secret to `aniforge-api@aniforge-511502.iam.gserviceaccount.com`. Cloud Run binds `GEMINI_API_KEY` to numbered version `1`; the key is not a browser environment variable.
+- Checked the actual 302-file Cloud Build upload manifest: local environment files, history and artifacts excluded, and the configured key absent from included file contents.
+- Initial activation used Cloud Build `fd04c2fc-8edb-4f1c-8440-1200f785839c` and revision `aniforge-api-00006-ldz`. Follow-up Cloud Build `21bfef9f-b532-4e5f-9ba3-e74b38f7294d` completed `SUCCESS`, after rechecking the 302-file upload for secrets. Current image: `us-central1-docker.pkg.dev/aniforge-511502/aniforge/api@sha256:dfbe73fe79ea16251461bb33e98756c748702c18122cae6162a9c80d26bbecda`.
+- Current revision `aniforge-api-00007-s9p` is ready and receives 100% of traffic. The update changed only the image. Read-back confirms the same numbered secret binding, `ENABLE_REAL_AI=true`, and `ENABLE_VIDEO_GENERATION=false`. Configured analysis model/deadline/daily limit remain `gemini-3.8-flash`, 40000 ms and 20; local analysis opt-in is also enabled.
+
+### Verification and remaining gates
+
+After the follow-up correction, typecheck, lint, all **208 unit tests in 15 files**, all **40 browser/integration emulator tests**, and the release build passed. The 32-file browser artifact scan passed; existing Zod annotation and emulator dependency warnings remain non-blocking. No frontend deployment was needed.
+
+On the corrected revision, live `/health` returned HTTP 200 with Firebase configured; unauthenticated `/api/v1/projects` returned 401. OPTIONS returned 204 with `access-control-allow-origin: https://aniforge.shivafj.dev`. These checks establish service readiness and CORS, not authenticated live analysis persistence. Next, refresh the custom domain, open a project with an original saved scene, click **Analyze scene**, and confirm the returned plan can be reviewed and saved. **Retry same analysis** intentionally retrieves the previously stored failure; it does not dispatch a replacement paid call. Prior failed records and the owner's drawing/plan were not modified.
+
+Video still requires the private Cloud Run worker, Cloud Tasks queue, task OIDC identity/invoker permissions and recovery scheduler described in [the worker runbook](video-worker-setup.md), followed by real generation/edit and playback checks. No MP4, video entitlement or remaining billing balance is claimed from the analysis success. Earlier records below are historical checkpoints and are superseded by this update.
+
 Recorded October 13, 2026 for `aniforge-511502`. This is a partial setup record, not a deployed-app or live-AI success report.
 
 ## Verified

@@ -46,7 +46,7 @@ export interface QueuedVideoProvider {
 export interface AnalysisResult {
   shotPlan: ShotPlan;
   model: string;
-  interactionId: string;
+  interactionId: string | null;
 }
 
 export interface AnalysisProvider {
@@ -60,6 +60,8 @@ const interactionSchema = z.object({
   output_video: z.unknown().optional(),
   steps: z.array(z.object({ type: z.string(), content: z.array(z.unknown()).optional() })).optional(),
 });
+// Stateless analysis may omit the provider ID; stored video interactions still require it.
+const analysisInteractionSchema = interactionSchema.extend({ id: interactionSchema.shape.id.nullish() });
 const videoSchema = z.object({
   mime_type: z.literal('video/mp4'),
   data: z.string().optional(),
@@ -89,7 +91,14 @@ function completedInteraction(value: unknown): z.infer<typeof interactionSchema>
   return parsed.data;
 }
 
-function outputContents(interaction: z.infer<typeof interactionSchema>): unknown[] {
+function completedAnalysisInteraction(value: unknown): z.infer<typeof analysisInteractionSchema> {
+  const parsed = analysisInteractionSchema.safeParse(value);
+  if (!parsed.success) throw new AiProviderError('AI_BAD_RESPONSE', 'Google AI returned an invalid analysis response. No successful result was recorded.');
+  if (parsed.data.status !== 'completed') throw new AiProviderError('AI_INCOMPLETE', 'Google AI did not complete the analysis. Check AI Studio before retrying.');
+  return parsed.data;
+}
+
+function outputContents(interaction: z.infer<typeof analysisInteractionSchema>): unknown[] {
   const steps = interaction.steps ?? [];
   let latestInput = -1;
   for (let index = steps.length - 1; index >= 0; index--) {
@@ -173,7 +182,7 @@ export class GeminiSceneAnalysisProvider implements AnalysisProvider {
     validateSourceImage(input.sourceImage);
     if ((input.notes?.length ?? 0) > 8_000) throw new AiProviderError('INVALID_PROMPT', 'Scene notes must be at most 8000 characters.');
     return this.withDeadline(async (signal) => {
-      const interaction = completedInteraction(await this.create({
+      const interaction = completedAnalysisInteraction(await this.create({
         model: this.config.analysisModel,
         input: [
           { type: 'image', data: input.sourceImage.bytes.toString('base64'), mime_type: input.sourceImage.mimeType },
@@ -186,7 +195,7 @@ export class GeminiSceneAnalysisProvider implements AnalysisProvider {
       const text = interaction.output_text ?? contents.map((content) => textSchema.safeParse(content)).filter((result) => result.success).map((result) => result.data.text).join('');
       if (!text || text.length > 64_000) throw new AiProviderError('AI_BAD_ANALYSIS', 'Google AI did not return a usable structured shot plan. Adjust the notes or image and try again.');
       try {
-        return { shotPlan: shotPlanSchema.parse(JSON.parse(text)), model: this.config.analysisModel, interactionId: interaction.id };
+        return { shotPlan: shotPlanSchema.parse(JSON.parse(text)), model: this.config.analysisModel, interactionId: interaction.id ?? null };
       } catch {
         throw new AiProviderError('AI_BAD_ANALYSIS', 'Google AI returned a shot plan that failed JSON/schema validation. No plan was saved.');
       }

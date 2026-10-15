@@ -14,6 +14,9 @@ export function safeProviderError(error: unknown): AiProviderError {
   if (error instanceof AiProviderError) return error;
   const details = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   const status = Number(details.status ?? details.code);
+  if (status === 402) {
+    return new AiProviderError('AI_BILLING_REQUIRED', 'Google AI requires payment. Check the API project billing status and available balance in Google AI Studio. Eligible Cloud credits may still require an active Prepay balance.');
+  }
   if (status === 429) {
     return new AiProviderError('AI_RATE_LIMITED', 'Google AI quota or rate limit reached. Check paid-tier quota in AI Studio and retry later.', true);
   }

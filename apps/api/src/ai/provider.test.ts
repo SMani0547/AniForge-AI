@@ -196,6 +196,17 @@ describe('real AI configuration gate', () => {
 });
 
 describe('Gemini analysis with mocked transport', () => {
+  it('accepts completed stateless analysis without inventing a provider ID', async () => {
+    const { provider, transport } = harness();
+    transport.create.mockResolvedValue({ status: 'completed', output_text: JSON.stringify(plan) });
+    await expect(provider.analyze({ sourceImage })).resolves.toMatchObject({ shotPlan: plan, interactionId: null });
+  });
+  it('still rejects video output without a stored interaction ID', async () => {
+    const { provider, transport } = harness();
+    const { id: _id, ...response } = inlineVideo('unused');
+    transport.create.mockResolvedValue(response);
+    await expect(provider.generate({ sourceImage, prompt: 'Wave.' })).rejects.toMatchObject({ code: 'AI_BAD_RESPONSE' });
+  });
   it('sends original image and JSON schema and validates real-shaped output', async () => {
     const { provider, transport } = harness();
     transport.create.mockResolvedValue({ id: 'analysis-fixture', status: 'completed', output_text: JSON.stringify(plan) });
@@ -328,10 +339,19 @@ describe('Omni video with mocked transport', () => {
 });
 
 describe('safe provider boundaries', () => {
+  it('reports payment rejection without retrying or exposing the SDK error', async () => {
+    const { provider, transport, wait } = harness();
+    transport.create.mockRejectedValue({ status: 402, message: 'private-key-and-billing-details' });
+    const error = await provider.analyze({ sourceImage }).catch((failure: unknown) => safeProviderError(failure));
+    expect(error).toMatchObject({ code: 'AI_BILLING_REQUIRED', retryable: false });
+    expect(JSON.stringify(error)).not.toContain('private-key-and-billing-details');
+    expect(transport.create).toHaveBeenCalledTimes(1);
+    expect(wait).not.toHaveBeenCalled();
+  });
   it.each(['http://127.0.0.1/files/x', 'https://attacker.example/v1beta/files/x', 'https://generativelanguage.googleapis.com.attacker.example/v1beta/files/x', 'https://generativelanguage.googleapis.com:444/v1beta/files/x'])('rejects untrusted media URI %s', (uri) => {
     expect(() => fileNameFromUri(uri)).toThrow('unsupported video location');
   });
-  it.each([401, 403, 404, 400, 429, 500, 0])('sanitizes provider error status %s', (status) => {
+  it.each([401, 402, 403, 404, 400, 429, 500, 0])('sanitizes provider error status %s', (status) => {
     const safe = safeProviderError({ status, message: 'https://example.com/?key=secret-token' });
     expect(safe.message).not.toContain('secret-token');
     expect(safe.message).not.toContain('example.com');

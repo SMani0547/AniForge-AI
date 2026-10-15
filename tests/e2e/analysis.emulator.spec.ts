@@ -68,7 +68,7 @@ test('manual shot plans save and reload with real AI explicitly disabled', async
   expect(analyses).toBe(0);
 });
 
-test('explicit provider fixture exercises canonical private snapshot, review, persistence and safe failure', async ({ page }, testInfo) => {
+test('explicit stateless provider fixture exercises canonical private snapshot, review, persistence and safe failure', async ({ page }, testInfo) => {
   // Only the model is replaced. Browser -> Fastify -> Auth/Firestore/Storage all
   // use actual application code and local emulators. This is not live AI evidence.
   const admin = initializeApp({ projectId: 'demo-aniforge', storageBucket: 'demo-aniforge.appspot.com' }, `analysis-browser-${randomUUID()}`);
@@ -84,7 +84,8 @@ test('explicit provider fixture exercises canonical private snapshot, review, pe
     captured.push(input);
     if (rejectNext) throw new AiProviderError('AI_BAD_ANALYSIS', 'Explicit invalid-provider-output test');
     await barrier;
-    return { shotPlan: structuredClone(analysisFixturePlan), model, interactionId: 'server-only-test-interaction' };
+    // Match real store=false analysis, which may omit the provider interaction ID.
+    return { shotPlan: structuredClone(analysisFixturePlan), model, interactionId: null };
   } } }), 20);
   const app = buildApp({ config: readConfig({ NODE_ENV: 'test', GOOGLE_CLOUD_PROJECT: 'demo-aniforge', GCS_BUCKET: 'demo-aniforge.appspot.com' }), repository, analysis, verifyToken: async (token) => { const uid = (await getAuth(admin).verifyIdToken(token, true)).uid; owners.add(uid); return uid; } });
   const apiOrigin = await app.listen({ port: 0, host: '127.0.0.1' });
@@ -145,7 +146,7 @@ test('explicit provider fixture exercises canonical private snapshot, review, pe
     expect(saved.shotPlan?.animationPrompt).toBe('My revised animation direction after reviewing the fixture.');
     const records = await db.collection(`projects/${opened.scene.projectId}/analyses`).get();
     expect(records.docs).toHaveLength(1);
-    expect(records.docs[0]!.data()).toMatchObject({ state: 'succeeded', interactionId: 'server-only-test-interaction' });
+    expect(records.docs[0]!.data()).toMatchObject({ state: 'succeeded', interactionId: null });
     await page.reload();
   await page.getByRole('button', { name: 'Shot plan', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Animation prompt', exact: true })).toHaveValue(saved.shotPlan!.animationPrompt);

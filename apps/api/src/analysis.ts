@@ -6,12 +6,12 @@ import type { SourceImage } from './ai/input.js';
 import type { ProjectRepository } from './repository.js';
 
 export interface AnalysisProvider {
-  analyze(input: { sourceImage: SourceImage; notes?: string }): Promise<{ shotPlan: unknown; model: string; interactionId: string }>;
+  analyze(input: { sourceImage: SourceImage; notes?: string }): Promise<{ shotPlan: unknown; model: string; interactionId: string | null }>;
 }
 export interface AnalysisRequest { projectId: string; sceneId: string; ownerId: string; input: AnalyzeScene }
 export interface AnalysisLedger {
   reserve(request: AnalysisRequest, dailyLimit: number): Promise<AnalysisResult | null>;
-  complete(request: AnalysisRequest, result: AnalysisResult, interactionId: string): Promise<void>;
+  complete(request: AnalysisRequest, result: AnalysisResult, interactionId: string | null): Promise<void>;
   fail(request: AnalysisRequest, error: ApiError, uncertain: boolean): Promise<void>;
 }
 export interface AnalysisRuntime { model: string; provider: AnalysisProvider }
@@ -32,6 +32,7 @@ const providerFailures: Record<string, [number, string]> = {
   AI_CONFIG_INVALID: [503, 'Google AI analysis configuration is invalid. Check the server model and analysis timeout settings.'],
   AI_RATE_LIMITED: [429, 'Google AI quota or rate limit reached. Check paid-tier quota in AI Studio before starting a new request.'],
   AI_ACCESS_DENIED: [503, 'Google AI denied access. Check the server key, paid billing, model access and API restrictions.'],
+  AI_BILLING_REQUIRED: [503, 'Google AI requires payment. The server operator must check this API project in Google AI Studio Billing, including any required Prepay balance, before trying again.'],
   AI_MODEL_UNAVAILABLE: [503, 'The configured Google AI model is unavailable. Verify model access in AI Studio.'],
   AI_REQUEST_REJECTED: [422, 'Google AI rejected this image or request. Review the image, notes and provider content restrictions.'],
   AI_INCOMPLETE: [502, 'Google AI did not complete the analysis. Review provider safety restrictions and status before another attempt.'],
@@ -78,12 +79,15 @@ export class SceneAnalysisService {
       dispatched = true;
       const output = await runtime.provider.analyze({ sourceImage: { bytes, mimeType: 'image/png', copyrightAttested: true }, notes: request.input.notes });
       const parsed = analysisResultSchema.safeParse({ analysisId: request.input.analysisId, sourceRevision: request.input.expectedRevision, snapshotAssetId: asset.id, shotPlan: output.shotPlan, model: output.model, analyzedAt: new Date().toISOString() });
-      if (!parsed.success || !output.interactionId || output.interactionId.length > 2048) throw new ApiError(502, 'AI_BAD_ANALYSIS', providerFailures.AI_BAD_ANALYSIS![1]);
+      // Stateless analysis may have no provider ID. Validate supplied IDs without
+      // rejecting an otherwise valid plan or inventing provenance for the ledger.
+      const validInteractionId = output.interactionId === null || (typeof output.interactionId === 'string' && output.interactionId.length > 0 && output.interactionId.length <= 2048);
+      if (!parsed.success || !validInteractionId) throw new ApiError(502, 'AI_BAD_ANALYSIS', providerFailures.AI_BAD_ANALYSIS![1]);
       await this.ledger.complete(request, parsed.data, output.interactionId);
       return parsed.data;
     } catch (error) {
       const safe = analysisError(error);
-      const definitive = ['AI_RATE_LIMITED', 'AI_ACCESS_DENIED', 'AI_MODEL_UNAVAILABLE', 'AI_REQUEST_REJECTED'];
+      const definitive = ['AI_RATE_LIMITED', 'AI_ACCESS_DENIED', 'AI_BILLING_REQUIRED', 'AI_MODEL_UNAVAILABLE', 'AI_REQUEST_REJECTED'];
       // Ambiguous failures retain the bounded lease. A pending record remains safe if this write fails.
       if (reserved) {
         try { await this.ledger.fail(request, safe, dispatched && !definitive.includes(safe.code)); } catch { /* Never replace the original safe error or redispatch a paid call. */ }
