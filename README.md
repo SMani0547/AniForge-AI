@@ -2,10 +2,7 @@
 
 <img src="apps/web/public/brand/wordmark.png" width="640" alt="AniForge AI — official white and vermilion wordmark" />
 
-<br /><br />
-
-<img src="docs/readme/hero.svg" width="100%" alt="Your art. In motion. Red-orange meteor trails cross a charcoal sky." />
-
+<br />
 **Your sketch. Your story. In motion.**
 
 An anime creation studio for original artwork, editable scenes and versioned AI video.
