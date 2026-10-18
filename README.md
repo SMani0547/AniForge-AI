@@ -1,17 +1,21 @@
 <div align="center">
 
-<img src="docs/readme/hero.svg" width="100%" alt="AniForge AI — Draw it. Animate it. Make it yours. An original copper-sailed ship beneath a violet moon." />
+<img src="apps/web/public/brand/wordmark.png" width="640" alt="AniForge AI — official white and vermilion wordmark" />
 
-**Your next adventure starts with a sketch.**
+<br /><br />
 
-An anime creation studio for original art, editable scenes and versioned AI video workflows.
+<img src="docs/readme/hero.svg" width="100%" alt="Your art. In motion. Red-orange meteor trails cross a charcoal sky." />
+
+**Your sketch. Your story. In motion.**
+
+An anime creation studio for original artwork, editable scenes and versioned AI video.
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-studio-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Firebase](https://img.shields.io/badge/Firebase-hosted-18181B?style=for-the-badge&logo=firebase&logoColor=FFCA28)
-![Google AI](https://img.shields.io/badge/Google_AI-server_only-7657CF?style=for-the-badge&logo=google&logoColor=white)
+![Google AI](https://img.shields.io/badge/Google_AI-server_only-E74924?style=for-the-badge&logo=google&logoColor=white)
 
-[**Open AniForge ↗**](https://aniforge-511502.web.app) · [**Local setup**](#local-setup) · [**Build roadmap**](UI_UPGRADE_TODO.md) · [**Documentation**](#documentation)
+[**Open AniForge ↗**](https://aniforge.shivafj.dev/) · [**Local setup**](#local-setup) · [**Build roadmap**](UI_UPGRADE_TODO.md) · [**Documentation**](#documentation)
 
 <sub>Built for the AI Builder Cup 2026 · Original stories. Editable sources. Your creative direction.</sub>
 
@@ -27,31 +31,50 @@ Draw an original character. Build a scene. Refine its direction. Keep your sourc
 | :--- | :--- | :--- | :--- |
 | Sketch, import, crop and arrange layers. | Write a shot plan or review a Gemini suggestion. | Request a clip through the server-side job workflow. | Compare revisions while preserving the original. |
 
-> **Captain's log · October 14, 2026**
+> **Verified milestones · October 15, 2026**
 >
-> Firebase Hosting and the Cloud Run API have been deployed. The owner reports working authentication and database access. Local editor and regression checks pass. **Real Google analysis, generated video and follow-up edits remain unverified**; paid access and private video-worker setup remain release gates. The latest local UI changes require Hosting publication.
+> Firebase Hosting and Cloud Run are deployed, and the owner confirmed live Gemini analysis. A real server-side Gemini video request produced a **4.01-second, 720p MP4**; the deployed worker recovered that exact clip into private storage. Fresh signed-in browser generation and real follow-up editing remain separate acceptance checks. [Read the actual verification results →](docs/video-activation-results.md)
 
 ## 🎨 Inside the studio
 
-<img src="docs/ui-u2/hero-1440.png" width="100%" alt="AniForge landing page with original anime-inspired artwork and studio entry points" />
+<img src="docs/readme/screenshots/homepage.png" width="100%" alt="Current AniForge homepage with the supplied white and orange logo, charcoal background and original artist in a vermilion jacket" />
+
+<sub>Current homepage, captured locally on October 18, 2026. Character artwork is original promotional art, not an AniForge-generated video.</sub>
 
 <details>
-<summary><strong>Open the saved editor preview</strong></summary>
+<summary><strong>✎ Source workspace — drawing, layers and saved scenes</strong></summary>
 
-![Saved source editor with tools, layers and properties](docs/ui-saved-shell/workspace-source-1440.png)
+![Current saved source editor with AniForge branding, tools, layers and properties](docs/readme/screenshots/source-editor.png)
 
-Actual local Firebase-emulator capture. The geometric artwork is test content, not Google-generated output. The emulator warning is intentionally visible.
+Fresh local Firebase-emulator capture, October 18, 2026. This shows the working editor; the scene is demo content, not Google-generated output. The emulator warning is intentionally visible.
 
 </details>
 
 <details>
-<summary><strong>Explore the project library and phone layout</strong></summary>
+<summary><strong>◈ Project library — your scenes, ready to reopen</strong></summary>
 
-![Project library](docs/ui-u3/dashboard-populated.png)
+![Current project library with the AniForge logo and saved project cards](docs/readme/screenshots/project-library.png)
 
-<img src="docs/ui-saved-shell/workspace-mobile-canvas.png" width="320" alt="Saved source editor on a phone with compact navigation and canvas controls" />
+Local Firebase-emulator capture, October 18, 2026. Project data is isolated demo content.
 
-Local emulator screenshots. [More UI evidence →](docs/ui-upgrade-results.md)
+</details>
+
+<details>
+<summary><strong>✦ Sketch playground — try the tools without an account</strong></summary>
+
+![Current sketch playground with drawing tools, canvas and a clearly marked unsaved session](docs/readme/screenshots/playground.png)
+
+Actual local drawing capture, October 18, 2026. This playground is unsaved and does not call AI services.
+
+</details>
+
+<details>
+<summary><strong>↗ On your phone — the same studio, a smaller canvas</strong></summary>
+
+<img src="docs/readme/screenshots/homepage-mobile.png" width="320" alt="Current AniForge homepage on a phone with the supplied logo and original anime artwork" />
+<img src="docs/readme/screenshots/source-editor-mobile.png" width="320" alt="Current saved source editor on a phone with the AniForge logo and compact canvas controls" />
+
+Local captures at a 390px viewport, October 18, 2026. Saved-editor images use isolated Firebase emulators. [Capture provenance →](docs/readme/README.md) · [UI validation history →](docs/ui-upgrade-results.md)
 
 </details>
 
@@ -60,7 +83,7 @@ Local emulator screenshots. [More UI evidence →](docs/ui-upgrade-results.md)
 - **Draw freely:** pencil, brush, eraser, shapes, text, image layers, transforms and undo/redo.
 - **Keep your source:** editable scene JSON, autosave and revision-conflict recovery.
 - **Direct the scene:** manual shot plans, prompt previews and review-before-apply analysis.
-- **Preserve every take:** immutable video versions, parent links and comparison controls; real model verification remains pending.
+- **Preserve every take:** immutable video versions, parent links and comparison controls; a real follow-up edit remains to be verified.
 - **Export honestly:** original MP4 plus timeline JSON. Preview trims and captions are not baked into the MP4.
 
 `SOURCE JSON` → `SHOT PLAN` → `VIDEO JOB` → `IMMUTABLE MP4` → `NEW REVISION`
@@ -73,7 +96,7 @@ For the One Piece fans: bring the big dreams, unlikely crews and sense of advent
 
 > An adult cartographer aboard a floating wooden skiff unfolds a glowing star map. Copper sails catch a gentle wind as cloud islands drift past. Slow camera push, warm sunrise, hand-drawn 2D atmosphere. Preserve the character and framing.
 
-<sub>An original creative prompt, not a generated result. This project is unofficial and is not affiliated with One Piece; the banner uses original nautical artwork.</sub>
+<sub>An original creative prompt, not a generated result. This project is unofficial and is not affiliated with One Piece. The logo and meteor banner belong to AniForge's own visual identity.</sub>
 
 ## Local setup
 
@@ -166,7 +189,7 @@ npm audit --omit=dev
 
 Unit tests use explicitly isolated auth/repository/provider doubles. The unconfigured browser smoke tests cover rendering, drawing, undo/redo and mobile fit. The separate emulator suite exercises real local Auth, Firestore, Storage and browser save/reload; it does not prove production IAM or cloud deployment. See [Phase 2 results](docs/phase-2-results.md) and [Phase 1 results](docs/phase-1-results.md) for executed commands, counts and limitations.
 
-Browser tests inject explicitly labeled providers into test-only API instances while using real local Firebase services. They check source PNG pixels, analysis review/save/reload, video queuing, independent parent/revised playback, saved selection/timeline, exact MP4 downloads and safe failures. These fixtures are not live Gemini evidence. See [Phase 5 results](docs/phase-5-results.md) for current checks and outstanding real-model/cloud gates.
+Browser tests inject explicitly labeled providers into test-only API instances while using real local Firebase services. They check source PNG pixels, analysis review/save/reload, video queuing, independent parent/revised playback, saved selection/timeline, exact MP4 downloads and safe failures. These fixtures are not live Gemini evidence. See [Phase 5 results](docs/phase-5-results.md) for implementation checks and [video activation results](docs/video-activation-results.md) for the later real-provider/cloud evidence and remaining acceptance checks.
 
 The pinned Firebase CLI is a development dependency and currently brings transitive npm advisories; the production dependency audit is separate. Do not run `npm audit fix --force` to downgrade the CLI or silently break its dependencies. The local emulators bind only to loopback.
 
@@ -188,8 +211,8 @@ aniforge-ai/
 | Architecture & scope | [Build plan](BUILD_PLAN.md) · [Architecture](docs/architecture.md) · [API](docs/api.md) |
 | UI & editor | [UI roadmap](UI_UPGRADE_TODO.md) · [Source workspace](docs/editor-workspace.md) · [Video workspace](docs/video-workspace.md) |
 | Cloud & credentials | [Cloud setup](docs/cloud-setup.md) · [Private worker](docs/video-worker-setup.md) · [Models](docs/model-verification.md) |
-| Release & demo | [Release checklist](docs/release-checklist.md) · [Demo script](docs/demo-script.md) · [Acceptance gates](TODO.md) |
-| Actual results | [UI validation](docs/ui-upgrade-results.md) · [Phase 5](docs/phase-5-results.md) · [Release preparation](docs/phase-6-results.md) |
+| Release & demo | [Submission draft](SUBMISSION_DRAFT.md) · [Demo script](docs/demo-script.md) · [Release checklist](docs/release-checklist.md) · [Acceptance gates](TODO.md) |
+| Actual results | [UI validation](docs/ui-upgrade-results.md) · [Video activation](docs/video-activation-results.md) · [README captures](docs/readme/README.md) |
 
 ## ⚓ Build with us
 
@@ -207,6 +230,6 @@ Server secrets stay in ignored API environment files or Secret Manager. Generate
 
 <sub>Built for creators with a world in their head and a sketch to start it.</sub>
 
-[Open the studio](https://aniforge-511502.web.app) · [Read the roadmap](TODO.md)
+[Open the studio](https://aniforge.shivafj.dev/) · [Read the roadmap](TODO.md)
 
 </div>
