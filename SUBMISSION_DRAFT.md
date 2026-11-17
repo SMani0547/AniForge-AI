@@ -113,11 +113,11 @@ Preparation note: render the diagram as a legible image or recreate it with Powe
 
 **Project library → source workspace → video workspace**
 
-| View | Main elements |
-| --- | --- |
-| Project library | Project cards, search and create/open actions |
-| Source workspace | Drawing tools, central canvas, layers/properties, shot plan and save status |
-| Video workspace | Player, version selection, job status, edit instruction, timeline preview and downloads |
+| View             | Main elements                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| Project library  | Project cards, search and create/open actions                                           |
+| Source workspace | Drawing tools, central canvas, layers/properties, shot plan and save status             |
+| Video workspace  | Player, version selection, job status, edit instruction, timeline preview and downloads |
 
 Suggested visual: use the existing [source workspace capture](docs/ui-saved-shell/workspace-source-1440.png) as an implementation illustration. Use the [video workspace capture](docs/ui-u5/video-review-1440.png) only with its **TEST FIXTURE — NOT AI OUTPUT** label and an explicit local-test caption. Replace with current production captures where available.
 
@@ -146,16 +146,16 @@ Preparation note: the recovery component is a Cloud Run job invoked by Cloud Sch
 
 ### Page 9 — Technologies to be used in the solution
 
-| Layer | Technology and role |
-| --- | --- |
-| Studio | React, Vite, TypeScript, Tailwind CSS, react-konva |
-| Hosting and identity | Firebase Hosting; Firebase Authentication with Google sign-in |
-| Application database | Cloud Firestore: projects, scene JSON, plans, jobs and versions |
-| Backend | Node.js, TypeScript, Fastify on Cloud Run; Zod validation |
-| AI | Server-side `@google/genai`; Gemini for analysis and video |
-| Media and execution | Private Cloud Storage; Cloud Tasks; Cloud Scheduler recovery |
-| Secrets and delivery | Secret Manager; Docker, Cloud Build and Artifact Registry |
-| Verification | Vitest, Playwright, Firebase emulators and real-provider smoke checks |
+| Layer                | Technology and role                                                   |
+| -------------------- | --------------------------------------------------------------------- |
+| Studio               | React, Vite, TypeScript, Tailwind CSS, react-konva                    |
+| Hosting and identity | Firebase Hosting; Firebase Authentication with Google sign-in         |
+| Application database | Cloud Firestore: projects, scene JSON, plans, jobs and versions       |
+| Backend              | Node.js, TypeScript, Fastify on Cloud Run; Zod validation             |
+| AI                   | Server-side`@google/genai`; Gemini for analysis and video           |
+| Media and execution  | Private Cloud Storage; Cloud Tasks; Cloud Scheduler recovery          |
+| Secrets and delivery | Secret Manager; Docker, Cloud Build and Artifact Registry             |
+| Verification         | Vitest, Playwright, Firebase emulators and real-provider smoke checks |
 
 Recorded model configuration: `gemini-3.8-flash` for analysis and `gemini-omni-1.1-flash` for video. These names reflect the project's October 15 verification record, not a claim about future availability. AniForge integrates existing models; it does not train a foundation model.
 
@@ -175,12 +175,12 @@ If a numeric estimate is desired: [ADD: dated billing measurements, expected mon
 
 Build a four-panel screenshot slide with these captions. Use production captures for the final working-demo story wherever possible.
 
-| Panel | Caption | Available material / remaining action |
-| --- | --- | --- |
-| 1 | AniForge AI — original-art creation studio | [Existing homepage capture](docs/ui-motion-rhythm/hero-meteor-flames.png); a local October 14 UI capture, not a current uptime check |
-| 2 | Editable source and saved scene | [Existing source workspace capture](docs/ui-saved-shell/workspace-source-1440.png); local/emulator UI evidence. [ADD: current saved project capture after refresh.] |
-| 3 | Gemini analysis → reviewed shot plan | [ADD: screenshot of the actual Gemini suggestion in the signed-in production project. Live analysis was confirmed by the owner, but no suitable submission screenshot is selected here.] |
-| 4 | Real Gemini output — 4.01-second, 720p clip | Available privately: `artifacts/ai-smoke/video-ae1e2a91-58bb-477b-baea-70cb3d65ce00/playback-frame.png`. This is server-side smoke output, not a screenshot of a fresh browser generation. [ADD: a production player capture after the live browser check.] |
+| Panel | Caption                                      | Available material / remaining action                                                                                                                                                                                                                        |
+| ----- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1     | AniForge AI — original-art creation studio  | [Existing homepage capture](docs/ui-motion-rhythm/hero-meteor-flames.png); a local October 14 UI capture, not a current uptime check                                                                                                                          |
+| 2     | Editable source and saved scene              | [Existing source workspace capture](docs/ui-saved-shell/workspace-source-1440.png); local/emulator UI evidence. [ADD: current saved project capture after refresh.]                                                                                           |
+| 3     | Gemini analysis → reviewed shot plan        | [ADD: screenshot of the actual Gemini suggestion in the signed-in production project. Live analysis was confirmed by the owner, but no suitable submission screenshot is selected here.]                                                                     |
+| 4     | Real Gemini output — 4.01-second, 720p clip | Available privately:`artifacts/ai-smoke/video-ae1e2a91-58bb-477b-baea-70cb3d65ce00/playback-frame.png`. This is server-side smoke output, not a screenshot of a fresh browser generation. [ADD: a production player capture after the live browser check.] |
 
 Preparation note: the real smoke MP4 is in the same ignored artifact folder as its playback frame. Use only the frame/clip for the deck or recording; keep raw provider metadata private. Do not use geometric fixture videos as Google output. Captures in `docs/ui-u5/` and `docs/demo/` are explicitly test fixtures.
 
@@ -188,15 +188,15 @@ Brand asset: [AniForge wordmark](apps/web/public/brand/wordmark.png). Preserve i
 
 ### Page 12 — Prototype Performance report/Benchmarking
 
-| Check | Observed result | Date and scope |
-| --- | --- | --- |
-| Real Gemini initial video | 40,886 ms generation + download; 1,906,656-byte MP4 | Oct 15; one server-side sample, not a latency average |
-| Browser playback of that MP4 | 4.01 s, 1280 × 720, 96 decoded frames; played to end | Oct 15; local Chromium |
+| Check                         | Observed result                                                                   | Date and scope                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Real Gemini initial video     | 40,886 ms generation + download; 1,906,656-byte MP4                               | Oct 15; one server-side sample, not a latency average              |
+| Browser playback of that MP4  | 4.01 s, 1280 × 720, 96 decoded frames; played to end                             | Oct 15; local Chromium                                             |
 | Deployed recovery and privacy | Same MP4 bytes stored; one immutable version; anonymous media access returned 403 | Oct 15; actual cloud worker recovered the existing provider result |
-| Completed-job redelivery | One version retained; no new model generation | Oct 15; one observed redelivery |
-| Quality checks | Typecheck, lint, 208 unit tests and release build passed | Oct 15; historical results, not rerun for this draft |
-| Browser/emulator checks | 40 tests passed | Oct 15 preceding fix; isolated emulators and labeled AI fixtures |
-| Submission URL reachability | Homepage + API health: 200; GitHub: 404 without authentication | Oct 18; HTTP reachability only |
+| Completed-job redelivery      | One version retained; no new model generation                                     | Oct 15; one observed redelivery                                    |
+| Quality checks                | Typecheck, lint, 208 unit tests and release build passed                          | Oct 15; historical results, not rerun for this draft               |
+| Browser/emulator checks       | 40 tests passed                                                                   | Oct 15 preceding fix; isolated emulators and labeled AI fixtures   |
+| Submission URL reachability   | Homepage + API health: 200; GitHub: 404 without authentication                    | Oct 18; HTTP reachability only                                     |
 
 **Limitations:** no load/concurrency benchmark, average latency, measured per-clip cost or user study. Initial video verification does not prove exact adherence to every visual instruction. Fresh browser generation and live follow-up editing remain outstanding.
 

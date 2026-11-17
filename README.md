@@ -28,6 +28,8 @@ Draw an original character. Build a scene. Refine its direction. Keep your sourc
 | :--- | :--- | :--- | :--- |
 | Sketch, import, crop and arrange layers. | Write a shot plan or review a Gemini suggestion. | Request a clip through the server-side job workflow. | Compare revisions while preserving the original. |
 
+> **Current deployment · October 22, 2026:** Paid AI is intentionally disabled after submission. Analysis, new video generation and AI edits are off; the video queue and recovery schedule are paused. Existing project/media configuration is retained. [Shutdown verification →](docs/ai-shutdown-status.md)
+
 > **Verified milestones · October 15, 2026**
 >
 > Firebase Hosting and Cloud Run are deployed, and the owner confirmed live Gemini analysis. A real server-side Gemini video request produced a **4.01-second, 720p MP4**; the deployed worker recovered that exact clip into private storage. Fresh signed-in browser generation and real follow-up editing remain separate acceptance checks. [Read the actual verification results →](docs/video-activation-results.md)
